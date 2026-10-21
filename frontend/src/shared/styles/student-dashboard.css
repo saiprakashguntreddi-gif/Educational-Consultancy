@@ -1,0 +1,1597 @@
+/* ==========================================================================
+   SUPERCONSCIOUSNESS — STUDENT COMMAND CENTER DESIGN SYSTEM
+   Theme: Premium Educational Consultancy & Career Guidance SaaS
+   Colors:
+     - Primary Navy: #081426
+     - Secondary Navy: #111C31
+     - Background: #F7F8FC
+     - Card: #FFFFFF
+     - Primary Accent: #5B4FE9
+     - Secondary Accent: #7C6FF2
+     - Main Text: #172033
+     - Muted Text: #667085
+     - Success: #16A34A
+   ========================================================================== */
+
+:root {
+  --cmd-navy-primary: #081426;
+  --cmd-navy-secondary: #111C31;
+  --cmd-navy-elevated: #16223B;
+  --cmd-navy-hover: #1A2744;
+  --cmd-bg: #F7F8FC;
+  --cmd-card: #FFFFFF;
+  --cmd-card-hover: #FAFBFD;
+  --cmd-accent: #5B4FE9;
+  --cmd-accent-hover: #7C6FF2;
+  --cmd-accent-subtle: rgba(91, 79, 233, 0.08);
+  --cmd-accent-glow: rgba(91, 79, 233, 0.16);
+  --cmd-text-main: #172033;
+  --cmd-text-muted: #667085;
+  --cmd-text-light: #94A3B8;
+  --cmd-border: #EAECF0;
+  --cmd-border-subtle: #F2F4F7;
+  --cmd-success: #16A34A;
+  --cmd-success-subtle: #DCFCE7;
+  --cmd-success-text: #15803D;
+  --cmd-warning: #D97706;
+  --cmd-warning-subtle: #FEF3C7;
+  --cmd-error: #DC2626;
+  --cmd-error-subtle: #FEE2E2;
+  --cmd-sidebar-width: 260px;
+  --cmd-header-height: 68px;
+  --cmd-radius-sm: 8px;
+  --cmd-radius-md: 12px;
+  --cmd-radius-lg: 16px;
+  --cmd-radius-xl: 20px;
+  --cmd-shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --cmd-shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --cmd-shadow-md: 0 4px 12px -2px rgba(16, 24, 40, 0.08), 0 2px 6px -2px rgba(16, 24, 40, 0.04);
+  --cmd-shadow-lg: 0 12px 24px -4px rgba(16, 24, 40, 0.08), 0 4px 8px -2px rgba(16, 24, 40, 0.04);
+}
+
+/* ==========================================================================
+   RESET & CONTAINER LAYOUT
+   ========================================================================== */
+
+.cmd-dashboard-root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  background-color: var(--cmd-bg);
+  color: var(--cmd-text-main);
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.cmd-dashboard-root *,
+.cmd-dashboard-root *::before,
+.cmd-dashboard-root *::after {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   SIDEBAR (DARK NAVY #081426)
+   ========================================================================== */
+
+.cmd-sidebar {
+  width: var(--cmd-sidebar-width);
+  min-height: 100vh;
+  background-color: var(--cmd-navy-primary);
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 2px 0 16px rgba(8, 20, 38, 0.25);
+}
+
+/* Custom subtle scrollbar for sidebar */
+.cmd-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.cmd-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cmd-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+/* Sidebar Top Branding */
+.cmd-sidebar-brand {
+  padding: 1.5rem 1.4rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: background 0.15s ease;
+}
+
+.cmd-sidebar-brand:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cmd-brand-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cmd-brand-icon-box {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #5B4FE9 0%, #7C6FF2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(91, 79, 233, 0.35);
+}
+
+.cmd-brand-subtitle {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #8C99B2;
+  text-transform: uppercase;
+  padding-left: 0.1rem;
+}
+
+/* Sidebar Navigation Items */
+.cmd-sidebar-nav {
+  flex: 1;
+  padding: 1.25rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cmd-nav-category-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #64748B;
+  padding: 0.6rem 0.85rem 0.35rem;
+}
+
+.cmd-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--cmd-radius-sm);
+  color: #A6B4C9;
+  font-size: 0.86rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.16s ease;
+  outline: none;
+}
+
+.cmd-nav-item:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cmd-nav-item.active {
+  background: rgba(91, 79, 233, 0.18);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* Subtle Active Purple Indicator Bar on Left */
+.cmd-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 3.5px;
+  border-radius: 0 3px 3px 0;
+  background-color: var(--cmd-accent);
+  box-shadow: 0 0 8px rgba(91, 79, 233, 0.6);
+}
+
+.cmd-nav-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8C99B2;
+  transition: color 0.16s ease;
+  flex-shrink: 0;
+}
+
+.cmd-nav-item:hover .cmd-nav-item-icon,
+.cmd-nav-item.active .cmd-nav-item-icon {
+  color: #FFFFFF;
+}
+
+.cmd-nav-item.active .cmd-nav-item-icon {
+  color: #8A7DF8;
+}
+
+.cmd-nav-item-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #CBD5E1;
+}
+
+/* Sidebar Footer (Settings & Logout) */
+.cmd-sidebar-footer {
+  padding: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cmd-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--cmd-radius-sm);
+  color: #8C99B2;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.cmd-footer-item:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cmd-footer-item.logout:hover {
+  color: #F87171;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Backdrop for Mobile Sidebar */
+.cmd-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 20, 38, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 95;
+  display: none;
+}
+
+/* ==========================================================================
+   MAIN DASHBOARD WRAPPER & TOP HEADER
+   ========================================================================== */
+
+.cmd-main-wrapper {
+  margin-left: var(--cmd-sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--cmd-bg);
+  width: calc(100% - var(--cmd-sidebar-width));
+  max-width: calc(100% - var(--cmd-sidebar-width));
+  overflow-x: hidden;
+}
+
+/* Top Header */
+.cmd-top-header {
+  height: var(--cmd-header-height);
+  background-color: var(--cmd-card);
+  border-bottom: 1px solid var(--cmd-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  width: 100%;
+  box-shadow: var(--cmd-shadow-xs);
+}
+
+.cmd-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cmd-mobile-menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--cmd-border);
+  border-radius: var(--cmd-radius-sm);
+  padding: 0.45rem;
+  cursor: pointer;
+  color: var(--cmd-text-main);
+  align-items: center;
+  justify-content: center;
+}
+
+.cmd-page-title-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmd-page-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cmd-text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cmd-breadcrumb {
+  font-size: 0.75rem;
+  color: var(--cmd-text-muted);
+  font-weight: 500;
+}
+
+.cmd-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cmd-header-website-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid var(--cmd-border);
+  background: #FFFFFF;
+  color: var(--cmd-text-main);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cmd-header-website-btn:hover {
+  background: var(--cmd-bg);
+  border-color: #CBD5E1;
+}
+
+.cmd-notification-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--cmd-border);
+  background: #FFFFFF;
+  color: var(--cmd-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cmd-notification-btn:hover {
+  color: var(--cmd-text-main);
+  background: var(--cmd-bg);
+}
+
+.cmd-notification-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  background-color: var(--cmd-accent);
+  border-radius: 50%;
+}
+
+.cmd-user-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.35rem;
+  border-radius: 24px;
+  border: 1px solid var(--cmd-border);
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cmd-user-dropdown-btn:hover {
+  border-color: #CBD5E1;
+  background: var(--cmd-card-hover);
+}
+
+.cmd-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #111C31 0%, #1E2D4A 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid rgba(8, 20, 38, 0.15);
+}
+
+.cmd-user-info-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.cmd-user-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cmd-text-main);
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cmd-user-role-badge {
+  font-size: 0.65rem;
+  color: var(--cmd-accent);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   MAIN DASHBOARD CONTENT AREA
+   ========================================================================== */
+
+.cmd-content-container {
+  flex: 1;
+  padding: 2rem 2.25rem 3.5rem;
+  max-width: 1320px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   SECTION 1: WELCOME BANNER (GREETING & VERIFIED STATUS)
+   ========================================================================== */
+
+.cmd-welcome-card {
+  background: var(--cmd-card);
+  border: 1px solid var(--cmd-border);
+  border-radius: var(--cmd-radius-lg);
+  padding: 1.6rem 2rem;
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--cmd-shadow-xs);
+  position: relative;
+  overflow: hidden;
+}
+
+.cmd-welcome-card::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: linear-gradient(180deg, var(--cmd-accent) 0%, var(--cmd-accent-hover) 100%);
+  border-radius: 0 var(--cmd-radius-lg) var(--cmd-radius-lg) 0;
+}
+
+.cmd-welcome-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cmd-welcome-greeting {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--cmd-text-main);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.cmd-welcome-subtitle {
+  font-size: 0.92rem;
+  color: var(--cmd-text-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+.cmd-welcome-status-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.cmd-status-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cmd-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cmd-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cmd-status-pill.verified {
+  background-color: var(--cmd-success-subtle);
+  color: var(--cmd-success-text);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.cmd-status-pill.pending {
+  background-color: var(--cmd-warning-subtle);
+  color: #B45309;
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.cmd-status-pill.rejected {
+  background-color: var(--cmd-error-subtle);
+  color: var(--cmd-error);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.cmd-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+/* ==========================================================================
+   SECTION 2: PROFILE PROGRESS & NEXT STEP ACTION (TWO-COLUMN OR COMBINED)
+   ========================================================================== */
+
+.cmd-progress-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+/* Profile Completion Card */
+.cmd-card-standard {
+  background: var(--cmd-card);
+  border: 1px solid var(--cmd-border);
+  border-radius: var(--cmd-radius-lg);
+  padding: 1.6rem 1.75rem;
+  box-shadow: var(--cmd-shadow-xs);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.cmd-card-standard:hover {
+  box-shadow: var(--cmd-shadow-sm);
+  border-color: #DDE2EB;
+}
+
+.cmd-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.cmd-card-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--cmd-text-main);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cmd-completion-pct {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--cmd-text-main);
+}
+
+.cmd-progress-bar-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background-color: #ECEFF5;
+  overflow: hidden;
+  margin-bottom: 0.85rem;
+}
+
+.cmd-progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #16A34A 0%, #15803D 100%);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cmd-progress-bar-fill.accent {
+  background: linear-gradient(90deg, var(--cmd-accent) 0%, var(--cmd-accent-hover) 100%);
+}
+
+.cmd-card-description {
+  font-size: 0.86rem;
+  color: var(--cmd-text-muted);
+  line-height: 1.5;
+  margin: 0 0 1.25rem 0;
+}
+
+.cmd-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--cmd-radius-sm);
+  background-color: var(--cmd-accent);
+  color: #FFFFFF;
+  font-size: 0.86rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  text-decoration: none;
+  align-self: flex-start;
+  box-shadow: 0 2px 6px rgba(91, 79, 233, 0.25);
+}
+
+.cmd-btn-primary:hover {
+  background-color: var(--cmd-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(91, 79, 233, 0.35);
+}
+
+/* Next Best Action Card (Standout subtle indigo card) */
+.cmd-next-step-card {
+  background: linear-gradient(145deg, #FFFFFF 0%, #F8F7FF 100%);
+  border: 1px solid rgba(91, 79, 233, 0.22);
+  border-radius: var(--cmd-radius-lg);
+  padding: 1.6rem 1.75rem;
+  box-shadow: 0 2px 10px rgba(91, 79, 233, 0.05);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.cmd-badge-next-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 12px;
+  background: var(--cmd-accent-subtle);
+  color: var(--cmd-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cmd-next-step-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cmd-text-main);
+  margin: 0.65rem 0 0.35rem;
+}
+
+/* ==========================================================================
+   SECTION 3: STUDENT JOURNEY TIMELINE
+   ========================================================================== */
+
+.cmd-journey-section {
+  background: var(--cmd-card);
+  border: 1px solid var(--cmd-border);
+  border-radius: var(--cmd-radius-lg);
+  padding: 1.75rem 2rem;
+  margin-bottom: 1.75rem;
+  box-shadow: var(--cmd-shadow-xs);
+}
+
+.cmd-section-title-wrap {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cmd-section-heading {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--cmd-text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cmd-section-subheading {
+  font-size: 0.82rem;
+  color: var(--cmd-text-muted);
+  margin: 0;
+}
+
+/* Timeline Horizontal Progress Container */
+.cmd-journey-timeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  position: relative;
+  gap: 1rem;
+}
+
+.cmd-journey-timeline::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 5%;
+  right: 5%;
+  height: 2px;
+  background-color: var(--cmd-border);
+  z-index: 1;
+}
+
+.cmd-journey-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  padding: 0 0.5rem;
+}
+
+.cmd-journey-step:hover {
+  transform: translateY(-2px);
+}
+
+.cmd-step-node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background-color: #FFFFFF;
+  border: 2px solid var(--cmd-border);
+  color: var(--cmd-text-muted);
+  margin-bottom: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.cmd-journey-step.completed .cmd-step-node {
+  background-color: var(--cmd-success);
+  border-color: var(--cmd-success);
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+.cmd-journey-step.in-progress .cmd-step-node {
+  background-color: #FFFFFF;
+  border-color: var(--cmd-accent);
+  color: var(--cmd-accent);
+  box-shadow: 0 0 0 4px rgba(91, 79, 233, 0.15);
+}
+
+.cmd-journey-step.upcoming .cmd-step-node {
+  background-color: #F8FAFC;
+  border-color: #E2E8F0;
+  color: #94A3B8;
+}
+
+.cmd-step-number {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--cmd-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.cmd-step-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--cmd-text-main);
+  margin-bottom: 0.35rem;
+}
+
+.cmd-step-status-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 10px;
+}
+
+.cmd-journey-step.completed .cmd-step-status-tag {
+  background: var(--cmd-success-subtle);
+  color: var(--cmd-success-text);
+}
+
+.cmd-journey-step.in-progress .cmd-step-status-tag {
+  background: var(--cmd-accent-subtle);
+  color: var(--cmd-accent);
+}
+
+.cmd-journey-step.upcoming .cmd-step-status-tag {
+  background: #F1F5F9;
+  color: #64748B;
+}
+
+/* ==========================================================================
+   SECTION 4: QUICK ACCESS ("EXPLORE YOUR PLATFORM")
+   ========================================================================== */
+
+.cmd-quick-access-section {
+  margin-bottom: 1.75rem;
+}
+
+.cmd-quick-access-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.cmd-quick-card {
+  background: var(--cmd-card);
+  border: 1px solid var(--cmd-border);
+  border-radius: var(--cmd-radius-md);
+  padding: 1.25rem 1.4rem;
+  box-shadow: var(--cmd-shadow-xs);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+  border: 1px solid var(--cmd-border);
+}
+
+.cmd-quick-card:hover {
+  border-color: #CCD3DF;
+  transform: translateY(-2px);
+  box-shadow: var(--cmd-shadow-sm);
+  background: var(--cmd-card-hover);
+}
+
+.cmd-quick-card-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cmd-quick-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--cmd-bg);
+  border: 1px solid var(--cmd-border);
+  color: var(--cmd-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.cmd-quick-card:hover .cmd-quick-icon-box {
+  background: var(--cmd-accent-subtle);
+  border-color: rgba(91, 79, 233, 0.2);
+}
+
+.cmd-quick-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.cmd-quick-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cmd-text-main);
+  margin-bottom: 0.15rem;
+}
+
+.cmd-quick-desc {
+  font-size: 0.78rem;
+  color: var(--cmd-text-muted);
+  line-height: 1.35;
+}
+
+.cmd-quick-arrow {
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease, color 0.18s ease;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+.cmd-quick-card:hover .cmd-quick-arrow {
+  color: var(--cmd-accent);
+  transform: translateX(3px);
+}
+
+/* ==========================================================================
+   SECTION 5: TWO-COLUMN RECENT ACTIVITY & UPCOMING (EMPTY STATE)
+   ========================================================================== */
+
+.cmd-activity-upcoming-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.cmd-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.cmd-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--cmd-radius-sm);
+  background: var(--cmd-bg);
+  border: 1px solid var(--cmd-border-subtle);
+}
+
+.cmd-activity-icon-bubble {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--cmd-border);
+  color: var(--cmd-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.cmd-activity-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+}
+
+.cmd-activity-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cmd-text-main);
+}
+
+.cmd-activity-time {
+  font-size: 0.74rem;
+  color: var(--cmd-text-muted);
+}
+
+/* Elegant Empty State for Upcoming */
+.cmd-empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.25rem 1.5rem;
+  background: var(--cmd-bg);
+  border: 1px dashed #CBD5E1;
+  border-radius: var(--cmd-radius-md);
+  margin-top: 0.5rem;
+}
+
+.cmd-empty-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+  border: 1px solid var(--cmd-border);
+}
+
+.cmd-empty-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cmd-text-main);
+  margin-bottom: 0.35rem;
+}
+
+.cmd-empty-subtitle {
+  font-size: 0.8rem;
+  color: var(--cmd-text-muted);
+  max-width: 280px;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   SECTION 6: GUIDANCE CARD (COUNSELLOR SUPPORT)
+   ========================================================================== */
+
+.cmd-guidance-card {
+  background: linear-gradient(135deg, var(--cmd-navy-primary) 0%, var(--cmd-navy-secondary) 100%);
+  border-radius: var(--cmd-radius-lg);
+  padding: 1.75rem 2rem;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  box-shadow: var(--cmd-shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.cmd-guidance-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(91, 79, 233, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cmd-guidance-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 680px;
+  position: relative;
+  z-index: 2;
+}
+
+.cmd-guidance-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.cmd-guidance-text {
+  font-size: 0.9rem;
+  color: #BAC7DE;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.cmd-btn-guidance {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: var(--cmd-radius-sm);
+  background: #FFFFFF;
+  color: var(--cmd-navy-primary);
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.cmd-btn-guidance:hover {
+  background: #F1F5F9;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   MODULE VIEW CARDS & MODERN EDIT FORMS (MODULES 1, 2, 3 PRESERVATION)
+   ========================================================================== */
+
+.dash-section-card {
+  background: var(--cmd-card);
+  border: 1px solid var(--cmd-border);
+  border-radius: var(--cmd-radius-lg);
+  padding: 2rem 2.25rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--cmd-shadow-xs);
+}
+
+.dash-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--cmd-border);
+}
+
+.dash-section-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--cmd-text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dash-edit-pencil-btn {
+  background: var(--cmd-bg);
+  border: 1px solid var(--cmd-border);
+  color: var(--cmd-accent);
+  cursor: pointer;
+  padding: 0.45rem;
+  border-radius: var(--cmd-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.dash-edit-pencil-btn:hover {
+  background: var(--cmd-accent-subtle);
+  border-color: rgba(91, 79, 233, 0.3);
+  transform: scale(1.05);
+}
+
+/* View Mode Details Grid */
+.dash-view-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.dash-view-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 160px;
+}
+
+.dash-view-field-wide {
+  width: 100%;
+}
+
+.dash-view-label {
+  font-size: 0.78rem;
+  color: var(--cmd-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dash-view-value {
+  font-size: 0.95rem;
+  color: var(--cmd-text-main);
+  font-weight: 600;
+}
+
+/* Modern Form Controls */
+.dash-form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.35rem;
+  gap: 1.5rem;
+}
+
+.dash-form-label-col {
+  width: 180px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--cmd-text-main);
+  flex-shrink: 0;
+}
+
+.dash-form-inputs-col {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.dash-input,
+.dash-select {
+  border: 1px solid #D0D5DD;
+  border-radius: var(--cmd-radius-sm);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--cmd-text-main);
+  background-color: #FFFFFF;
+  outline: none;
+  transition: all 0.15s ease;
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+}
+
+.dash-input:focus,
+.dash-select:focus {
+  border-color: var(--cmd-accent);
+  box-shadow: 0 0 0 3px rgba(91, 79, 233, 0.12);
+}
+
+.dash-btn-cancel {
+  background: none;
+  border: 1px solid var(--cmd-border);
+  color: var(--cmd-text-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.6rem 1.4rem;
+  border-radius: var(--cmd-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.dash-btn-cancel:hover {
+  background: var(--cmd-bg);
+  color: var(--cmd-text-main);
+  border-color: #CBD5E1;
+}
+
+.dash-btn-save {
+  background-color: var(--cmd-accent);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--cmd-radius-sm);
+  padding: 0.65rem 2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(91, 79, 233, 0.25);
+}
+
+.dash-btn-save:hover {
+  background-color: var(--cmd-accent-hover);
+  transform: translateY(-1px);
+}
+
+.dash-btn-save:disabled {
+  background-color: #A5B4FC;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.dash-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--cmd-text-main);
+  cursor: pointer;
+}
+
+.dash-link-action {
+  color: var(--cmd-accent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.dash-link-action:hover {
+  color: var(--cmd-accent-hover);
+  text-decoration: underline;
+}
+
+.dash-alert {
+  padding: 0.85rem 1.25rem;
+  border-radius: var(--cmd-radius-sm);
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.dash-alert-success {
+  background-color: var(--cmd-success-subtle);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  color: var(--cmd-success-text);
+}
+
+.dash-alert-error {
+  background-color: var(--cmd-error-subtle);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: var(--cmd-error);
+}
+
+/* Future Module Preview Notice Banner */
+.cmd-future-module-card {
+  background: var(--cmd-card);
+  border: 1px solid var(--cmd-border);
+  border-radius: var(--cmd-radius-lg);
+  padding: 3.5rem 2rem;
+  text-align: center;
+  max-width: 640px;
+  margin: 2rem auto;
+  box-shadow: var(--cmd-shadow-sm);
+}
+
+.cmd-future-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--cmd-accent-subtle);
+  color: var(--cmd-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+}
+
+/* ==========================================================================
+   MODAL DIALOG (FOR GUIDANCE / NOTIFICATIONS / PREVIEWS)
+   ========================================================================== */
+
+.cmd-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 20, 38, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.cmd-modal-card {
+  background: #FFFFFF;
+  border-radius: var(--cmd-radius-lg);
+  width: 100%;
+  max-width: 520px;
+  padding: 2rem;
+  box-shadow: var(--cmd-shadow-lg);
+  border: 1px solid var(--cmd-border);
+  position: relative;
+  animation: cmdModalFadeIn 0.2s ease-out;
+}
+
+@keyframes cmdModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.cmd-modal-close-btn {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: none;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.cmd-modal-close-btn:hover {
+  background: var(--cmd-bg);
+  color: var(--cmd-text-main);
+}
+
+/* ==========================================================================
+   RESPONSIVE MEDIA QUERIES (320px, 375px, 390px, 414px, 768px, 1024px, 1280px, 1440px, 1920px)
+   ========================================================================== */
+
+/* Large Tablets & Small Laptops (<= 1024px) */
+@media screen and (max-width: 1024px) {
+  :root {
+    --cmd-sidebar-width: 250px;
+  }
+
+  .cmd-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .cmd-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .cmd-sidebar-backdrop.open {
+    display: block;
+  }
+
+  .cmd-main-wrapper {
+    margin-left: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .cmd-mobile-menu-btn {
+    display: inline-flex;
+  }
+
+  .cmd-progress-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cmd-quick-access-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cmd-activity-upcoming-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablets (<= 768px) */
+@media screen and (max-width: 768px) {
+  .cmd-top-header {
+    padding: 0 1.25rem;
+  }
+
+  .cmd-content-container {
+    padding: 1.25rem 1rem 2.5rem;
+  }
+
+  .cmd-welcome-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.4rem;
+  }
+
+  .cmd-journey-timeline {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: 1.75rem;
+  }
+
+  .cmd-journey-timeline::before {
+    display: none;
+  }
+
+  .cmd-quick-access-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cmd-guidance-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+  }
+
+  .cmd-btn-guidance {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dash-form-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .dash-form-label-col {
+    width: 100%;
+  }
+
+  .dash-view-row {
+    gap: 1.25rem;
+  }
+}
+
+/* Mobile Screens (<= 480px / 414px / 390px / 375px / 320px) */
+@media screen and (max-width: 480px) {
+  .cmd-top-header {
+    padding: 0 0.85rem;
+    height: 60px;
+  }
+
+  .cmd-header-website-btn span {
+    display: none;
+  }
+
+  .cmd-user-info-text {
+    display: none;
+  }
+
+  .cmd-content-container {
+    padding: 1rem 0.75rem 2rem;
+  }
+
+  .cmd-welcome-greeting {
+    font-size: 1.25rem;
+  }
+
+  .cmd-welcome-card,
+  .cmd-card-standard,
+  .cmd-next-step-card,
+  .cmd-journey-section,
+  .dash-section-card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--cmd-radius-md);
+  }
+
+  .cmd-journey-timeline {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .cmd-journey-step {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 1rem;
+    padding: 0;
+  }
+
+  .cmd-step-node {
+    margin-bottom: 0;
+  }
+}

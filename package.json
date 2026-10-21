@@ -1,0 +1,24 @@
+{
+  "name": "superconsciousness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Superconsciousness - Integrated Educational Consultancy and Student Guidance Platform",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "keywords": [
+    "education",
+    "consultancy",
+    "student-guidance",
+    "modular-platform"
+  ],
+  "author": "Superconsciousness Engineering Team",
+  "license": "UNLICENSED"
+}

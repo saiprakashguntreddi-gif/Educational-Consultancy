@@ -1,0 +1,120 @@
+// Superconsciousness Platform - Production PostgreSQL Schema
+// Module 1: Account and Profile Intake Foundation
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  COUNSELLOR
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+model User {
+  id               String          @id @default(uuid())
+  email            String          @unique
+  passwordHash     String
+  role             Role            @default(STUDENT)
+  isActive         Boolean         @default(true)
+  isEmailVerified  Boolean         @default(false)
+  studentProfile   StudentProfile?
+  auditLogs        AuditLog[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+model StudentProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  fullName           String             // Name
+  gender             Gender             // Gender
+  grade              String             // Class / Grade
+  contactEmail       String             // Email
+  phone              String             // Phone
+  
+  addressStreet      String             // Street address
+  addressCity        String             // City
+  addressState       String             // State / Province
+  addressPostalCode  String             // Postal code / PIN
+  addressCountry     String             // Country
+  
+  board              String             // Board / Curriculum
+  citizenship        String             // Citizenship
+  passingOutYear     Int                // Passing-out year
+  
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  verifiedBy         String?
+  verificationNotes  String?
+  
+  // Module 2 Preferences Relation
+  preference         StudentPreference?
+
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([verificationStatus])
+  @@index([grade])
+  @@index([board])
+  @@index([passingOutYear])
+}
+
+model StudentPreference {
+  id                 String          @id @default(uuid())
+  studentProfileId   String          @unique
+  studentProfile     StudentProfile  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  // Module 2 Core Fields
+  // 1. Priority Countries and Study Destinations
+  countries          String          // JSON array string of selected countries, e.g. ["United States", "United Kingdom"]
+  primaryCountry     String?         // Priority #1 destination country
+
+  // 2. Department and Sub-Department / Specialization
+  department         String          // Department (e.g., "Engineering & Technology", "Business & Management")
+  subDepartment      String          // Sub-department or Specialization (e.g., "Computer Science", "Finance")
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([studentProfileId])
+  @@index([department])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}

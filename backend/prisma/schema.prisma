@@ -1,0 +1,622 @@
+// Superconsciousness Platform - Development Database Schema (SQLite)
+// For Production PostgreSQL, see prisma/schema.postgresql.prisma
+// Module 1: Account and Profile Intake Foundation
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String          @id @default(uuid())
+  email            String          @unique
+  passwordHash     String
+  role             String          @default("STUDENT")
+  isActive         Boolean         @default(true)
+  isEmailVerified  Boolean         @default(false)
+  studentProfile   StudentProfile?
+  auditLogs        AuditLog[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+model StudentProfile {
+  id                 String          @id @default(uuid())
+  userId             String          @unique
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Module 1 Core Profile Intake Fields
+  fullName           String          // Name
+  gender             String          // Gender (MALE, FEMALE, NON_BINARY, OTHER, PREFER_NOT_TO_SAY)
+  grade              String          // Class / Grade (e.g., "Grade 10", "Grade 11", "Grade 12", "Undergraduate")
+  contactEmail       String          // Email
+  phone              String          // Phone
+  
+  // Address Fields
+  addressStreet      String          // Street address
+  addressCity        String          // City
+  addressState       String          // State / Province
+  addressPostalCode  String          // Postal code / PIN
+  addressCountry     String          // Country
+  
+  board              String          // Board / Curriculum (e.g., CBSE, ICSE, IB, Cambridge, State Board)
+  citizenship        String          // Citizenship
+  passingOutYear     Int             // Passing-out year (e.g., 2026)
+  
+  // Verification and Status Tracking
+  verificationStatus String          @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verifiedAt         DateTime?
+  verifiedBy         String?         // Counsellor/Admin User ID who verified
+  verificationNotes  String?
+  
+  // Module 2 Preferences Relation
+  preference         StudentPreference?
+
+  // Module 3 Education Relation
+  education          StudentEducation?
+
+  // Module 4 Entrance Exam Relations
+  examPlans          StudentExamPlan[]
+  mockAttempts       StudentMockAttempt[]
+
+  // Module 5 Personal Information, Activities & Achievements
+  personalInfo       StudentPersonalInfo?
+  activities         StudentActivity[]
+  achievements       StudentAchievement[]
+
+  // Module 6 College and Course Discovery Relations
+  savedInstitutions  StudentSavedInstitution[]
+  savedCourses       StudentSavedCourse[]
+  comparisonItems    StudentComparisonItem[]
+
+  // Module 7 Three-Tier Fit and Recommendations Relations
+  recommendationBatches RecommendationBatch[]
+
+  // Module 8 Scholarship Discovery Relations
+  savedScholarships     StudentSavedScholarship[]
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([verificationStatus])
+  @@index([grade])
+  @@index([board])
+  @@index([passingOutYear])
+}
+
+model StudentPreference {
+  id                 String          @id @default(uuid())
+  studentProfileId   String          @unique
+  studentProfile     StudentProfile  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  // Module 2 Core Fields
+  // 1. Priority Countries and Study Destinations
+  countries          String          // JSON array string of selected countries, e.g. ["United States", "United Kingdom"]
+  primaryCountry     String?         // Priority #1 destination country
+
+  // 2. Department and Sub-Department / Specialization
+  department         String          // Department (e.g., "Engineering & Technology", "Business & Management")
+  subDepartment      String          // Sub-department or Specialization (e.g., "Computer Science", "Finance")
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([studentProfileId])
+  @@index([department])
+}
+
+model StudentEducation {
+  id                 String          @id @default(uuid())
+  studentProfileId   String          @unique
+  studentProfile     StudentProfile  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  // Module 3 Core Fields (12th / Senior Secondary - matching Screenshot 215202)
+  schoolName         String          // School / College Name
+  board              String          // Board (CBSE, ICSE, State Board, IB, Cambridge, etc.)
+  completionYear     Int             // Completion / Passing Year
+  percentage         Float           // Aggregate percentage or score
+  subjectDetails     String          // JSON array string: [{"subject": "Physics", "score": 80}, ...]
+
+  // Optional 10th / Secondary School details
+  tenthSchoolName    String?         // 10th School Name
+  tenthBoard         String?         // 10th Board
+  tenthPassingYear   Int?            // 10th Passing Year
+  tenthPercentage    Float?          // 10th Percentage or score
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([studentProfileId])
+  @@index([board])
+  @@index([completionYear])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   // e.g., "USER_REGISTERED", "PROFILE_INTAKE_SUBMITTED", "PROFILE_VERIFIED"
+  details   String?  // JSON or text description
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}
+
+// ==========================================
+// MODULE 4: ENTRANCE EXAM MODELS
+// ==========================================
+
+model EntranceExam {
+  id                   String            @id @default(uuid())
+  code                 String            @unique // e.g. "SAT", "ACT", "TOEFL", "IELTS", "GRE", "GMAT", "JEE_MAIN", "NEET"
+  name                 String            // e.g. "SAT (Scholastic Assessment Test)"
+  category             String            // "UNDERGRADUATE", "POSTGRADUATE", "LANGUAGE_PROFICIENCY"
+  description          String            // Comprehensive overview
+  destinations         String            // JSON array: ["United States", "Canada", "Singapore"]
+  relevantStreams      String            // JSON array: ["Engineering & Technology", "Business & Management", "All"]
+  format               String            // e.g. "Digital Computer-based", "Paper-delivered"
+  sections             String            // JSON array: [{"name": "Reading & Writing", "questions": 54, "durationMinutes": 64}, ...]
+  totalDurationMinutes Int               // e.g. 134
+  scoreRange           String            // e.g. "400 - 1600"
+  scoringDetails       String            // Breakdown of scoring scales
+  validity             String            // e.g. "5 years from test date"
+  importantDates       String?           // JSON array: [{"label": "Upcoming Window", "date": "March / May 2026", "deadline": "..."}]
+  officialWebsiteUrl   String            // Verified official registration website URL
+  prepResources        String?           // JSON array: [{"title": "Official Portal", "type": "Guide", "url": "..."}]
+  recommendedBooks     String?           // JSON array: ["Official Guide", "Prep Book"]
+  testDayTips          String?           // JSON array of strings
+  hasMockTest          Boolean           @default(true)
+
+  studentPlans         StudentExamPlan[]
+  mockTests            MockTest[]
+
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@index([code])
+  @@index([category])
+}
+
+model StudentExamPlan {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  examId           String
+  exam             EntranceExam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  status           String         @default("PLANNED") // "PLANNED", "PREPARING", "REGISTERED", "COMPLETED"
+  targetDate       String?        // Target test date (YYYY-MM-DD or Month Year)
+  targetScore      String?        // Target score, e.g. "1450" or "8.0"
+  currentScore     String?        // Actual score achieved if completed
+  notes            String?        // Personal notes or study goals
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([studentProfileId, examId])
+  @@index([studentProfileId])
+  @@index([examId])
+  @@index([status])
+}
+
+model MockTest {
+  id              String               @id @default(uuid())
+  examId          String
+  exam            EntranceExam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  title           String               // e.g. "SAT Diagnostic Practice Test"
+  description     String
+  durationMinutes Int                  // e.g. 15, 30, 45
+  totalMarks      Int                  // e.g. 100
+  passingMarks    Int?                 // e.g. 60
+  
+  questions       MockQuestion[]
+  attempts        StudentMockAttempt[]
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([examId])
+}
+
+model MockQuestion {
+  id                 String    @id @default(uuid())
+  mockTestId         String
+  mockTest           MockTest  @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+  section            String    // e.g. "Mathematics", "Verbal / Reading", "Language Proficiency"
+  questionText       String
+  options            String    // JSON array: ["Option A", "Option B", "Option C", "Option D"]
+  correctOptionIndex Int       // 0, 1, 2, 3
+  explanation        String?   // Step-by-step rationale for learning
+  marks              Int       @default(1)
+  orderIndex         Int       @default(0)
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([mockTestId])
+  @@index([section])
+}
+
+model StudentMockAttempt {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  mockTestId       String
+  mockTest         MockTest       @relation(fields: [mockTestId], references: [id], onDelete: Cascade)
+
+  score            Float          // Calculated score
+  totalMarks       Float          // Maximum marks
+  percentage       Float          // Score percentage
+  timeSpentSeconds Int            // Total duration taken in seconds
+  answers          String         // JSON object of submitted answers: {"qId": optionIdx}
+  status           String         @default("COMPLETED") // "COMPLETED"
+
+  completedAt      DateTime?      @default(now())
+  createdAt        DateTime       @default(now())
+
+  @@index([studentProfileId])
+  @@index([mockTestId])
+}
+
+// ==========================================
+// MODULE 5: PERSONAL INFORMATION MODELS
+// ==========================================
+
+model StudentPersonalInfo {
+  id                   String         @id @default(uuid())
+  studentProfileId     String         @unique
+  studentProfile       StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  // Contact Information
+  alternateEmail       String?
+  primaryPhone         String?        // Synced with or overriding default profile phone
+
+  // Parent / Guardian Details
+  guardianName         String?
+  guardianRelationship String?        // "Father", "Mother", "Guardian", "Other"
+  guardianPhone        String?
+  guardianEmail        String?
+
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  @@index([studentProfileId])
+}
+
+model StudentActivity {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  activityName     String         // Name of extracurricular activity
+  category         String         // "Sports", "Arts & Music", "Volunteering", "Clubs & Societies", "Leadership", "Academic Competitions", "Other"
+  organization     String?        // Organization, institution, or club name
+  period           String?        // e.g. "2024 - 2026" or "Grade 11 - 12"
+  description      String         // Description of involvement
+  recognition      String?        // Achievements or recognition
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([studentProfileId])
+  @@index([category])
+}
+
+model StudentAchievement {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  title            String         // Achievement title
+  category         String         // "Academic", "Sports", "Arts & Culture", "Leadership", "Innovation & STEM", "Community", "Other"
+  issuer           String?        // Issuing organization / authority
+  dateYear         String?        // Year or date (e.g. "2025", "May 2024")
+  description      String?        // Short description
+  certificateUrl   String?        // Supporting document or certificate link / reference
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([studentProfileId])
+  @@index([category])
+}
+
+// ==========================================
+// MODULE 6: COLLEGE AND COURSE DISCOVERY
+// ==========================================
+
+model Institution {
+  id                   String                   @id @default(uuid())
+  slug                 String                   @unique
+  name                 String
+  country              String                   // e.g. "United States", "United Kingdom", "India"
+  city                 String                   // e.g. "Cambridge", "Oxford", "Mumbai"
+  state                String?                  // e.g. "Massachusetts", "Oxfordshire"
+  institutionType      String?                  // "Public Research University", "Private Research University"
+  establishedYear      Int?
+  overview             String                   // Comprehensive overview / about
+  rankingInfo          String?                  // e.g. "QS World Rank #1", "THE World Rank #2"
+  campusFacilities     String?                  // JSON array: ["Libraries", "Laboratories", "Student Housing", "Athletic Centers"]
+  placementInfo        String?                  // Placement statistics / Career support info
+  admissionDeadlines   String?                  // JSON array or text: [{"term": "Fall 2026", "date": "Jan 1"}]
+  contactEmail         String?
+  contactPhone         String?
+  address              String?
+  officialWebsiteUrl   String                   // Verified official website
+  hasScholarships      Boolean                  @default(false)
+  scholarshipDetails   String?
+  minAnnualFee         Float?                   // For range filtering
+  maxAnnualFee         Float?
+  feeCurrency          String?                  // "USD", "GBP", "INR", etc.
+  bannerImageUrl       String?
+  logoUrl              String?
+  status               String                   @default("PUBLISHED") // "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED"
+  isPublished          Boolean                  @default(true)
+  isVerified           Boolean                  @default(true)
+  publishedAt          DateTime?
+  publishedBy          String?                  // Admin user ID
+  verifiedAt           DateTime?
+  verifiedBy           String?                  // Admin user ID
+  archivedAt           DateTime?
+  isActive             Boolean                  @default(true)
+
+  // Module 7 Admission Benchmarks (Optional / Definable by Admin)
+  acceptanceRate            Float?               // e.g. 0.08 for 8%
+  minPercentageRequirement  Float?               // e.g. 80.0
+  avgSatRequirement         Int?                 // e.g. 1450
+  historicalCohortInfo      String?              // JSON string containing 25th, 50th, 75th percentiles
+
+  // Module 7: College Tier Management (Admin-assigned initial/managed tier)
+  managedTier               String?              // "SAFE" | "BEST_FIT" | "ASPIRATIONAL"
+  tierAssignedAt            DateTime?
+  tierAssignedBy            String?              // Admin user ID who assigned/updated the tier
+  tierReason                String?              // Rationale or justification for current tier assignment
+
+  courses              Course[]
+  savedByStudents      StudentSavedInstitution[]
+  comparisonItems      StudentComparisonItem[]
+  recommendationItems  RecommendationItem[]
+  scholarships         Scholarship[]
+
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@index([name])
+  @@index([country])
+  @@index([city])
+  @@index([status])
+  @@index([isPublished])
+  @@index([isVerified])
+  @@index([isActive])
+  @@index([hasScholarships])
+  @@index([minAnnualFee])
+  @@index([maxAnnualFee])
+  @@index([managedTier])
+}
+
+model Course {
+  id                     String               @id @default(uuid())
+  institutionId          String
+  institution            Institution          @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  
+  name                   String               // e.g. "B.S. in Computer Science & Engineering"
+  department             String               // e.g. "Engineering & Technology", "Business & Management"
+  specialization         String?              // e.g. "Artificial Intelligence", "Finance"
+  level                  String               // "Undergraduate", "Postgraduate", "Doctorate"
+  durationYears          Float?               // e.g. 4.0
+  durationText           String?              // e.g. "4 Years Full-Time"
+  description            String?              // Program curriculum and overview
+  eligibilityCriteria    String?              // Academic and minimum score requirements
+  annualTuitionFee       Float?               // Numerical value for fee sorting and range filtering
+  feeCurrency            String?              // "USD", "GBP", "EUR", "INR"
+  feeRange               String?              // Display text, e.g. "$58,000 / year"
+  entranceExamsRequired  String?              // JSON array: ["SAT", "IELTS", "TOEFL"]
+  scholarshipAvailable   Boolean              @default(false)
+  scholarshipDetails     String?
+  applicationDeadline    String?              // e.g. "January 15, 2026"
+  isPopular              Boolean              @default(false)
+  status                 String               @default("PUBLISHED") // "DRAFT" | "REVIEW" | "PUBLISHED" | "ARCHIVED"
+  isPublished            Boolean              @default(true)
+  publishedAt            DateTime?
+  archivedAt             DateTime?
+  isActive               Boolean              @default(true)
+
+  savedByStudents        StudentSavedCourse[]
+  recommendationItems    RecommendationItem[]
+
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@index([institutionId])
+  @@index([department])
+  @@index([name])
+  @@index([level])
+  @@index([status])
+  @@index([isPublished])
+  @@index([isActive])
+  @@index([annualTuitionFee])
+  @@index([scholarshipAvailable])
+}
+
+model StudentSavedInstitution {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  institutionId    String
+  institution      Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  notes            String?
+
+  createdAt        DateTime       @default(now())
+
+  @@unique([studentProfileId, institutionId])
+  @@index([studentProfileId])
+  @@index([institutionId])
+}
+
+model StudentSavedCourse {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  courseId         String
+  course           Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notes            String?
+
+  createdAt        DateTime       @default(now())
+
+  @@unique([studentProfileId, courseId])
+  @@index([studentProfileId])
+  @@index([courseId])
+}
+
+model StudentComparisonItem {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  institutionId    String
+  institution      Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime       @default(now())
+
+  @@unique([studentProfileId, institutionId])
+  @@index([studentProfileId])
+  @@index([institutionId])
+}
+
+// ==========================================
+// MODULE 7: THREE-TIER FIT & RECOMMENDATIONS
+// ==========================================
+
+model RecommendationBatch {
+  id                 String               @id @default(uuid())
+  studentProfileId   String
+  studentProfile     StudentProfile       @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  status             String               @default("GENERATED") // "GENERATED", "UNDER_REVIEW", "COUNSELLOR_APPROVED", "FINALIZED"
+  strategySummary    String?              // Summary narrative of balanced list
+  counsellorId       String?              // User ID of reviewing staff
+  counsellorNotes    String?              // Overall advisory commentary
+  reviewedAt         DateTime?
+  studentAcceptedAt  DateTime?
+  generatedAt        DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  items              RecommendationItem[]
+
+  @@index([studentProfileId])
+  @@index([status])
+  @@index([counsellorId])
+}
+
+model RecommendationItem {
+  id                      String              @id @default(uuid())
+  batchId                 String
+  batch                   RecommendationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  institutionId           String
+  institution             Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  courseId                String?
+  course                  Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  tier                    String              // "SAFE" | "BEST_FIT" | "ASPIRATIONAL"
+  counsellorTierOverride  String?             // If counsellor adjusted tier
+  fitScore                Float               // 0 to 100 composite index
+  admissionProbabilityMin Float               // e.g. 95.0 for Safe
+  admissionProbabilityMax Float               // e.g. 99.0 for Safe
+  isDataIndicative        Boolean             @default(true) // True if calculated/indicative vs verified cohort data
+  dataLimitationNote      String?             // Explains benchmark limitations if verified cohort missing
+  reasonSummary           String              // Transparent rationale for categorization
+  evidenceDetails         String              // JSON string of academicComparison, preferenceMatch, entranceExamMatch, financialMatch, cohortContext
+  counsellorNotes         String?             // Advisory commentary on this item
+  isShortlisted           Boolean             @default(false)
+  isAlternative           Boolean             @default(false) // True if listed as backup alternative
+
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+
+  @@index([batchId])
+  @@index([institutionId])
+  @@index([courseId])
+  @@index([tier])
+  @@index([isShortlisted])
+}
+
+// ==========================================
+// MODULE 8: SCHOLARSHIP DISCOVERY & ELIGIBILITY
+// ==========================================
+
+model Scholarship {
+  id                      String                    @id @default(uuid())
+  slug                    String                    @unique
+  name                    String
+  provider                String                    // e.g. "British Council", "Commonwealth Secretariat", "Fulbright"
+  country                 String                    // Provider / Host country or "Global"
+  destinationCountry      String?                   // Applicable study destination country (or "Global / Any")
+  
+  institutionId           String?
+  institution             Institution?              @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+
+  department              String?                   // Applicable department (e.g. "Engineering & Technology", "All Disciplines")
+  specialization          String?                   // Applicable specialization or null
+  studyLevel              String?                   // "UNDERGRADUATE", "POSTGRADUATE", "ALL"
+
+  awardAmount             Float?                    // Numerical amount if applicable
+  awardCurrency           String?                   // "USD", "GBP", "EUR", "INR"
+  awardType               String?                   // "FULL_TUITION", "PARTIAL_TUITION", "STIPEND", "FELLOWSHIP", "ONE_TIME"
+  awardDetails            String                    // Detailed description of benefits (tuition, living stipend, travel)
+
+  eligibilityDescription  String                    // Human-readable eligibility summary
+  minPercentageRequirement Float?                  // Academic cutoff percentage (e.g. 85.0)
+  eligibleBoards          String?                   // JSON array of strings e.g. ["CBSE", "ICSE", "IB", "Cambridge"] or null for all
+  requiredCitizenship     String?                   // Required citizenship (e.g. "India", "International", "All")
+  genderRequirement       String?                   // "ALL", "FEMALE", "MALE"
+  incomeCeiling           Float?                    // Need-based max annual family income if applicable
+  incomeCurrency          String?                   // "INR", "USD"
+  requiredExams           String?                   // JSON array of exam codes e.g. ["SAT", "IELTS", "TOEFL"]
+  
+  applicationDeadline     String?                   // Date text or ISO string (e.g. "2026-11-30")
+  applicationUrl          String                    // Official verified application link
+  sourceInfo              String?                   // Official source / verification authority
+  
+  isActive                Boolean                   @default(true)
+  isPublished             Boolean                   @default(true)
+
+  savedByStudents         StudentSavedScholarship[]
+
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+
+  @@index([slug])
+  @@index([name])
+  @@index([provider])
+  @@index([country])
+  @@index([destinationCountry])
+  @@index([department])
+  @@index([studyLevel])
+  @@index([isActive])
+  @@index([isPublished])
+  @@index([institutionId])
+}
+
+model StudentSavedScholarship {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  scholarshipId    String
+  scholarship      Scholarship    @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  notes            String?
+
+  createdAt        DateTime       @default(now())
+
+  @@unique([studentProfileId, scholarshipId])
+  @@index([studentProfileId])
+  @@index([scholarshipId])
+}
+
