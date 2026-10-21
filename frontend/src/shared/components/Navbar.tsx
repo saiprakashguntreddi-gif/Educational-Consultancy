@@ -140,6 +140,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             Resources
           </button>
           <button
+            onClick={() => handleNavClick('fees')}
+            className="nav-link-btn"
+            style={{
+              color: currentView === 'fees' ? '#FFFFFF' : '#E2E8F0',
+              fontWeight: currentView === 'fees' ? 700 : 500,
+            }}
+            id="nav-fees-btn"
+          >
+            Fee Calculator
+          </button>
+          <button
             onClick={() => handleNavClick('#contact')}
             className="nav-link-btn"
           >
@@ -312,6 +323,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             id="mobile-nav-resources-btn"
           >
             Resources
+          </button>
+          <button
+            onClick={() => handleNavClick('fees')}
+            className="nav-mobile-link"
+            id="mobile-nav-fees-btn"
+          >
+            Fee Calculator
           </button>
           <button
             onClick={() => handleNavClick('#contact')}
