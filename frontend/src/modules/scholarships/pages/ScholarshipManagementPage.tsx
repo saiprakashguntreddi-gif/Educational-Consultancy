@@ -299,47 +299,57 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="scholarship-mgmt-page">
+      <div className="scholarship-mgmt-container">
         {/* Toast */}
         {toastMessage && (
           <div
-            className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 animate-bounce ${
-              toastMessage.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
-                : toastMessage.type === 'error'
-                ? 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300'
-                : 'bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300'
-            }`}
+            className="scholarship-toast"
+            style={{
+              background:
+                toastMessage.type === 'success'
+                  ? '#064E3B'
+                  : toastMessage.type === 'error'
+                  ? '#7F1D1D'
+                  : '#1E293B',
+              color: '#FFFFFF',
+              border:
+                toastMessage.type === 'success'
+                  ? '1px solid #059669'
+                  : toastMessage.type === 'error'
+                  ? '1px solid #DC2626'
+                  : '1px solid #334155',
+            }}
           >
             {toastMessage.type === 'success' ? (
-              <CheckCircle2 size={16} />
+              <CheckCircle2 size={18} color="#34D399" />
             ) : (
-              <AlertCircle size={16} />
+              <AlertCircle size={18} color="#F87171" />
             )}
             <span>{toastMessage.text}</span>
           </div>
         )}
 
-        {/* Top Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
-              <Award size={16} /> Official Catalogue Administration
+        {/* Top Header Card */}
+        <div className="scholarship-mgmt-header">
+          <div className="scholarship-mgmt-header-text">
+            <div className="scholarship-mgmt-badge">
+              <Award size={14} /> Official Catalogue Administration
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="scholarship-mgmt-title">
               Scholarship Catalogue Management
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+            <p className="scholarship-mgmt-subtitle">
               Manage official scholarships, eligibility benchmark criteria, award benefits, and deadlines. Every administrative update is logged in AuditLog.
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="scholarship-mgmt-header-actions">
             {onNavigateHome && (
               <button
                 onClick={onNavigateHome}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="btn-scholarship-back"
+                id="admin-scholarships-back-btn"
               >
                 Back to Home
               </button>
@@ -347,27 +357,28 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
             <button
               id="admin-add-scholarship-btn"
               onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm"
+              className="btn-scholarship-add"
             >
               <Plus size={16} />
-              <span>Add Scholarship</span>
+              <span>+ Add Scholarship</span>
             </button>
           </div>
         </div>
 
-        {/* Filters & Counts Bar */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Filters & Search Controls Bar */}
+        <div className="scholarship-mgmt-controls">
+          <div className="scholarship-filter-tabs">
             <button
               onClick={() => {
                 setStatusFilter('all');
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+              className={`scholarship-filter-tab ${
                 statusFilter === 'all'
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                  ? 'is-active-all'
+                  : 'is-inactive-all'
               }`}
+              id="filter-all-scholarships-btn"
             >
               All Records ({counts.all})
             </button>
@@ -377,11 +388,12 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                 setStatusFilter('true');
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
+              className={`scholarship-filter-tab ${
                 statusFilter === 'true'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
+                  ? 'is-active-active'
+                  : 'is-inactive-active'
               }`}
+              id="filter-active-scholarships-btn"
             >
               <CheckCircle2 size={13} /> Active ({counts.active})
             </button>
@@ -391,21 +403,22 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                 setStatusFilter('false');
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
+              className={`scholarship-filter-tab ${
                 statusFilter === 'false'
-                  ? 'bg-slate-700 text-white'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                  ? 'is-active-inactive'
+                  : 'is-inactive-inactive'
               }`}
+              id="filter-inactive-scholarships-btn"
             >
               <Power size={13} /> Inactive ({counts.inactive})
             </button>
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-80">
+          <div className="scholarship-search-container">
+            <div className="scholarship-search-input-wrap">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="scholarship-search-icon"
               />
               <input
                 type="text"
@@ -415,99 +428,124 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="scholarship-search-field"
+                id="scholarship-search-input"
               />
             </div>
 
             <button
               onClick={() => fetchScholarships()}
               disabled={isLoading}
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              title="Refresh"
+              className="scholarship-btn-refresh"
+              title="Refresh catalogue"
+              id="scholarship-refresh-btn"
             >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin text-indigo-600' : ''} />
+              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
 
-        {/* Error */}
+        {/* Error Message */}
         {errorMessage && (
-          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm flex items-center gap-2">
+          <div
+            style={{
+              padding: '1rem 1.25rem',
+              borderRadius: '12px',
+              background: '#FEF2F2',
+              border: '1px solid #FECACA',
+              color: '#991B1B',
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+            }}
+          >
             <AlertCircle size={18} />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        {/* Table Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        {/* Content / Table Card */}
+        <div className="scholarship-mgmt-content-card">
           {isLoading ? (
-            <div className="p-12 text-center text-sm font-semibold text-slate-500">
-              <RefreshCw size={24} className="animate-spin text-indigo-600 mx-auto mb-2" />
-              Loading scholarship catalogue...
+            <div style={{ padding: '4.5rem 2rem', textAlign: 'center', color: '#64748B', fontWeight: 600, fontSize: '0.9rem' }}>
+              <RefreshCw size={28} className="animate-spin" style={{ color: '#6366F1', margin: '0 auto 0.75rem auto' }} />
+              <div>Loading scholarship catalogue...</div>
             </div>
           ) : scholarships.length === 0 ? (
-            <div className="p-12 text-center max-w-md mx-auto space-y-3">
-              <Award size={36} className="text-slate-400 mx-auto" />
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+            <div className="scholarship-empty-state">
+              <div className="scholarship-empty-icon-circle">
+                <Award size={38} />
+              </div>
+              <h3 className="scholarship-empty-title">
                 {counts.all === 0
                   ? 'No scholarship records in catalogue.'
                   : 'No scholarships matched your search criteria.'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="scholarship-empty-desc">
                 {counts.all === 0
                   ? 'Click "+ Add Scholarship" above to populate verified scholarship opportunities with accurate criteria.'
-                  : 'Try clearing your search query or filter.'}
+                  : 'Try clearing your search query or status filter to see all opportunities.'}
               </p>
+              {counts.all === 0 && (
+                <button
+                  onClick={handleOpenAddModal}
+                  className="btn-scholarship-add"
+                  id="empty-state-add-scholarship-btn"
+                >
+                  <Plus size={16} />
+                  <span>+ Add Scholarship</span>
+                </button>
+              )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200 dark:border-slate-800">
+            <div className="scholarship-table-wrap">
+              <table className="scholarship-table">
+                <thead>
                   <tr>
-                    <th className="py-3.5 px-4">Scholarship</th>
-                    <th className="py-3.5 px-4">Provider</th>
-                    <th className="py-3.5 px-4">Country</th>
-                    <th className="py-3.5 px-4">Award Benefit</th>
-                    <th className="py-3.5 px-4">Min Academic %</th>
-                    <th className="py-3.5 px-4">Deadline</th>
-                    <th className="py-3.5 px-4">Status</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                    <th>Scholarship</th>
+                    <th>Provider</th>
+                    <th>Country</th>
+                    <th>Award Benefit</th>
+                    <th>Min Academic %</th>
+                    <th>Deadline</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody>
                   {scholarships.map((s) => (
-                    <tr
-                      key={s.id}
-                      className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition"
-                    >
-                      <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white max-w-xs">
-                        <div className="line-clamp-1">{s.name}</div>
+                    <tr key={s.id}>
+                      <td style={{ maxWidth: '280px' }}>
+                        <div style={{ fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {s.name}
+                        </div>
                         {s.destinationCountry && (
-                          <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-normal">
+                          <div style={{ fontSize: '0.72rem', color: '#4F46E5', fontWeight: 500, marginTop: '2px' }}>
                             Target: {s.destinationCountry}
                           </div>
                         )}
                       </td>
 
-                      <td className="py-3.5 px-4 font-medium text-slate-700 dark:text-slate-300">
+                      <td style={{ fontWeight: 500, color: '#334155' }}>
                         {s.provider}
                       </td>
 
-                      <td className="py-3.5 px-4">{s.country}</td>
+                      <td>{s.country}</td>
 
-                      <td className="py-3.5 px-4 font-medium text-slate-900 dark:text-slate-200">
+                      <td style={{ fontWeight: 600, color: '#0F172A' }}>
                         {s.awardAmount
                           ? `${s.awardCurrency || 'USD'} ${s.awardAmount.toLocaleString()}`
                           : s.awardType || 'Waiver'}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td>
                         {s.minPercentageRequirement !== null && s.minPercentageRequirement !== undefined
                           ? `${s.minPercentageRequirement}%`
                           : 'Holistic'}
                       </td>
 
-                      <td className="py-3.5 px-4">
+                      <td>
                         {s.applicationDeadline
                           ? new Date(s.applicationDeadline).toLocaleDateString(undefined, {
                               year: 'numeric',
@@ -517,23 +555,25 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                           : 'Rolling'}
                       </td>
 
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            s.isActive
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                          }`}
-                        >
-                          {s.isActive ? 'Active' : 'Inactive'}
+                      <td>
+                        <span className={s.isActive ? 'scholarship-badge-active' : 'scholarship-badge-inactive'}>
+                          {s.isActive ? (
+                            <>
+                              <CheckCircle2 size={12} /> Active
+                            </>
+                          ) : (
+                            <>
+                              <Power size={12} /> Inactive
+                            </>
+                          )}
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="scholarship-row-actions">
                           <button
                             onClick={() => handleOpenEditModal(s)}
-                            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition"
+                            className="scholarship-action-btn btn-edit"
                             title="Edit details"
                           >
                             <Edit2 size={15} />
@@ -541,11 +581,7 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
 
                           <button
                             onClick={() => handleToggleStatus(s)}
-                            className={`p-1.5 rounded-lg transition ${
-                              s.isActive
-                                ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800'
-                                : 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-slate-800'
-                            }`}
+                            className={`scholarship-action-btn ${s.isActive ? 'btn-power-active' : 'btn-power-inactive'}`}
                             title={s.isActive ? 'Deactivate scholarship' : 'Activate scholarship'}
                           >
                             <Power size={15} />
@@ -553,7 +589,7 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
 
                           <button
                             onClick={() => handleDeleteScholarship(s)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition"
+                            className="scholarship-action-btn btn-delete"
                             title="Delete scholarship"
                           >
                             <Trash2 size={15} />
@@ -569,22 +605,40 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <div className="scholarship-pagination-bar">
               <div>
                 Page {page} of {totalPages} ({totalCount} scholarships)
               </div>
-              <div className="flex items-center gap-1">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40"
+                  style={{
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '7px',
+                    border: '1px solid #CBD5E1',
+                    background: '#FFFFFF',
+                    cursor: page <= 1 ? 'not-allowed' : 'pointer',
+                    opacity: page <= 1 ? 0.4 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40"
+                  style={{
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '7px',
+                    border: '1px solid #CBD5E1',
+                    background: '#FFFFFF',
+                    cursor: page >= totalPages ? 'not-allowed' : 'pointer',
+                    opacity: page >= totalPages ? 0.4 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
                 >
                   <ChevronRight size={16} />
                 </button>
@@ -596,24 +650,35 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
         {/* Add / Edit Scholarship Modal */}
         {isFormModalOpen && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+            className="scholarship-modal-overlay"
             onClick={() => setIsFormModalOpen(false)}
           >
             <div
-              className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8 max-h-[92vh] flex flex-col"
+              className="scholarship-modal-card"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/40">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-indigo-600 text-white">
+              <div className="scholarship-modal-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#FFFFFF',
+                    }}
+                  >
                     <Award size={18} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
                       {editingScholarship ? 'Edit Scholarship Opportunity' : 'Add Official Scholarship Opportunity'}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p style={{ fontSize: '0.78rem', color: '#64748B', margin: '2px 0 0 0' }}>
                       Changes are validated and recorded with an AuditLog entry.
                     </p>
                   </div>
@@ -621,16 +686,35 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
 
                 <button
                   onClick={() => setIsFormModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94A3B8',
+                    cursor: 'pointer',
+                    padding: '0.4rem',
+                    display: 'flex',
+                  }}
                 >
                   <X size={18} />
                 </button>
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
+              <form onSubmit={handleSubmitForm} className="scholarship-modal-body">
                 {formError && (
-                  <div className="p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-2">
+                  <div
+                    style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '10px',
+                      background: '#FEF2F2',
+                      border: '1px solid #FECACA',
+                      color: '#991B1B',
+                      fontSize: '0.825rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
                     <AlertCircle size={15} />
                     <span>{formError}</span>
                   </div>
@@ -638,12 +722,27 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
 
                 {/* Section 1: Basic Information */}
                 <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-2 text-indigo-600">
+                  <h4
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#4F46E5',
+                      margin: '0 0 0.75rem 0',
+                    }}
+                  >
                     1. Basic Opportunity Details
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                      gap: '0.85rem',
+                    }}
+                  >
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Scholarship Name *
                       </label>
                       <input
@@ -652,12 +751,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
                         placeholder="e.g. Commonwealth Master's Scholarship"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Provider / Organization *
                       </label>
                       <input
@@ -666,12 +774,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formProvider}
                         onChange={(e) => setFormProvider(e.target.value)}
                         placeholder="e.g. Foreign, Commonwealth & Development Office"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Origin / Host Country *
                       </label>
                       <input
@@ -680,12 +797,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formCountry}
                         onChange={(e) => setFormCountry(e.target.value)}
                         placeholder="e.g. United Kingdom"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Destination Country Applicability
                       </label>
                       <input
@@ -693,12 +819,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formDestinationCountry}
                         onChange={(e) => setFormDestinationCountry(e.target.value)}
                         placeholder="e.g. United Kingdom (or leave blank if global)"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Department / Field Applicability
                       </label>
                       <input
@@ -706,12 +841,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formDepartment}
                         onChange={(e) => setFormDepartment(e.target.value)}
                         placeholder="e.g. Engineering, Computer Science, Any"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Study Level
                       </label>
                       <input
@@ -719,20 +863,44 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formStudyLevel}
                         onChange={(e) => setFormStudyLevel(e.target.value)}
                         placeholder="e.g. Undergraduate, Master's, Doctoral"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Section 2: Award & Benefits */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-2 text-indigo-600">
+                <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9' }}>
+                  <h4
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#4F46E5',
+                      margin: '0 0 0.75rem 0',
+                    }}
+                  >
                     2. Award Amount & Benefits
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '0.85rem',
+                    }}
+                  >
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Award Amount (Numerical)
                       </label>
                       <input
@@ -741,12 +909,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formAwardAmount}
                         onChange={(e) => setFormAwardAmount(e.target.value)}
                         placeholder="e.g. 15000"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Currency
                       </label>
                       <input
@@ -754,12 +931,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formAwardCurrency}
                         onChange={(e) => setFormAwardCurrency(e.target.value)}
                         placeholder="USD, GBP, EUR, INR"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Award Type
                       </label>
                       <input
@@ -767,12 +953,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formAwardType}
                         onChange={(e) => setFormAwardType(e.target.value)}
                         placeholder="Full Ride, Tuition Waiver, Cash Grant"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Award Details & Coverage *
                       </label>
                       <textarea
@@ -781,20 +976,45 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formAwardDetails}
                         onChange={(e) => setFormAwardDetails(e.target.value)}
                         placeholder="Explain coverage: full tuition fees, return airfare, living allowance stipend, thesis grant..."
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit',
+                        }}
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Section 3: Eligibility Rules */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-2 text-indigo-600">
+                <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9' }}>
+                  <h4
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#4F46E5',
+                      margin: '0 0 0.75rem 0',
+                    }}
+                  >
                     3. Eligibility Rules & Benchmarks
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '0.85rem',
+                    }}
+                  >
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Min. Academic % Requirement
                       </label>
                       <input
@@ -805,12 +1025,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formMinPercentage}
                         onChange={(e) => setFormMinPercentage(e.target.value)}
                         placeholder="e.g. 75.0"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Eligible Boards (Comma-separated)
                       </label>
                       <input
@@ -818,12 +1047,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formEligibleBoards}
                         onChange={(e) => setFormEligibleBoards(e.target.value)}
                         placeholder="CBSE, ICSE, IB, State Board"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Required Citizenship
                       </label>
                       <input
@@ -831,18 +1069,36 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formRequiredCitizenship}
                         onChange={(e) => setFormRequiredCitizenship(e.target.value)}
                         placeholder="e.g. Indian, Commonwealth Citizen"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Gender Requirement
                       </label>
                       <select
                         value={formGenderRequirement}
                         onChange={(e) => setFormGenderRequirement(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       >
                         <option value="ANY">Any / All Genders</option>
                         <option value="FEMALE">Female Only</option>
@@ -852,7 +1108,7 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Annual Income Ceiling
                       </label>
                       <input
@@ -860,12 +1116,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formIncomeCeiling}
                         onChange={(e) => setFormIncomeCeiling(e.target.value)}
                         placeholder="e.g. 800000"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Income Currency
                       </label>
                       <input
@@ -873,12 +1138,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formIncomeCurrency}
                         onChange={(e) => setFormIncomeCurrency(e.target.value)}
                         placeholder="INR, USD"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Required Entrance Exams (Comma-separated)
                       </label>
                       <input
@@ -886,12 +1160,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formRequiredExams}
                         onChange={(e) => setFormRequiredExams(e.target.value)}
                         placeholder="e.g. IELTS, TOEFL, GRE, SAT"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
-                    <div className="md:col-span-3">
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Eligibility Guidelines Description *
                       </label>
                       <textarea
@@ -900,32 +1183,66 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formEligibilityDescription}
                         onChange={(e) => setFormEligibilityDescription(e.target.value)}
                         placeholder="Detailed criteria explanation shown to students and advisors..."
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                          fontFamily: 'inherit',
+                        }}
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Section 4: Deadlines, Source & Status */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-2 text-indigo-600">
+                <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #F1F5F9' }}>
+                  <h4
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: '#4F46E5',
+                      margin: '0 0 0.75rem 0',
+                    }}
+                  >
                     4. Application Portal, Deadlines & Verification
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                      gap: '0.85rem',
+                    }}
+                  >
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Application Deadline
                       </label>
                       <input
                         type="date"
                         value={formDeadline}
                         onChange={(e) => setFormDeadline(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Official Application URL *
                       </label>
                       <input
@@ -934,12 +1251,21 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formApplicationUrl}
                         onChange={(e) => setFormApplicationUrl(e.target.value)}
                         placeholder="https://..."
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
                         Source Reference / Verification Notes
                       </label>
                       <input
@@ -947,27 +1273,36 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                         value={formSourceInfo}
                         onChange={(e) => setFormSourceInfo(e.target.value)}
                         placeholder="e.g. Official Government Gazette / University Financial Aid Catalogue 2026-2027"
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        style={{
+                          width: '100%',
+                          padding: '0.55rem 0.8rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          color: '#0F172A',
+                          boxSizing: 'border-box',
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center gap-4 pt-2">
-                      <label className="flex items-center gap-2 font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', paddingTop: '0.5rem', gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
                         <input
                           type="checkbox"
                           checked={formIsActive}
                           onChange={(e) => setFormIsActive(e.target.checked)}
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                          style={{ width: 16, height: 16, accentColor: '#4F46E5', cursor: 'pointer' }}
                         />
                         <span>Active in Catalogue</span>
                       </label>
 
-                      <label className="flex items-center gap-2 font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>
                         <input
                           type="checkbox"
                           checked={formIsPublished}
                           onChange={(e) => setFormIsPublished(e.target.checked)}
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                          style={{ width: 16, height: 16, accentColor: '#4F46E5', cursor: 'pointer' }}
                         />
                         <span>Published for Students</span>
                       </label>
@@ -976,11 +1311,11 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2.5">
+                <div className="scholarship-modal-footer">
                   <button
                     type="button"
                     onClick={() => setIsFormModalOpen(false)}
-                    className="px-4 py-2 rounded-xl font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="btn-scholarship-back"
                   >
                     Cancel
                   </button>
@@ -988,7 +1323,8 @@ export const ScholarshipManagementPage: React.FC<ScholarshipManagementPageProps>
                     type="submit"
                     id="submit-scholarship-btn"
                     disabled={isSubmitting}
-                    className="px-5 py-2 rounded-xl font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition disabled:opacity-50"
+                    className="btn-scholarship-add"
+                    style={{ opacity: isSubmitting ? 0.7 : 1 }}
                   >
                     {isSubmitting
                       ? 'Saving...'

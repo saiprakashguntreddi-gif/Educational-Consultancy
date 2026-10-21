@@ -142,7 +142,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
             <ul className="footer-links-vertical" style={{ gap: '0.95rem' }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.875rem', color: '#CBD5E1' }}>
                 <Mail size={16} color="#A78BFA" />
-                <a href="mailto:guidance@superconsciousness.edu" style={{ color: 'inherit', textDecoration: 'none' }}>
+                <a href="mailto:guidance@superconsciousness.edu" style={{ color: 'inherit', textDecoration: 'none', whiteSpace: 'nowrap' }}>
                   guidance@superconsciousness.edu
                 </a>
               </li>
