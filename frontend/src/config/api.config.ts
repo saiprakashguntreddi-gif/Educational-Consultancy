@@ -94,4 +94,13 @@ export const API_ENDPOINTS = {
     ADMIN_BY_ID: (id: string) => `${API_BASE_URL}/scholarships/admin/${id}`,
     ADMIN_STATUS: (id: string) => `${API_BASE_URL}/scholarships/admin/${id}/status`,
   },
+  FEES: {
+    META: `${API_BASE_URL}/fees/meta`,
+    TIER_SUMMARY: `${API_BASE_URL}/fees/tier-summary`,
+    COLLEGES: `${API_BASE_URL}/fees/colleges`,
+    CALCULATE: `${API_BASE_URL}/fees/calculate`,
+    COMPARE: `${API_BASE_URL}/fees/compare`,
+    BUDGET_DECISION: `${API_BASE_URL}/fees/budget-decision`,
+  },
 } as const;
+

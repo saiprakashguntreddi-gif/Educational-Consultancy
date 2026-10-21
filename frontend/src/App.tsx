@@ -12,6 +12,7 @@ import { CollegeManagementPage } from './modules/colleges/pages/CollegeManagemen
 import { CollegeDiscoveryView } from './modules/colleges/components/CollegeDiscoveryView';
 import { CollegeTierManagementPage } from './modules/recommendations/pages/CollegeTierManagementPage';
 import { ScholarshipManagementPage } from './modules/scholarships/pages/ScholarshipManagementPage';
+import { FeeCalculatorPage } from './modules/fees/pages/FeeCalculatorPage';
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('home');
@@ -123,6 +124,17 @@ const AppContent: React.FC = () => {
             onNavigateHome={() => handleNavigate('home')}
           />
         );
+      case 'fees':
+      case 'fee-calculator':
+        if (user?.role === 'STUDENT') {
+          return (
+            <StudentDashboardPage
+              initialSection="fees"
+              onNavigateHome={() => handleNavigate('home')}
+            />
+          );
+        }
+        return <FeeCalculatorPage onNavigateHome={() => handleNavigate('home')} />;
       case 'counsellor-queue':
         return <CounsellorQueuePage />;
       case 'home':
@@ -141,6 +153,8 @@ const AppContent: React.FC = () => {
       currentView === 'colleges' ||
       currentView === 'recommendations' ||
       currentView === 'scholarships' ||
+      currentView === 'fees' ||
+      currentView === 'fee-calculator' ||
       currentView === 'dashboard' ||
       currentView === 'student-dashboard');
 

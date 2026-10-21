@@ -1,0 +1,631 @@
+import { CollegeTierItem, CurrencyRate } from './fees.types';
+
+export const REFERENCE_DATE = 'October 2026 Reference Benchmark';
+export const DEMO_DATA_DISCLAIMER =
+  'DEMO & ESTIMATION BENCHMARK: University fee statistics, auxiliary living expenses, and exchange rates are curated reference models based on international education averages (2024-2026 academic year cohorts). Figures serve as planning baselines and do not constitute binding admissions or tuition quotes.';
+
+export interface CountryMeta {
+  code: string;
+  name: string;
+  flag: string;
+  currencyCode: string;
+  currencySymbol: string;
+  baseLivingCostUSD: number;
+  baseHealthInsuranceUSD: number;
+  baseTravelCostUSD: number;
+  basePersonalCostUSD: number;
+}
+
+export const SUPPORTED_COUNTRIES: CountryMeta[] = [
+  {
+    code: 'US',
+    name: 'United States',
+    flag: '🇺🇸',
+    currencyCode: 'USD',
+    currencySymbol: '$',
+    baseLivingCostUSD: 14200,
+    baseHealthInsuranceUSD: 2350,
+    baseTravelCostUSD: 2400,
+    basePersonalCostUSD: 2600,
+  },
+  {
+    code: 'UK',
+    name: 'United Kingdom',
+    flag: '🇬🇧',
+    currencyCode: 'GBP',
+    currencySymbol: '£',
+    baseLivingCostUSD: 14800,
+    baseHealthInsuranceUSD: 980,
+    baseTravelCostUSD: 2100,
+    basePersonalCostUSD: 2300,
+  },
+  {
+    code: 'CA',
+    name: 'Canada',
+    flag: '🇨🇦',
+    currencyCode: 'CAD',
+    currencySymbol: 'C$',
+    baseLivingCostUSD: 12100,
+    baseHealthInsuranceUSD: 850,
+    baseTravelCostUSD: 2000,
+    basePersonalCostUSD: 2100,
+  },
+  {
+    code: 'AU',
+    name: 'Australia',
+    flag: '🇦🇺',
+    currencyCode: 'AUD',
+    currencySymbol: 'A$',
+    baseLivingCostUSD: 15400,
+    baseHealthInsuranceUSD: 750,
+    baseTravelCostUSD: 2300,
+    basePersonalCostUSD: 2400,
+  },
+  {
+    code: 'DE',
+    name: 'Germany',
+    flag: '🇩🇪',
+    currencyCode: 'EUR',
+    currencySymbol: '€',
+    baseLivingCostUSD: 11400,
+    baseHealthInsuranceUSD: 1380,
+    baseTravelCostUSD: 1600,
+    basePersonalCostUSD: 1800,
+  },
+  {
+    code: 'IE',
+    name: 'Ireland',
+    flag: '🇮🇪',
+    currencyCode: 'EUR',
+    currencySymbol: '€',
+    baseLivingCostUSD: 13200,
+    baseHealthInsuranceUSD: 920,
+    baseTravelCostUSD: 1750,
+    basePersonalCostUSD: 1950,
+  },
+  {
+    code: 'SG',
+    name: 'Singapore',
+    flag: '🇸🇬',
+    currencyCode: 'SGD',
+    currencySymbol: 'S$',
+    baseLivingCostUSD: 12800,
+    baseHealthInsuranceUSD: 780,
+    baseTravelCostUSD: 1500,
+    basePersonalCostUSD: 1900,
+  },
+  {
+    code: 'NZ',
+    name: 'New Zealand',
+    flag: '🇳🇿',
+    currencyCode: 'NZD',
+    currencySymbol: 'NZ$',
+    baseLivingCostUSD: 12600,
+    baseHealthInsuranceUSD: 720,
+    baseTravelCostUSD: 2200,
+    basePersonalCostUSD: 2000,
+  },
+  {
+    code: 'IN',
+    name: 'India',
+    flag: '🇮🇳',
+    currencyCode: 'INR',
+    currencySymbol: '₹',
+    baseLivingCostUSD: 2400,
+    baseHealthInsuranceUSD: 220,
+    baseTravelCostUSD: 450,
+    basePersonalCostUSD: 550,
+  },
+  {
+    code: 'ZA',
+    name: 'South Africa',
+    flag: '🇿🇦',
+    currencyCode: 'ZAR',
+    currencySymbol: 'R',
+    baseLivingCostUSD: 4200,
+    baseHealthInsuranceUSD: 480,
+    baseTravelCostUSD: 1400,
+    basePersonalCostUSD: 850,
+  },
+];
+
+export interface DepartmentMeta {
+  name: string;
+  multiplier: number; // Multiplier on baseline tuition
+  sampleCourses: string[];
+}
+
+export const SUPPORTED_DEPARTMENTS: DepartmentMeta[] = [
+  {
+    name: 'Architecture',
+    multiplier: 1.05,
+    sampleCourses: [
+      'Bachelor of Architecture (B.Arch)',
+      'Master of Architecture (M.Arch)',
+      'Urban Design & Regional Planning',
+      'Landscape Architecture & Sustainable Environments',
+    ],
+  },
+  {
+    name: 'Art & Design',
+    multiplier: 0.95,
+    sampleCourses: [
+      'BFA in Communication & Graphic Design',
+      'Bachelor of Industrial & Product Design',
+      'MFA in Interactive Media & Game Design',
+      'Visual Arts & Digital Animation',
+    ],
+  },
+  {
+    name: 'Bio Sciences & Biotechnology',
+    multiplier: 1.08,
+    sampleCourses: [
+      'B.S. in Biotechnology',
+      'B.S. in Biomedical Sciences',
+      'M.S. in Molecular Biology & Genetics',
+      'Bioinformatics & Computational Biology',
+    ],
+  },
+  {
+    name: 'Business & Management',
+    multiplier: 1.15,
+    sampleCourses: [
+      'Bachelor of Business Administration (BBA)',
+      'Master of Business Administration (MBA)',
+      'M.S. in Quantitative Finance & Risk',
+      'International Business & Global Logistics',
+    ],
+  },
+  {
+    name: 'Computer Science & IT',
+    multiplier: 1.12,
+    sampleCourses: [
+      'B.S. in Computer Science & Engineering',
+      'M.S. in Artificial Intelligence & Machine Learning',
+      'B.S. in Cybersecurity & Cloud Networks',
+      'Master of Data Science & Big Data Systems',
+    ],
+  },
+  {
+    name: 'Engineering & Technology',
+    multiplier: 1.10,
+    sampleCourses: [
+      'B.S. in Mechanical Engineering',
+      'B.S. in Electrical & Computer Engineering',
+      'M.S. in Robotics & Autonomous Systems',
+      'Civil & Infrastructure Systems Engineering',
+    ],
+  },
+  {
+    name: 'Health Sciences',
+    multiplier: 1.25,
+    sampleCourses: [
+      'Bachelor of Science in Nursing (BSN)',
+      'Master of Public Health (MPH)',
+      'Doctor of Physical Therapy (DPT)',
+      'Health Informatics & Clinical Administration',
+    ],
+  },
+  {
+    name: 'Humanities & Social Sciences',
+    multiplier: 0.90,
+    sampleCourses: [
+      'B.A. in International Relations & Global Governance',
+      'B.A. in Psychology & Cognitive Science',
+      'Master of Public Policy (MPP)',
+      'Economics, Philosophy & Political Theory',
+    ],
+  },
+  {
+    name: 'Law & Legal Studies',
+    multiplier: 1.18,
+    sampleCourses: [
+      'Bachelor of Laws (LL.B.)',
+      'Master of Laws in International Commercial Law (LL.M.)',
+      'Corporate Law & Technology Regulation',
+    ],
+  },
+];
+
+export const BENCHMARK_CURRENCIES: CurrencyRate[] = [
+  { code: 'USD', name: 'US Dollar', symbol: '$', ratePerUSD: 1.0 },
+  { code: 'EUR', name: 'Euro', symbol: '€', ratePerUSD: 0.92 },
+  { code: 'GBP', name: 'British Pound', symbol: '£', ratePerUSD: 0.79 },
+  { code: 'INR', name: 'Indian Rupee', symbol: '₹', ratePerUSD: 83.5 },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', ratePerUSD: 1.36 },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', ratePerUSD: 1.52 },
+  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', ratePerUSD: 1.35 },
+  { code: 'NZD', name: 'New Zealand Dollar', symbol: 'NZ$', ratePerUSD: 1.64 },
+  { code: 'ZAR', name: 'South African Rand', symbol: 'R', ratePerUSD: 18.2 },
+];
+
+/**
+ * Country Baseline Annual Tuition in USD for each tier (General discipline baseline)
+ */
+export const COUNTRY_TIER_BASELINES: Record<
+  string,
+  {
+    topRanked: { avg: number; highest: number; lowest: number };
+    midLevel: { avg: number; highest: number; lowest: number };
+    emerging: { avg: number; highest: number; lowest: number };
+  }
+> = {
+  'United States': {
+    // Aligns tightly with reference screenshot sample figures
+    topRanked: { avg: 39537.92, highest: 55145.54, lowest: 18592.43 },
+    midLevel: { avg: 40718.33, highest: 55650.54, lowest: 25097.07 },
+    emerging: { avg: 28107.63, highest: 60668.34, lowest: 11307.17 },
+  },
+  'United Kingdom': {
+    topRanked: { avg: 36200.0, highest: 48500.0, lowest: 22400.0 },
+    midLevel: { avg: 26800.0, highest: 34200.0, lowest: 18900.0 },
+    emerging: { avg: 19400.0, highest: 25800.0, lowest: 13500.0 },
+  },
+  'Canada': {
+    topRanked: { avg: 32400.0, highest: 44200.0, lowest: 19800.0 },
+    midLevel: { avg: 24200.0, highest: 31500.0, lowest: 16700.0 },
+    emerging: { avg: 17800.0, highest: 23400.0, lowest: 12200.0 },
+  },
+  'Australia': {
+    topRanked: { avg: 34800.0, highest: 46900.0, lowest: 21500.0 },
+    midLevel: { avg: 25600.0, highest: 32800.0, lowest: 17900.0 },
+    emerging: { avg: 18900.0, highest: 24700.0, lowest: 12900.0 },
+  },
+  'Germany': {
+    topRanked: { avg: 3400.0, highest: 8500.0, lowest: 450.0 }, // Many public tuition-free with semester contribution
+    midLevel: { avg: 2800.0, highest: 6200.0, lowest: 350.0 },
+    emerging: { avg: 1950.0, highest: 4800.0, lowest: 300.0 },
+  },
+  'Ireland': {
+    topRanked: { avg: 25800.0, highest: 35400.0, lowest: 15600.0 },
+    midLevel: { avg: 18400.0, highest: 24200.0, lowest: 13200.0 },
+    emerging: { avg: 14200.0, highest: 19100.0, lowest: 9800.0 },
+  },
+  'Singapore': {
+    topRanked: { avg: 29500.0, highest: 39800.0, lowest: 18200.0 },
+    midLevel: { avg: 21200.0, highest: 27900.0, lowest: 14500.0 },
+    emerging: { avg: 15800.0, highest: 20400.0, lowest: 11200.0 },
+  },
+  'New Zealand': {
+    topRanked: { avg: 26400.0, highest: 36200.0, lowest: 17400.0 },
+    midLevel: { avg: 19800.0, highest: 25600.0, lowest: 14200.0 },
+    emerging: { avg: 14900.0, highest: 19500.0, lowest: 10800.0 },
+  },
+  'India': {
+    topRanked: { avg: 3600.0, highest: 6800.0, lowest: 1200.0 },
+    midLevel: { avg: 2100.0, highest: 3900.0, lowest: 850.0 },
+    emerging: { avg: 1200.0, highest: 2200.0, lowest: 450.0 },
+  },
+  'South Africa': {
+    topRanked: { avg: 4900.0, highest: 8200.0, lowest: 2800.0 },
+    midLevel: { avg: 3400.0, highest: 5600.0, lowest: 1900.0 },
+    emerging: { avg: 2300.0, highest: 3800.0, lowest: 1400.0 },
+  },
+};
+
+/**
+ * Curated Demo Colleges by Country and Tier for "View Colleges" Modal
+ */
+export const SAMPLE_COLLEGES_CATALOG: CollegeTierItem[] = [
+  // United States
+  {
+    id: 'us-top-1',
+    name: 'Massachusetts Institute of Technology (MIT)',
+    country: 'United States',
+    city: 'Cambridge, MA',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'QS World Rank #1',
+    annualTuitionFee: 60156,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Computer Science', 'M.S. in Robotics', 'B.S. in Electrical Engineering'],
+    acceptanceRate: '4.0%',
+    officialWebsiteUrl: 'https://www.mit.edu',
+  },
+  {
+    id: 'us-top-2',
+    name: 'Stanford University',
+    country: 'United States',
+    city: 'Stanford, CA',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'QS World Rank #5',
+    annualTuitionFee: 61731,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Symbolic Systems', 'MBA', 'M.S. in Biomedical Informatics'],
+    acceptanceRate: '3.9%',
+    officialWebsiteUrl: 'https://www.stanford.edu',
+  },
+  {
+    id: 'us-top-3',
+    name: 'University of California, Berkeley',
+    country: 'United States',
+    city: 'Berkeley, CA',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'QS World Rank #10',
+    annualTuitionFee: 44066,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Electrical Engineering & CS', 'Master of Public Health', 'B.A. in Economics'],
+    acceptanceRate: '11.4%',
+    officialWebsiteUrl: 'https://www.berkeley.edu',
+  },
+  {
+    id: 'us-mid-1',
+    name: 'University of Washington (Seattle)',
+    country: 'United States',
+    city: 'Seattle, WA',
+    tier: 'MID_LEVEL',
+    rankingInfo: 'US News Global #6',
+    annualTuitionFee: 41997,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Informatics', 'M.S. in Technology Innovation', 'B.A. in Communication'],
+    acceptanceRate: '48.0%',
+    officialWebsiteUrl: 'https://www.washington.edu',
+  },
+  {
+    id: 'us-mid-2',
+    name: 'Purdue University',
+    country: 'United States',
+    city: 'West Lafayette, IN',
+    tier: 'MID_LEVEL',
+    rankingInfo: 'Top Public Engineering',
+    annualTuitionFee: 31104,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Aerospace Engineering', 'M.S. in Data Science', 'B.S. in Agriculture'],
+    acceptanceRate: '52.7%',
+    officialWebsiteUrl: 'https://www.purdue.edu',
+  },
+  {
+    id: 'us-mid-3',
+    name: 'Ohio State University',
+    country: 'United States',
+    city: 'Columbus, OH',
+    tier: 'MID_LEVEL',
+    rankingInfo: 'National Rank #43',
+    annualTuitionFee: 36722,
+    feeCurrency: 'USD',
+    sampleCourses: ['BSBA in Finance', 'B.S. in Health Sciences', 'M.S. in Mechanical Engineering'],
+    acceptanceRate: '57.0%',
+    officialWebsiteUrl: 'https://www.osu.edu',
+  },
+  {
+    id: 'us-emg-1',
+    name: 'San Jose State University',
+    country: 'United States',
+    city: 'San Jose, CA',
+    tier: 'EMERGING',
+    rankingInfo: 'Top Silicon Valley Feeder',
+    annualTuitionFee: 19466,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Software Engineering', 'B.S. in Business Analytics', 'M.S. in Artificial Intelligence'],
+    acceptanceRate: '67.0%',
+    officialWebsiteUrl: 'https://www.sjsu.edu',
+  },
+  {
+    id: 'us-emg-2',
+    name: 'University of South Florida',
+    country: 'United States',
+    city: 'Tampa, FL',
+    tier: 'EMERGING',
+    rankingInfo: 'Rapidly Rising Research Tier 1',
+    annualTuitionFee: 17324,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Cybersecurity', 'Bachelor of Nursing', 'B.S. in Biomedical Sciences'],
+    acceptanceRate: '44.0%',
+    officialWebsiteUrl: 'https://www.usf.edu',
+  },
+  {
+    id: 'us-emg-3',
+    name: 'Arizona State University',
+    country: 'United States',
+    city: 'Tempe, AZ',
+    tier: 'EMERGING',
+    rankingInfo: '#1 Most Innovative University',
+    annualTuitionFee: 32740,
+    feeCurrency: 'USD',
+    sampleCourses: ['B.S. in Global Management', 'M.S. in User Experience', 'B.S. in Sustainability'],
+    acceptanceRate: '88.0%',
+    officialWebsiteUrl: 'https://www.asu.edu',
+  },
+
+  // United Kingdom
+  {
+    id: 'uk-top-1',
+    name: 'University of Oxford',
+    country: 'United Kingdom',
+    city: 'Oxford, England',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'THE World Rank #1',
+    annualTuitionFee: 38550,
+    feeCurrency: 'GBP',
+    sampleCourses: ['BA in Philosophy, Politics and Economics', 'MSc in Advanced Computer Science'],
+    acceptanceRate: '14.5%',
+    officialWebsiteUrl: 'https://www.ox.ac.uk',
+  },
+  {
+    id: 'uk-top-2',
+    name: 'Imperial College London',
+    country: 'United Kingdom',
+    city: 'London, England',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'QS World Rank #2',
+    annualTuitionFee: 41200,
+    feeCurrency: 'GBP',
+    sampleCourses: ['BEng in Computing', 'MSc in Applied Mathematics', 'BSc in Biotechnology'],
+    acceptanceRate: '11.8%',
+    officialWebsiteUrl: 'https://www.imperial.ac.uk',
+  },
+  {
+    id: 'uk-mid-1',
+    name: 'University of Manchester',
+    country: 'United Kingdom',
+    city: 'Manchester, England',
+    tier: 'MID_LEVEL',
+    rankingInfo: 'Russell Group Elite',
+    annualTuitionFee: 29500,
+    feeCurrency: 'GBP',
+    sampleCourses: ['BSc in International Management', 'MSc in Data Science', 'BSc in Psychology'],
+    acceptanceRate: '56.0%',
+    officialWebsiteUrl: 'https://www.manchester.ac.uk',
+  },
+  {
+    id: 'uk-mid-2',
+    name: 'University of Bristol',
+    country: 'United Kingdom',
+    city: 'Bristol, England',
+    tier: 'MID_LEVEL',
+    rankingInfo: 'Top 10 UK Research',
+    annualTuitionFee: 27200,
+    feeCurrency: 'GBP',
+    sampleCourses: ['BSc in Mechanical Engineering', 'LLB Law', 'MSc in Economics'],
+    acceptanceRate: '67.0%',
+    officialWebsiteUrl: 'https://www.bristol.ac.uk',
+  },
+  {
+    id: 'uk-emg-1',
+    name: 'Coventry University',
+    country: 'United Kingdom',
+    city: 'Coventry, England',
+    tier: 'EMERGING',
+    rankingInfo: 'Top Modern University UK',
+    annualTuitionFee: 16800,
+    feeCurrency: 'GBP',
+    sampleCourses: ['BSc in Automotive Engineering', 'BA in Digital Design', 'MSc in Cyber Security'],
+    acceptanceRate: '75.0%',
+    officialWebsiteUrl: 'https://www.coventry.ac.uk',
+  },
+  {
+    id: 'uk-emg-2',
+    name: 'Northumbria University',
+    country: 'United Kingdom',
+    city: 'Newcastle, England',
+    tier: 'EMERGING',
+    rankingInfo: 'Times Higher Education University of the Year',
+    annualTuitionFee: 16500,
+    feeCurrency: 'GBP',
+    sampleCourses: ['BA in Architecture', 'BSc in Business with Marketing', 'MSc in Artificial Intelligence'],
+    acceptanceRate: '78.0%',
+    officialWebsiteUrl: 'https://www.northumbria.ac.uk',
+  },
+
+  // Canada
+  {
+    id: 'ca-top-1',
+    name: 'University of Toronto',
+    country: 'Canada',
+    city: 'Toronto, ON',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'QS World Rank #21',
+    annualTuitionFee: 44500,
+    feeCurrency: 'CAD',
+    sampleCourses: ['B.S. in Computer Science', 'Rotman Commerce BBA', 'M.S. in Applied Computing'],
+    acceptanceRate: '43.0%',
+    officialWebsiteUrl: 'https://www.utoronto.ca',
+  },
+  {
+    id: 'ca-mid-1',
+    name: 'University of Waterloo',
+    country: 'Canada',
+    city: 'Waterloo, ON',
+    tier: 'MID_LEVEL',
+    rankingInfo: '#1 Co-op Program Globally',
+    annualTuitionFee: 32000,
+    feeCurrency: 'CAD',
+    sampleCourses: ['B.S. in Software Engineering', 'Bachelor of Mathematics', 'Master of Data Science'],
+    acceptanceRate: '53.0%',
+    officialWebsiteUrl: 'https://uwaterloo.ca',
+  },
+  {
+    id: 'ca-emg-1',
+    name: 'Concordia University',
+    country: 'Canada',
+    city: 'Montreal, QC',
+    tier: 'EMERGING',
+    rankingInfo: 'Top Comprehensive Canadian University',
+    annualTuitionFee: 21500,
+    feeCurrency: 'CAD',
+    sampleCourses: ['B.Eng in Computer Engineering', 'B.F.A. in Film Production', 'M.S. in Finance'],
+    acceptanceRate: '72.0%',
+    officialWebsiteUrl: 'https://www.concordia.ca',
+  },
+
+  // Australia
+  {
+    id: 'au-top-1',
+    name: 'The University of Melbourne',
+    country: 'Australia',
+    city: 'Melbourne, VIC',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'QS World Rank #13',
+    annualTuitionFee: 47200,
+    feeCurrency: 'AUD',
+    sampleCourses: ['Bachelor of Science (Computing)', 'Bachelor of Commerce', 'Master of Engineering'],
+    acceptanceRate: '70.0%',
+    officialWebsiteUrl: 'https://www.unimelb.edu.au',
+  },
+  {
+    id: 'au-mid-1',
+    name: 'University of Technology Sydney (UTS)',
+    country: 'Australia',
+    city: 'Sydney, NSW',
+    tier: 'MID_LEVEL',
+    rankingInfo: '#1 Young University in Australia',
+    annualTuitionFee: 34800,
+    feeCurrency: 'AUD',
+    sampleCourses: ['B.S. in Information Technology', 'Bachelor of Design in Architecture', 'Master of AI'],
+    acceptanceRate: '76.0%',
+    officialWebsiteUrl: 'https://www.uts.edu.au',
+  },
+  {
+    id: 'au-emg-1',
+    name: 'Deakin University',
+    country: 'Australia',
+    city: 'Geelong & Melbourne, VIC',
+    tier: 'EMERGING',
+    rankingInfo: 'Top 1% Worldwide & Practical Career Focus',
+    annualTuitionFee: 26500,
+    feeCurrency: 'AUD',
+    sampleCourses: ['Bachelor of Cyber Security', 'Bachelor of Nursing', 'Master of Business Analytics'],
+    acceptanceRate: '82.0%',
+    officialWebsiteUrl: 'https://www.deakin.edu.au',
+  },
+
+  // Germany
+  {
+    id: 'de-top-1',
+    name: 'Technical University of Munich (TUM)',
+    country: 'Germany',
+    city: 'Munich, Bavaria',
+    tier: 'TOP_RANKED',
+    rankingInfo: 'QS World Rank #28',
+    annualTuitionFee: 3000, // Nominal semester + international admin fees
+    feeCurrency: 'EUR',
+    sampleCourses: ['B.S. in Informatics', 'M.S. in Data Engineering & Analytics', 'B.S. in Mechanical Engineering'],
+    acceptanceRate: '25.0%',
+    officialWebsiteUrl: 'https://www.tum.de',
+  },
+  {
+    id: 'de-mid-1',
+    name: 'RWTH Aachen University',
+    country: 'Germany',
+    city: 'Aachen, NRW',
+    tier: 'MID_LEVEL',
+    rankingInfo: 'Top German Engineering Cluster',
+    annualTuitionFee: 750, // Zero tuition, €375/semester ticket & contribution
+    feeCurrency: 'EUR',
+    sampleCourses: ['B.S. in Electrical Engineering', 'M.S. in Automotive Systems', 'M.S. in Computational Sciences'],
+    acceptanceRate: '35.0%',
+    officialWebsiteUrl: 'https://www.rwth-aachen.de',
+  },
+  {
+    id: 'de-emg-1',
+    name: 'Munich University of Applied Sciences (HM)',
+    country: 'Germany',
+    city: 'Munich, Bavaria',
+    tier: 'EMERGING',
+    rankingInfo: 'Leader in Practical Applied STEM',
+    annualTuitionFee: 650,
+    feeCurrency: 'EUR',
+    sampleCourses: ['Bachelor of Applied Computer Science', 'B.Eng in Mechatronics', 'B.A. in Industrial Design'],
+    acceptanceRate: '50.0%',
+    officialWebsiteUrl: 'https://www.hm.edu',
+  },
+];

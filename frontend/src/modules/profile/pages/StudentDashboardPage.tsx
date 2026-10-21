@@ -15,6 +15,7 @@ import { PersonalInformationView } from '../../personal/components/PersonalInfor
 import { CollegeDiscoveryView } from '../../colleges/components/CollegeDiscoveryView';
 import { ThreeTierFitView } from '../../recommendations/components/ThreeTierFitView';
 import { ScholarshipDiscoveryView } from '../../scholarships/components/ScholarshipDiscoveryView';
+import { FeeComparisonDashboard } from '../../fees/components/FeeComparisonDashboard';
 import '../../../shared/styles/student-dashboard.css';
 import {
   LayoutDashboard,
@@ -27,6 +28,7 @@ import {
   Award,
   Bookmark,
   Coins,
+  Calculator,
   Calendar,
   Settings,
   LogOut,
@@ -46,7 +48,7 @@ import {
 } from 'lucide-react';
 
 interface StudentDashboardPageProps {
-  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'personal' | 'colleges' | 'recommendations' | 'scholarships';
+  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees';
   onNavigateHome?: () => void;
 }
 
@@ -86,6 +88,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       ? 'recommendations'
       : initialSection === 'scholarships'
       ? 'scholarships'
+      : initialSection === 'fees'
+      ? 'fees'
       : 'dashboard'
   );
 
@@ -147,6 +151,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       setActiveMenu('recommendations');
     } else if (initialSection === 'scholarships') {
       setActiveMenu('scholarships');
+    } else if (initialSection === 'fees') {
+      setActiveMenu('fees');
     } else if (initialSection === 'dashboard') {
       setActiveMenu('dashboard');
     }
@@ -286,6 +292,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         return 'Three-Tier Fit';
       case 'scholarships':
         return 'Scholarship Discovery';
+      case 'fees':
+        return 'Fee Calculator & Country Comparison';
       case 'assessments':
         return 'Assessments';
       case 'shortlist':
@@ -468,6 +476,17 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Coins size={17} />
             </span>
             <span>Scholarships</span>
+          </button>
+
+          <button
+            className={`cmd-nav-item ${activeMenu === 'fees' ? 'active' : ''}`}
+            onClick={() => handleNavSelection('fees')}
+            id="dash-nav-fees-btn"
+          >
+            <span className="cmd-nav-item-icon">
+              <Calculator size={17} />
+            </span>
+            <span>Fee Calculator</span>
           </button>
 
           <button
@@ -1533,6 +1552,37 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               </div>
 
               <ScholarshipDiscoveryView />
+            </div>
+          )}
+
+          {/* ==========================================================
+              VIEW 10: MODULE 9 — FEE CALCULATOR & COUNTRY COMPARISON
+             ========================================================== */}
+          {activeMenu === 'fees' && (
+            <div>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <button
+                  id="fees-back-to-dash-btn"
+                  onClick={() => setActiveMenu('dashboard')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'none',
+                    border: 'none',
+                    color: '#5B4FE9',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  <span>Back to Dashboard</span>
+                </button>
+              </div>
+
+              <FeeComparisonDashboard onBackToDashboard={() => setActiveMenu('dashboard')} />
             </div>
           )}
 
