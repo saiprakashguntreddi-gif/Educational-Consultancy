@@ -13,6 +13,7 @@ import { personalRouter } from './modules/personal/personal.routes';
 import { collegesRouter } from './modules/colleges/colleges.routes';
 import { recommendationsRouter } from './modules/recommendations/recommendations.routes';
 import { scholarshipsRouter } from './modules/scholarships/scholarships.routes';
+import { examIntelligenceRouter } from './modules/exam-intelligence/exam-intelligence.routes';
 import { errorHandler, notFoundHandler } from './shared/middleware/error.middleware';
 import { ApiResponse } from './shared/utils/api-response';
 
@@ -344,6 +345,7 @@ export const createApp = (): Application => {
   app.use('/api/v1/colleges', collegesRouter);
   app.use('/api/v1/recommendations', recommendationsRouter);
   app.use('/api/v1/scholarships', scholarshipsRouter);
+  app.use('/api/v1/exam-intelligence', examIntelligenceRouter);
   app.use('/api/v1/counsellor', counsellorRouter);
   app.use('/api/v1/admin', adminRouter);
 

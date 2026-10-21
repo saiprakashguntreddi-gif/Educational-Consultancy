@@ -12,6 +12,7 @@ import {
   Building2,
   Layers,
   Award,
+  Target,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -171,6 +172,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   >
                     <GraduationCap size={15} color="#A78BFA" />
                     <span>My Profile</span>
+                  </button>
+                  <button
+                    onClick={() => onNavigate('exam-intelligence')}
+                    className="btn-nav-module"
+                    title="Entrance Exam Intelligence & Mock Tests"
+                    id="nav-exam-intelligence-btn"
+                  >
+                    <Target size={15} color="#A78BFA" />
+                    <span>Exam Intelligence</span>
                   </button>
                 </>
               )}
@@ -362,6 +372,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                     id="mobile-nav-education-btn"
                   >
                     <BookOpen size={16} /> Education Details
+                  </button>
+                  <button
+                    onClick={() => handleNavClick('exam-intelligence')}
+                    className="btn-secondary-outline"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    id="mobile-nav-exam-intelligence-btn"
+                  >
+                    <Target size={16} /> Exam Intelligence & Mock Tests
                   </button>
                 </>
               )}

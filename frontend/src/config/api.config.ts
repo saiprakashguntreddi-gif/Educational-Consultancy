@@ -94,4 +94,14 @@ export const API_ENDPOINTS = {
     ADMIN_BY_ID: (id: string) => `${API_BASE_URL}/scholarships/admin/${id}`,
     ADMIN_STATUS: (id: string) => `${API_BASE_URL}/scholarships/admin/${id}/status`,
   },
+  EXAM_INTELLIGENCE: {
+    OVERVIEW: `${API_BASE_URL}/exam-intelligence/overview`,
+    PREPARATION_PLAN: (examId: string) => `${API_BASE_URL}/exam-intelligence/preparation-plan/${examId}`,
+    MOCK_TEST_BY_ID: (testId: string) => `${API_BASE_URL}/exam-intelligence/mock-tests/${testId}`,
+    MOCK_TEST_SUBMIT: (testId: string) => `${API_BASE_URL}/exam-intelligence/mock-tests/${testId}/submit`,
+    PLAN_SAVE: `${API_BASE_URL}/exam-intelligence/plan`,
+    PLAN_ITEM: (id: string) => `${API_BASE_URL}/exam-intelligence/plan/${id}`,
+    STAFF_STUDENT_REVIEW: (profileId: string) =>
+      `${API_BASE_URL}/exam-intelligence/counsellor/student/${profileId}`,
+  },
 } as const;

@@ -12,6 +12,7 @@ import { CollegeManagementPage } from './modules/colleges/pages/CollegeManagemen
 import { CollegeDiscoveryView } from './modules/colleges/components/CollegeDiscoveryView';
 import { CollegeTierManagementPage } from './modules/recommendations/pages/CollegeTierManagementPage';
 import { ScholarshipManagementPage } from './modules/scholarships/pages/ScholarshipManagementPage';
+import { ExamIntelligencePage } from './modules/exam-intelligence/pages/ExamIntelligencePage';
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('home');
@@ -116,6 +117,13 @@ const AppContent: React.FC = () => {
         return <CollegeTierManagementPage onNavigateHome={() => handleNavigate('home')} />;
       case 'scholarship-management':
         return <ScholarshipManagementPage onNavigateHome={() => handleNavigate('home')} />;
+      case 'exam-intelligence':
+        return (
+          <ExamIntelligencePage
+            onNavigateHome={() => handleNavigate('home')}
+            onNavigateDashboard={() => handleNavigate('dashboard')}
+          />
+        );
       case 'scholarships':
         return (
           <StudentDashboardPage
