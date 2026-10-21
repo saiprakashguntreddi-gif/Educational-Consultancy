@@ -16,6 +16,7 @@ import { CollegeDiscoveryView } from '../../colleges/components/CollegeDiscovery
 import { ThreeTierFitView } from '../../recommendations/components/ThreeTierFitView';
 import { ScholarshipDiscoveryView } from '../../scholarships/components/ScholarshipDiscoveryView';
 import { FeeComparisonDashboard } from '../../fees/components/FeeComparisonDashboard';
+import { ExamIntelligencePage } from '../../exam-intelligence/pages/ExamIntelligencePage';
 import '../../../shared/styles/student-dashboard.css';
 import {
   LayoutDashboard,
@@ -45,10 +46,11 @@ import {
   ArrowLeft,
   Check,
   ExternalLink,
+  Target,
 } from 'lucide-react';
 
 interface StudentDashboardPageProps {
-  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees';
+  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'exam-intelligence' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees';
   onNavigateHome?: () => void;
 }
 
@@ -80,6 +82,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       ? 'basic'
       : initialSection === 'entrance'
       ? 'entrance'
+      : initialSection === 'exam-intelligence'
+      ? 'exam-intelligence'
       : initialSection === 'personal'
       ? 'personal'
       : initialSection === 'colleges'
@@ -284,6 +288,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         return 'Education Details';
       case 'entrance':
         return 'Entrance Exams';
+      case 'exam-intelligence':
+        return 'Entrance Exam Intelligence & Mock Tests';
       case 'personal':
         return 'Personal Information';
       case 'colleges':
@@ -415,6 +421,17 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <FileText size={17} />
             </span>
             <span>Entrance Exams</span>
+          </button>
+
+          <button
+            className={`cmd-nav-item ${activeMenu === 'exam-intelligence' ? 'active' : ''}`}
+            onClick={() => handleNavSelection('exam-intelligence')}
+            id="dash-nav-exam-intelligence-btn"
+          >
+            <span className="cmd-nav-item-icon">
+              <Target size={17} />
+            </span>
+            <span>Exam Intelligence</span>
           </button>
 
           <button
@@ -1428,6 +1445,37 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               </div>
 
               <EntranceExamsView onBackToDashboard={() => setActiveMenu('dashboard')} />
+            </div>
+          )}
+
+          {/* ==========================================================
+              VIEW: MODULE 10 — EXAM INTELLIGENCE & MOCK TESTS
+             ========================================================== */}
+          {activeMenu === 'exam-intelligence' && (
+            <div>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <button
+                  id="exam-intelligence-back-to-dash-btn"
+                  onClick={() => setActiveMenu('dashboard')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    background: 'none',
+                    border: 'none',
+                    color: '#5B4FE9',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  <span>Back to Dashboard</span>
+                </button>
+              </div>
+
+              <ExamIntelligencePage onNavigateDashboard={() => setActiveMenu('dashboard')} />
             </div>
           )}
 
