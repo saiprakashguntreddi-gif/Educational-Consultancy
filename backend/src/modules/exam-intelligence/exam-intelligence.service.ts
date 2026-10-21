@@ -1,4 +1,5 @@
 import { prisma } from '../../shared/database/prisma.service';
+import { EntranceService } from '../entrance/entrance.service';
 import {
   CollegeExamRequirement,
   ExamIntelligenceOverview,
@@ -63,6 +64,7 @@ export class ExamIntelligenceService {
    * Step 1: Identify exams required by selected colleges + destination/stream recommendations
    */
   public static async getIntelligenceOverview(userId: string): Promise<ExamIntelligenceOverview> {
+    await EntranceService.ensureCatalogInitialized();
     const profile = await this.getStudentProfileByUserId(userId);
 
     // 1. Fetch all active entrance exams
