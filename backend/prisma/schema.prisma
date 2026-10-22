@@ -20,6 +20,10 @@ model User {
   isEmailVerified  Boolean         @default(false)
   studentProfile   StudentProfile?
   auditLogs        AuditLog[]
+  counsellorAppointments Appointment[] @relation("CounsellorAppointments")
+  assignedStudents StudentProfile[] @relation("AssignedCounsellor")
+  authoredActionPlans ActionPlanItem[] @relation("CounsellorActionPlans")
+  authoredNotes    StudentCounsellorNote[] @relation("CounsellorNotes")
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -82,10 +86,21 @@ model StudentProfile {
   // Module 8 Scholarship Discovery Relations
   savedScholarships     StudentSavedScholarship[]
 
+  // Module 12 Shortlists, Webinars & Appointments Relations
+  shortlistItems        ShortlistItem[]
+  appointments          Appointment[]
+
+  // Module 13 & 14 Counsellor & Administration Suite Relations
+  assignedCounsellorId  String?
+  assignedCounsellor    User?           @relation("AssignedCounsellor", fields: [assignedCounsellorId], references: [id], onDelete: SetNull)
+  actionPlans           ActionPlanItem[]
+  counsellorNotes       StudentCounsellorNote[]
+
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   @@index([userId])
+  @@index([assignedCounsellorId])
   @@index([verificationStatus])
   @@index([grade])
   @@index([board])
@@ -618,5 +633,134 @@ model StudentSavedScholarship {
   @@unique([studentProfileId, scholarshipId])
   @@index([studentProfileId])
   @@index([scholarshipId])
+}
+
+// ==========================================
+// MODULE 12: SHORTLISTS, WEBINARS & APPOINTMENTS
+// ==========================================
+
+model ShortlistItem {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  
+  itemType         String         // "INSTITUTION", "COURSE", "SCHOLARSHIP", "EXAM", "CAREER"
+  itemId           String         // ID of the target record in its source table
+  priority         String         @default("MEDIUM") // "HIGH", "MEDIUM", "LOW"
+  fitCategory      String?        // "DREAM", "REACH", "SAFE" (derived or manual)
+  notes            String?        // Personal student notes
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([studentProfileId, itemType, itemId])
+  @@index([studentProfileId])
+  @@index([itemType])
+  @@index([priority])
+}
+
+model Webinar {
+  id                 String    @id @default(uuid())
+  title              String
+  description        String
+  speakerName        String?
+  speakerTitle       String?
+  speakerBio         String?
+  topic              String    // e.g. "Admissions Strategy", "Engineering", "Business", "Scholarships", "Visas"
+  destinationCountry String?   // e.g. "United States", "United Kingdom", "Germany", "Global"
+  webinarType        String    @default("UPCOMING") // "UPCOMING" | "RECORDED"
+  scheduledAt        DateTime? // Scheduled live date & time
+  durationMinutes    Int       @default(60)
+  officialLink       String    // Official live join / registration URL
+  recordingUrl       String?   // Replay / recording URL for recorded webinars
+  bannerUrl          String?   // Optional cover image
+  isPublished        Boolean   @default(true)
+  publishedAt        DateTime?
+  createdById        String?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([topic])
+  @@index([webinarType])
+  @@index([destinationCountry])
+  @@index([isPublished])
+  @@index([scheduledAt])
+}
+
+model Appointment {
+  id                     String         @id @default(uuid())
+  title                  String
+  description            String
+  scheduledAt            DateTime
+  durationMinutes        Int            @default(45)
+  status                 String         @default("SCHEDULED") // "SCHEDULED", "COMPLETED", "CANCELLED", "RESCHEDULED"
+  meetingType            String         @default("ONLINE_COUNSELLING") // "ONLINE_COUNSELLING", "IN_PERSON", "PHONE"
+  meetingLocation        String?        // e.g. "Google Meet (Link will be emailed)", "Counselling Office Room 3"
+  
+  studentProfileId       String
+  studentProfile         StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  
+  counsellorId           String
+  counsellor             User           @relation("CounsellorAppointments", fields: [counsellorId], references: [id], onDelete: Cascade)
+  
+  attachments            String?        // JSON array: [{"title": "CV.pdf", "fileUrl": "...", "fileSize": "1.2 MB"}]
+  followUpActions        String?        // Student-visible action items and next steps
+  privateCounsellorNotes String?        // Private notes visible ONLY to counsellors and admins
+  
+  completedAt            DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@index([studentProfileId])
+  @@index([counsellorId])
+  @@index([scheduledAt])
+  @@index([status])
+}
+
+// ==========================================
+// MODULE 13 & 14: COUNSELLOR SUITE & ACTION PLANS
+// ==========================================
+
+model ActionPlanItem {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  counsellorId     String
+  counsellor       User           @relation("CounsellorActionPlans", fields: [counsellorId], references: [id], onDelete: Cascade)
+  
+  title            String
+  description      String?
+  category         String         @default("GENERAL") // "PROFILE", "ACADEMIC", "ENTRANCE_EXAM", "APPLICATION", "SCHOLARSHIP", "GENERAL"
+  targetDate       String?        // YYYY-MM-DD or Month Year
+  status           String         @default("PENDING") // "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"
+  priority         String         @default("MEDIUM")  // "HIGH", "MEDIUM", "LOW"
+  completedAt      DateTime?
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([studentProfileId])
+  @@index([counsellorId])
+  @@index([status])
+  @@index([priority])
+}
+
+model StudentCounsellorNote {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  counsellorId     String
+  counsellor       User           @relation("CounsellorNotes", fields: [counsellorId], references: [id], onDelete: Cascade)
+  
+  title            String?
+  content          String
+  isPrivate        Boolean        @default(true) // Visible to counsellors and admins
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([studentProfileId])
+  @@index([counsellorId])
 }
 

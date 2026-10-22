@@ -7,6 +7,8 @@ import { LoginPage } from './modules/auth/pages/LoginPage';
 import { RegisterPage } from './modules/auth/pages/RegisterPage';
 import { StudentDashboardPage } from './modules/profile/pages/StudentDashboardPage';
 import { CounsellorQueuePage } from './modules/counsellor/pages/CounsellorQueuePage';
+import { CounsellorDashboardPage } from './modules/counsellor/pages/CounsellorDashboardPage';
+import { AdminDashboardPage } from './modules/counsellor/pages/AdminDashboardPage';
 
 import { CollegeManagementPage } from './modules/colleges/pages/CollegeManagementPage';
 import { CollegeDiscoveryView } from './modules/colleges/components/CollegeDiscoveryView';
@@ -160,6 +162,15 @@ const AppContent: React.FC = () => {
         );
       case 'counsellor-queue':
         return <CounsellorQueuePage />;
+      case 'counsellor-dashboard':
+        return <CounsellorDashboardPage onNavigateView={handleNavigate} />;
+      case 'admin-dashboard':
+        return <AdminDashboardPage onNavigateView={handleNavigate} />;
+      case 'manage-students':
+        if (user?.role === 'ADMIN') {
+          return <AdminDashboardPage onNavigateView={handleNavigate} />;
+        }
+        return <CounsellorDashboardPage onNavigateView={handleNavigate} />;
       case 'home':
       default:
         return <HomePage onNavigate={handleNavigate} />;
