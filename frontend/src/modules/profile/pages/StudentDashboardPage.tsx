@@ -1659,11 +1659,18 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               VIEW 12: MODULE 12 — SHORTLISTS, WEBINARS & APPOINTMENTS
              ========================================================== */}
           {activeMenu === 'appointments' && (
-            <AppointmentsDashboard initialTab="book" />
+            <AppointmentsDashboard
+              initialTab="book"
+              onNavigateTab={(tab) => setActiveMenu(tab)}
+            />
           )}
 
           {activeMenu === 'shortlist' && (
-            <AppointmentsDashboard initialTab="shortlist" />
+            <AppointmentsDashboard
+              initialTab="shortlist"
+              isShortlistOnly={true}
+              onNavigateTab={(tab) => setActiveMenu(tab)}
+            />
           )}
         </main>
       </div>

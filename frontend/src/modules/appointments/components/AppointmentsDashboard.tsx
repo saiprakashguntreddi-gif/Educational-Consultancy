@@ -40,11 +40,14 @@ interface AppointmentsDashboardProps {
   initialTab?: 'book' | 'my-appointments' | 'webinars' | 'shortlist';
   preselectedCollegeId?: string;
   onNavigateTab?: (tab: string) => void;
+  isShortlistOnly?: boolean;
 }
 
 export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
   initialTab = 'book',
   preselectedCollegeId,
+  onNavigateTab,
+  isShortlistOnly = false,
 }) => {
   const { user } = useAuth();
 
@@ -435,8 +438,12 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
     setRelatedCollegeId(college.institutionId);
     setBookingType('COLLEGE_ADMISSION');
     setStudentNotes(`Consultation regarding admission criteria, scholarships, and portfolio for ${college.name}.`);
-    setActiveTab('book');
-    window.scrollTo({ top: 120, behavior: 'smooth' });
+    if (isShortlistOnly && onNavigateTab) {
+      onNavigateTab('appointments');
+    } else {
+      setActiveTab('book');
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    }
   };
 
   const registeredWebinarCount = webinars.filter((w) => w.isRegistered).length;
@@ -458,55 +465,62 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
     <div className="app-container">
       {/* 1. TOP HERO HEADER */}
       <div className="app-header-card">
-        <h1 className="app-hero-title">Appointments, Webinars & Shortlists</h1>
+        <h1 className="app-hero-title">
+          {isShortlistOnly ? 'University Shortlist' : 'Appointments & Webinars'}
+        </h1>
         <p className="app-hero-subtitle">
-          Book certified 1-on-1 career counselling sessions, join live admissions webinars
-          with university delegates, and anchor your consultations with your shortlisted institutions.
+          {isShortlistOnly
+            ? 'Manage your shortlisted universities, compare institutions, organize Dream, Reach, Target, and Safe choices, and review your saved college details in one place.'
+            : 'Book certified 1-on-1 career counselling sessions, join live admissions webinars with university delegates, and anchor your consultations with your shortlisted institutions.'}
         </p>
       </div>
 
       {/* 2. SUB-NAVIGATION TABS */}
       <div className="app-tabs-nav">
-        <button
-          className={`app-tab-btn ${activeTab === 'book' ? 'active' : ''}`}
-          onClick={() => setActiveTab('book')}
-        >
-          <CalendarPlus size={16} />
-          <span>Book Appointment</span>
-        </button>
+        {!isShortlistOnly ? (
+          <>
+            <button
+              className={`app-tab-btn ${activeTab === 'book' ? 'active' : ''}`}
+              onClick={() => setActiveTab('book')}
+            >
+              <CalendarPlus size={16} />
+              <span>Book Appointment</span>
+            </button>
 
-        <button
-          className={`app-tab-btn ${activeTab === 'my-appointments' ? 'active' : ''}`}
-          onClick={() => setActiveTab('my-appointments')}
-        >
-          <CalendarCheck size={16} />
-          <span>My Appointments</span>
-          {upcomingAppointmentCount > 0 && (
-            <span className="app-tab-count">{upcomingAppointmentCount}</span>
-          )}
-        </button>
+            <button
+              className={`app-tab-btn ${activeTab === 'my-appointments' ? 'active' : ''}`}
+              onClick={() => setActiveTab('my-appointments')}
+            >
+              <CalendarCheck size={16} />
+              <span>My Appointments</span>
+              {upcomingAppointmentCount > 0 && (
+                <span className="app-tab-count">{upcomingAppointmentCount}</span>
+              )}
+            </button>
 
-        <button
-          className={`app-tab-btn ${activeTab === 'webinars' ? 'active' : ''}`}
-          onClick={() => setActiveTab('webinars')}
-        >
-          <Video size={16} />
-          <span>Webinars & Masterclasses</span>
-          {registeredWebinarCount > 0 && (
-            <span className="app-tab-count">{registeredWebinarCount}</span>
-          )}
-        </button>
-
-        <button
-          className={`app-tab-btn ${activeTab === 'shortlist' ? 'active' : ''}`}
-          onClick={() => setActiveTab('shortlist')}
-        >
-          <Bookmark size={16} />
-          <span>University Shortlist</span>
-          {shortlists.length > 0 && (
-            <span className="app-tab-count">{shortlists.length}</span>
-          )}
-        </button>
+            <button
+              className={`app-tab-btn ${activeTab === 'webinars' ? 'active' : ''}`}
+              onClick={() => setActiveTab('webinars')}
+            >
+              <Video size={16} />
+              <span>Webinars & Masterclasses</span>
+              {registeredWebinarCount > 0 && (
+                <span className="app-tab-count">{registeredWebinarCount}</span>
+              )}
+            </button>
+          </>
+        ) : (
+          <button
+            className={`app-tab-btn ${activeTab === 'shortlist' ? 'active' : ''}`}
+            onClick={() => setActiveTab('shortlist')}
+          >
+            <Bookmark size={16} />
+            <span>University Shortlist</span>
+            {shortlists.length > 0 && (
+              <span className="app-tab-count">{shortlists.length}</span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* 3. FEEDBACK ALERT */}
