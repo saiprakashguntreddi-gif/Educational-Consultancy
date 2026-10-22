@@ -14,6 +14,7 @@ import { CollegeTierManagementPage } from './modules/recommendations/pages/Colle
 import { ScholarshipManagementPage } from './modules/scholarships/pages/ScholarshipManagementPage';
 import { FeeCalculatorPage } from './modules/fees/pages/FeeCalculatorPage';
 import { ExamIntelligencePage } from './modules/exam-intelligence/pages/ExamIntelligencePage';
+import { EightPathwayAssessmentSuite } from './modules/assessments/components/EightPathwayAssessmentSuite';
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('home');
@@ -143,6 +144,20 @@ const AppContent: React.FC = () => {
           );
         }
         return <FeeCalculatorPage onNavigateHome={() => handleNavigate('home')} />;
+      case 'assessments':
+        if (user?.role === 'STUDENT') {
+          return (
+            <StudentDashboardPage
+              initialSection="assessments"
+              onNavigateHome={() => handleNavigate('home')}
+            />
+          );
+        }
+        return (
+          <div style={{ maxWidth: 1400, margin: '0 auto', padding: '2rem 1.5rem', minHeight: '80vh' }}>
+            <EightPathwayAssessmentSuite onBackToDashboard={() => handleNavigate('home')} />
+          </div>
+        );
       case 'counsellor-queue':
         return <CounsellorQueuePage />;
       case 'home':
@@ -163,6 +178,7 @@ const AppContent: React.FC = () => {
       currentView === 'scholarships' ||
       currentView === 'fees' ||
       currentView === 'fee-calculator' ||
+      currentView === 'assessments' ||
       currentView === 'dashboard' ||
       currentView === 'student-dashboard');
 

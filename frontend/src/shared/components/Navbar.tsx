@@ -193,6 +193,15 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                     <Target size={15} color="#A78BFA" />
                     <span>Exam Intelligence</span>
                   </button>
+                  <button
+                    onClick={() => onNavigate('assessments')}
+                    className="btn-nav-module"
+                    title="Module 11: Eight-Pathway Assessment Suite"
+                    id="nav-assessments-btn"
+                  >
+                    <Award size={15} color="#A78BFA" />
+                    <span>Assessments</span>
+                  </button>
                 </>
               )}
 
@@ -398,6 +407,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                     id="mobile-nav-exam-intelligence-btn"
                   >
                     <Target size={16} /> Exam Intelligence & Mock Tests
+                  </button>
+                  <button
+                    onClick={() => handleNavClick('assessments')}
+                    className="btn-secondary-outline"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    id="mobile-nav-assessments-btn"
+                  >
+                    <Award size={16} /> Module 11: Assessment Suite
                   </button>
                 </>
               )}

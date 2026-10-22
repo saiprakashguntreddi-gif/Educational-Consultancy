@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ProfileService } from '../../profile/services/profile.service';
 import { StudentProfileRecord, VerificationStatus } from '../../profile/profile.types';
-import { ShieldCheck, Check, X, Clock, Compass, GraduationCap, Sparkles } from 'lucide-react';
+import { ShieldCheck, Check, X, Clock, Compass, GraduationCap, Sparkles, Award } from 'lucide-react';
 import { PreferencesService } from '../../preferences/services/preferences.service';
 import { StudentPreferenceRecord } from '../../preferences/preferences.types';
 import { EducationService } from '../../education/services/education.service';
 import { StudentEducationRecord } from '../../education/education.types';
 import { CounsellorRecommendationModal } from '../../recommendations/components/CounsellorRecommendationModal';
+import { CounsellorAssessmentModal } from '../../assessments/components/CounsellorAssessmentModal';
 
 export const CounsellorQueuePage: React.FC = () => {
   const [profiles, setProfiles] = useState<StudentProfileRecord[]>([]);
@@ -20,6 +21,7 @@ export const CounsellorQueuePage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [recommendationModalOpen, setRecommendationModalOpen] = useState(false);
+  const [assessmentModalOpen, setAssessmentModalOpen] = useState(false);
 
   const loadQueue = async () => {
     setIsLoading(true);
@@ -363,25 +365,49 @@ export const CounsellorQueuePage: React.FC = () => {
               </div>
 
               {selectedProfile.verificationStatus === 'VERIFIED' && (
-                <button
-                  type="button"
-                  onClick={() => setRecommendationModalOpen(true)}
-                  className="btn btn-secondary"
-                  style={{
-                    width: '100%',
-                    marginTop: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    background: 'rgba(168, 85, 247, 0.12)',
-                    borderColor: 'rgba(168, 85, 247, 0.35)',
-                    color: '#c084fc',
-                    fontWeight: 600,
-                  }}
-                >
-                  <Sparkles size={16} /> Review Three-Tier Recommendations
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setRecommendationModalOpen(true)}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      marginTop: '1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      background: 'rgba(168, 85, 247, 0.12)',
+                      borderColor: 'rgba(168, 85, 247, 0.35)',
+                      color: '#c084fc',
+                      fontWeight: 600,
+                    }}
+                    id="btn-counsellor-recommendations-modal"
+                  >
+                    <Sparkles size={16} /> Review Three-Tier Recommendations
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAssessmentModalOpen(true)}
+                    className="btn btn-secondary"
+                    style={{
+                      width: '100%',
+                      marginTop: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      background: 'rgba(91, 79, 233, 0.12)',
+                      borderColor: 'rgba(91, 79, 233, 0.35)',
+                      color: '#A5B4FC',
+                      fontWeight: 600,
+                    }}
+                    id="btn-counsellor-assessments-modal"
+                  >
+                    <Award size={16} /> Module 11: Assessments & Access Codes
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -389,12 +415,21 @@ export const CounsellorQueuePage: React.FC = () => {
       )}
 
       {selectedProfile && (
-        <CounsellorRecommendationModal
-          isOpen={recommendationModalOpen}
-          onClose={() => setRecommendationModalOpen(false)}
-          studentProfileId={selectedProfile.id}
-          studentName={selectedProfile.fullName}
-        />
+        <>
+          <CounsellorRecommendationModal
+            isOpen={recommendationModalOpen}
+            onClose={() => setRecommendationModalOpen(false)}
+            studentProfileId={selectedProfile.id}
+            studentName={selectedProfile.fullName}
+          />
+          <CounsellorAssessmentModal
+            isOpen={assessmentModalOpen}
+            onClose={() => setAssessmentModalOpen(false)}
+            studentProfileId={selectedProfile.id}
+            studentName={selectedProfile.fullName}
+            studentEmail={selectedProfile.contactEmail}
+          />
+        </>
       )}
     </div>
   );

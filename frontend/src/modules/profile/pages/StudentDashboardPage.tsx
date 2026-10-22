@@ -17,6 +17,7 @@ import { ThreeTierFitView } from '../../recommendations/components/ThreeTierFitV
 import { ScholarshipDiscoveryView } from '../../scholarships/components/ScholarshipDiscoveryView';
 import { FeeComparisonDashboard } from '../../fees/components/FeeComparisonDashboard';
 import { ExamIntelligencePage } from '../../exam-intelligence/pages/ExamIntelligencePage';
+import { EightPathwayAssessmentSuite } from '../../assessments/components/EightPathwayAssessmentSuite';
 import '../../../shared/styles/student-dashboard.css';
 import {
   LayoutDashboard,
@@ -50,7 +51,7 @@ import {
 } from 'lucide-react';
 
 interface StudentDashboardPageProps {
-  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'exam-intelligence' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees';
+  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'exam-intelligence' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees' | 'assessments';
   onNavigateHome?: () => void;
 }
 
@@ -94,6 +95,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       ? 'scholarships'
       : initialSection === 'fees'
       ? 'fees'
+      : initialSection === 'assessments'
+      ? 'assessments'
       : 'dashboard'
   );
 
@@ -157,6 +160,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       setActiveMenu('scholarships');
     } else if (initialSection === 'fees') {
       setActiveMenu('fees');
+    } else if (initialSection === 'assessments') {
+      setActiveMenu('assessments');
     } else if (initialSection === 'dashboard') {
       setActiveMenu('dashboard');
     }
@@ -1635,14 +1640,18 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
           )}
 
           {/* ==========================================================
+              VIEW 11: MODULE 11 — EIGHT-PATHWAY ASSESSMENT SUITE
+             ========================================================== */}
+          {activeMenu === 'assessments' && (
+            <EightPathwayAssessmentSuite onBackToDashboard={() => setActiveMenu('dashboard')} />
+          )}
+
+          {/* ==========================================================
               FUTURE MODULE PREVIEWS (PLACEHOLDERS ONLY, NO FAKE DATA)
              ========================================================== */}
-          {(activeMenu === 'assessments' ||
-            activeMenu === 'shortlist' ||
-            activeMenu === 'appointments') && (
+          {(activeMenu === 'shortlist' || activeMenu === 'appointments') && (
             <div className="cmd-future-module-card">
               <div className="cmd-future-icon-wrap">
-                {activeMenu === 'assessments' && <Award size={28} />}
                 {activeMenu === 'shortlist' && <Bookmark size={28} />}
                 {activeMenu === 'appointments' && <Calendar size={28} />}
               </div>

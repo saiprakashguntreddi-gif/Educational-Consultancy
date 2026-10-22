@@ -112,5 +112,20 @@ export const API_ENDPOINTS = {
     STAFF_STUDENT_REVIEW: (profileId: string) =>
       `${API_BASE_URL}/exam-intelligence/counsellor/student/${profileId}`,
   },
+  ASSESSMENTS: {
+    PATHWAYS: `${API_BASE_URL}/assessments/pathways`,
+    PATHWAY_BY_CODE: (code: string) => `${API_BASE_URL}/assessments/pathways/${code}`,
+    VERIFY_ACCESS_CODE: `${API_BASE_URL}/assessments/access-codes/verify`,
+    START_ATTEMPT: (pathwayCode: string) => `${API_BASE_URL}/assessments/attempts/${pathwayCode}/start`,
+    SAVE_PROGRESS: (attemptId: string) => `${API_BASE_URL}/assessments/attempts/${attemptId}/save-progress`,
+    SUBMIT_ATTEMPT: (attemptId: string) => `${API_BASE_URL}/assessments/attempts/${attemptId}/submit`,
+    REPORT_BY_ID: (reportId: string) => `${API_BASE_URL}/assessments/reports/${reportId}`,
+    GENERATE_ACCESS_CODE: `${API_BASE_URL}/assessments/access-codes/generate`,
+    LIST_ACCESS_CODES: `${API_BASE_URL}/assessments/access-codes`,
+    COUNSELLOR_REVIEW: (studentProfileId: string) =>
+      `${API_BASE_URL}/assessments/counsellor/review/${studentProfileId}`,
+    COUNSELLOR_ACTION_PLAN: (reportId: string) =>
+      `${API_BASE_URL}/assessments/counsellor/reports/${reportId}/action-plan`,
+  },
 } as const;
 

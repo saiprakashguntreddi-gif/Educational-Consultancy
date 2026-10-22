@@ -15,6 +15,7 @@ import { recommendationsRouter } from './modules/recommendations/recommendations
 import { scholarshipsRouter } from './modules/scholarships/scholarships.routes';
 import { feesRouter } from './modules/fees/fees.routes';
 import { examIntelligenceRouter } from './modules/exam-intelligence/exam-intelligence.routes';
+import { assessmentsRouter } from './modules/assessments/assessments.routes';
 import { errorHandler, notFoundHandler } from './shared/middleware/error.middleware';
 import { ApiResponse } from './shared/utils/api-response';
 
@@ -348,6 +349,7 @@ export const createApp = (): Application => {
   app.use('/api/v1/scholarships', scholarshipsRouter);
   app.use('/api/v1/fees', feesRouter);
   app.use('/api/v1/exam-intelligence', examIntelligenceRouter);
+  app.use('/api/v1/assessments', assessmentsRouter);
   app.use('/api/v1/counsellor', counsellorRouter);
   app.use('/api/v1/admin', adminRouter);
 
