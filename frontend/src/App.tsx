@@ -160,6 +160,20 @@ const AppContent: React.FC = () => {
             <EightPathwayAssessmentSuite onBackToDashboard={() => handleNavigate('home')} />
           </div>
         );
+      case 'appointments':
+        return (
+          <StudentDashboardPage
+            initialSection="appointments"
+            onNavigateHome={() => handleNavigate('home')}
+          />
+        );
+      case 'shortlist':
+        return (
+          <StudentDashboardPage
+            initialSection="shortlist"
+            onNavigateHome={() => handleNavigate('home')}
+          />
+        );
       case 'counsellor-queue':
         return <CounsellorQueuePage />;
       case 'counsellor-dashboard':
@@ -190,6 +204,8 @@ const AppContent: React.FC = () => {
       currentView === 'fees' ||
       currentView === 'fee-calculator' ||
       currentView === 'assessments' ||
+      currentView === 'appointments' ||
+      currentView === 'shortlist' ||
       currentView === 'dashboard' ||
       currentView === 'student-dashboard');
 

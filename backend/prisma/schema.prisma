@@ -89,6 +89,7 @@ model StudentProfile {
   // Module 12 Shortlists, Webinars & Appointments Relations
   shortlistItems        ShortlistItem[]
   appointments          Appointment[]
+  webinarRegistrations  WebinarRegistration[]
 
   // Module 13 & 14 Counsellor & Administration Suite Relations
   assignedCounsellorId  String?
@@ -681,6 +682,8 @@ model Webinar {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
+  registrations      WebinarRegistration[]
+
   @@index([topic])
   @@index([webinarType])
   @@index([destinationCountry])
@@ -688,15 +691,34 @@ model Webinar {
   @@index([scheduledAt])
 }
 
+model WebinarRegistration {
+  id               String         @id @default(uuid())
+  webinarId        String
+  webinar          Webinar        @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  status           String         @default("REGISTERED") // "REGISTERED", "ATTENDED", "CANCELLED"
+  registeredAt     DateTime       @default(now())
+
+  @@unique([webinarId, studentProfileId])
+  @@index([webinarId])
+  @@index([studentProfileId])
+}
+
 model Appointment {
   id                     String         @id @default(uuid())
   title                  String
-  description            String
+  description            String?
+  appointmentType        String         @default("GENERAL_CONSULTATION") // "CAREER_COUNSELLING", "COLLEGE_ADMISSION", "COURSE_SELECTION", "SCHOLARSHIP_GUIDANCE", "GENERAL_CONSULTATION"
   scheduledAt            DateTime
   durationMinutes        Int            @default(45)
-  status                 String         @default("SCHEDULED") // "SCHEDULED", "COMPLETED", "CANCELLED", "RESCHEDULED"
+  status                 String         @default("SCHEDULED") // "SCHEDULED", "CONFIRMED", "COMPLETED", "CANCELLED", "RESCHEDULED"
   meetingType            String         @default("ONLINE_COUNSELLING") // "ONLINE_COUNSELLING", "IN_PERSON", "PHONE"
   meetingLocation        String?        // e.g. "Google Meet (Link will be emailed)", "Counselling Office Room 3"
+  
+  relatedCollegeId       String?        // Context from shortlisted college
+  relatedCollegeName     String?
+  studentNotes           String?        // Student reason or question
   
   studentProfileId       String
   studentProfile         StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
@@ -709,6 +731,8 @@ model Appointment {
   privateCounsellorNotes String?        // Private notes visible ONLY to counsellors and admins
   
   completedAt            DateTime?
+  cancelledAt            DateTime?
+  cancellationReason     String?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 
@@ -716,6 +740,7 @@ model Appointment {
   @@index([counsellorId])
   @@index([scheduledAt])
   @@index([status])
+  @@index([appointmentType])
 }
 
 // ==========================================

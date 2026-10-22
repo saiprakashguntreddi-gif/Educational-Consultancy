@@ -1,0 +1,1610 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../../../shared/context/AuthContext';
+import { AppointmentsService } from '../services/appointments.service';
+import {
+  AppointmentDto,
+  AppointmentType,
+  AppointmentsMetaResponse,
+  BookAppointmentInput,
+  MeetingMode,
+  ShortlistedCollegeDto,
+  WebinarDto,
+} from '../appointments.types';
+import '../appointments.css';
+
+// Feather / Lucide icons (available in project dependencies)
+import {
+  Calendar,
+  Clock,
+  Video,
+  MapPin,
+  User,
+  CheckCircle,
+  AlertCircle,
+  X,
+  Bookmark,
+  CalendarCheck,
+  CalendarPlus,
+  ArrowRight,
+  Info,
+  ExternalLink,
+  ChevronRight,
+  Sparkles,
+  Users,
+  Compass,
+  GraduationCap,
+  BookOpen,
+  Award,
+} from 'lucide-react';
+
+interface AppointmentsDashboardProps {
+  initialTab?: 'book' | 'my-appointments' | 'webinars' | 'shortlist';
+  preselectedCollegeId?: string;
+  onNavigateTab?: (tab: string) => void;
+}
+
+export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
+  initialTab = 'book',
+  preselectedCollegeId,
+}) => {
+  const { user } = useAuth();
+
+  // Active sub-navigation tab
+  const [activeTab, setActiveTab] = useState<'book' | 'my-appointments' | 'webinars' | 'shortlist'>(
+    initialTab
+  );
+
+  // Data states
+  const [meta, setMeta] = useState<AppointmentsMetaResponse | null>(null);
+  const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
+  const [webinars, setWebinars] = useState<WebinarDto[]>([]);
+  const [shortlists, setShortlists] = useState<ShortlistedCollegeDto[]>([]);
+
+  // Loading & Feedback states
+  const [loading, setLoading] = useState<boolean>(true);
+  const [submittingBooking, setSubmittingBooking] = useState<boolean>(false);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  // Modals
+  const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDto | null>(null);
+  const [cancellingAppointment, setCancellingAppointment] = useState<AppointmentDto | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('');
+
+  // Filters for My Appointments & Webinars & Shortlists
+  const [appointmentFilter, setAppointmentFilter] = useState<'ALL' | 'UPCOMING' | 'PAST' | 'CANCELLED'>('ALL');
+  const [webinarFilter, setWebinarFilter] = useState<'ALL' | 'UPCOMING' | 'RECORDED' | 'REGISTERED'>('ALL');
+  const [shortlistFilter, setShortlistFilter] = useState<'ALL' | 'DREAM' | 'REACH' | 'TARGET' | 'SAFE'>('ALL');
+
+  // Booking Form State
+  const tomorrowStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const [bookingType, setBookingType] = useState<AppointmentType>('CAREER_COUNSELLING');
+  const [selectedCounsellorId, setSelectedCounsellorId] = useState<string>('');
+  const [scheduledDate, setScheduledDate] = useState<string>(tomorrowStr);
+  const [timeSlot, setTimeSlot] = useState<string>('10:00 AM');
+  const [meetingMode, setMeetingMode] = useState<MeetingMode>('ONLINE_COUNSELLING');
+  const [relatedCollegeId, setRelatedCollegeId] = useState<string>(preselectedCollegeId || '');
+  const [studentNotes, setStudentNotes] = useState<string>('');
+
+  // Load all data on mount
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [metaRes, appRes, webRes, shortRes] = await Promise.all([
+        AppointmentsService.getMeta(),
+        AppointmentsService.getMyAppointments(),
+        AppointmentsService.listWebinars(),
+        AppointmentsService.listShortlistedColleges(),
+      ]);
+
+      if (metaRes.success && metaRes.data) {
+        setMeta(metaRes.data);
+        if (metaRes.data.counsellors && metaRes.data.counsellors.length > 0) {
+          setSelectedCounsellorId(metaRes.data.counsellors[0].id);
+        }
+        if (metaRes.data.timeSlots && metaRes.data.timeSlots.length > 0) {
+          setTimeSlot(metaRes.data.timeSlots[0]);
+        }
+      }
+
+      if (appRes.success && appRes.data) {
+        setAppointments(appRes.data);
+      }
+
+      if (webRes.success && webRes.data) {
+        setWebinars(webRes.data);
+      }
+
+      if (shortRes.success && shortRes.data) {
+        setShortlists(shortRes.data);
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Failed to initialize appointments and masterclasses data.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  // Update initial tab or preselected college when props change
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+    if (preselectedCollegeId) {
+      setRelatedCollegeId(preselectedCollegeId);
+      setActiveTab('book');
+    }
+  }, [initialTab, preselectedCollegeId]);
+
+  // Appointment Type Metadata helper
+  const appointmentTypesList = useMemo(() => {
+    return [
+      {
+        type: 'CAREER_COUNSELLING' as AppointmentType,
+        label: 'Career Counselling',
+        desc: 'In-depth profile diagnosis, aptitude mapping, and long-term career trajectory design.',
+        icon: <Compass size={18} />,
+        duration: '45 mins',
+      },
+      {
+        type: 'COLLEGE_ADMISSION' as AppointmentType,
+        label: 'College Admission Guidance',
+        desc: 'Target university shortlisting, SOP/essay reviews, and application strategy review.',
+        icon: <GraduationCap size={18} />,
+        duration: '45 mins',
+      },
+      {
+        type: 'COURSE_SELECTION' as AppointmentType,
+        label: 'Course Selection',
+        desc: 'Curriculum comparison, credit evaluations, and international program specialization choice.',
+        icon: <BookOpen size={18} />,
+        duration: '30 mins',
+      },
+      {
+        type: 'SCHOLARSHIP_GUIDANCE' as AppointmentType,
+        label: 'Scholarship Guidance',
+        desc: 'Need-based and merit-based grant identification, waiver applications, and financial strategy.',
+        icon: <Award size={18} />,
+        duration: '30 mins',
+      },
+      {
+        type: 'GENERAL_CONSULTATION' as AppointmentType,
+        label: 'General Consultation',
+        desc: 'Open Q&A with certified educational advisors on study-abroad timelines and visa guidelines.',
+        icon: <Users size={18} />,
+        duration: '30 mins',
+      },
+    ];
+  }, []);
+
+  // Selected counsellor object
+  const currentCounsellor = useMemo(() => {
+    if (!meta || !selectedCounsellorId) return null;
+    return meta.counsellors.find((c) => c.id === selectedCounsellorId) || meta.counsellors[0] || null;
+  }, [meta, selectedCounsellorId]);
+
+  // Selected college object (if chosen as context)
+  const selectedCollegeObj = useMemo(() => {
+    if (!relatedCollegeId || !shortlists) return null;
+    return shortlists.find((col) => col.institutionId === relatedCollegeId || col.id === relatedCollegeId);
+  }, [relatedCollegeId, shortlists]);
+
+  // Handle Book Appointment
+  const handleBookAppointment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
+
+    // 1. Validation: date must not be in past
+    const selectedDateObj = new Date(scheduledDate + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDateObj < today) {
+      setFeedback({
+        type: 'error',
+        message: 'Appointment date cannot be in the past. Please choose a future date.',
+      });
+      return;
+    }
+
+    if (!selectedCounsellorId) {
+      setFeedback({
+        type: 'error',
+        message: 'Please choose an available counsellor for your consultation session.',
+      });
+      return;
+    }
+
+    if (!timeSlot) {
+      setFeedback({
+        type: 'error',
+        message: 'Please select an available time slot for your appointment.',
+      });
+      return;
+    }
+
+    // 2. Duplicate check on client side
+    const slotCollision = appointments.some((a) => {
+      if (a.status === 'CANCELLED') return false;
+      const appDateStr = a.scheduledAt.split('T')[0];
+      return appDateStr === scheduledDate && a.title.includes(timeSlot);
+    });
+
+    if (slotCollision) {
+      setFeedback({
+        type: 'error',
+        message: `You already have an active appointment scheduled for ${scheduledDate} at ${timeSlot}. Please choose a different slot.`,
+      });
+      return;
+    }
+
+    setSubmittingBooking(true);
+    try {
+      const payload: BookAppointmentInput = {
+        appointmentType: bookingType,
+        counsellorId: selectedCounsellorId,
+        scheduledDate,
+        timeSlot,
+        meetingType: meetingMode,
+        relatedCollegeId: selectedCollegeObj ? selectedCollegeObj.institutionId : undefined,
+        relatedCollegeName: selectedCollegeObj ? selectedCollegeObj.name : undefined,
+        studentNotes: studentNotes.trim() ? studentNotes.trim() : undefined,
+      };
+
+      const res = await AppointmentsService.bookAppointment(payload);
+      if (res.success && res.data) {
+        const newApp = res.data;
+        setAppointments((prev) => [newApp, ...prev]);
+        setFeedback({
+          type: 'success',
+          message: `Appointment successfully scheduled with ${newApp.counsellorName} for ${scheduledDate} at ${timeSlot}! Confirmation email and calendar invite dispatched.`,
+        });
+        // Reset message
+        setStudentNotes('');
+        // Switch to "My Appointments" tab to view it
+        setActiveTab('my-appointments');
+      } else {
+        setFeedback({
+          type: 'error',
+          message: res.message || 'Unable to book appointment at this time.',
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Slot collision or booking error. Please select another time slot.',
+      });
+    } finally {
+      setSubmittingBooking(false);
+    }
+  };
+
+  // Handle Cancel Appointment
+  const handleConfirmCancelAppointment = async () => {
+    if (!cancellingAppointment) return;
+    setActionLoadingId(cancellingAppointment.id);
+    setFeedback(null);
+    try {
+      const res = await AppointmentsService.cancelAppointment(
+        cancellingAppointment.id,
+        cancelReason.trim() || 'Cancelled by student'
+      );
+      if (res.success && res.data) {
+        const cancelledApp = res.data;
+        setAppointments((prev) =>
+          prev.map((a) => (a.id === cancellingAppointment.id ? cancelledApp : a))
+        );
+        setFeedback({
+          type: 'success',
+          message: `Appointment #${cancellingAppointment.id.slice(-6)} has been cancelled.`,
+        });
+        setCancellingAppointment(null);
+        setCancelReason('');
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Failed to cancel appointment. Please contact support.',
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handle Webinar Registration
+  const handleRegisterWebinar = async (webinar: WebinarDto) => {
+    setActionLoadingId(webinar.id);
+    setFeedback(null);
+    try {
+      const res = await AppointmentsService.registerWebinar(webinar.id);
+      if (res.success && res.data) {
+        const updatedWebinar = res.data.webinar;
+        setWebinars((prev) =>
+          prev.map((w) => (w.id === webinar.id ? updatedWebinar : w))
+        );
+        setFeedback({
+          type: 'success',
+          message: `Successfully registered for "${webinar.title}"! Join details and calendar reminder dispatched to your registered email.`,
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Could not complete webinar registration.',
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Handle Cancel Webinar Registration
+  const handleCancelWebinarRegistration = async (webinar: WebinarDto) => {
+    setActionLoadingId(webinar.id);
+    setFeedback(null);
+    try {
+      const res = await AppointmentsService.cancelWebinarRegistration(webinar.id);
+      if (res.success && res.data) {
+        const cancelledWebinar = res.data.webinar;
+        setWebinars((prev) =>
+          prev.map((w) => (w.id === webinar.id ? cancelledWebinar : w))
+        );
+        setFeedback({
+          type: 'success',
+          message: `Registration for "${webinar.title}" has been removed.`,
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        message: err.message || 'Could not cancel webinar registration.',
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Filtered Appointments
+  const filteredAppointments = useMemo(() => {
+    const now = new Date();
+    return appointments.filter((app) => {
+      if (appointmentFilter === 'ALL') return true;
+      if (appointmentFilter === 'CANCELLED') return app.status === 'CANCELLED';
+      if (appointmentFilter === 'UPCOMING') {
+        return (
+          app.status !== 'CANCELLED' &&
+          new Date(app.scheduledAt) >= new Date(now.getTime() - 2 * 60 * 60 * 1000)
+        );
+      }
+      if (appointmentFilter === 'PAST') {
+        return (
+          app.status === 'COMPLETED' ||
+          (app.status !== 'CANCELLED' &&
+            new Date(app.scheduledAt) < new Date(now.getTime() - 2 * 60 * 60 * 1000))
+        );
+      }
+      return true;
+    });
+  }, [appointments, appointmentFilter]);
+
+  // Filtered Webinars
+  const filteredWebinars = useMemo(() => {
+    return webinars.filter((w) => {
+      if (webinarFilter === 'ALL') return true;
+      if (webinarFilter === 'REGISTERED') return w.isRegistered;
+      if (webinarFilter === 'UPCOMING') return w.webinarType === 'UPCOMING';
+      if (webinarFilter === 'RECORDED') return w.webinarType === 'RECORDED';
+      return true;
+    });
+  }, [webinars, webinarFilter]);
+
+  // Filtered Shortlists
+  const filteredShortlists = useMemo(() => {
+    return shortlists.filter((col) => {
+      if (shortlistFilter === 'ALL') return true;
+      return col.fitCategory === shortlistFilter;
+    });
+  }, [shortlists, shortlistFilter]);
+
+  // Shortlist metrics
+  const shortlistMetrics = useMemo(() => {
+    return {
+      total: shortlists.length,
+      dream: shortlists.filter((s) => s.fitCategory === 'DREAM').length,
+      reach: shortlists.filter((s) => s.fitCategory === 'REACH').length,
+      target: shortlists.filter((s) => s.fitCategory === 'TARGET').length,
+      safe: shortlists.filter((s) => s.fitCategory === 'SAFE').length,
+    };
+  }, [shortlists]);
+
+  // Handle pre-fill appointment from a shortlisted college
+  const handleBookForCollege = (college: ShortlistedCollegeDto) => {
+    setRelatedCollegeId(college.institutionId);
+    setBookingType('COLLEGE_ADMISSION');
+    setStudentNotes(`Consultation regarding admission criteria, scholarships, and portfolio for ${college.name}.`);
+    setActiveTab('book');
+    window.scrollTo({ top: 120, behavior: 'smooth' });
+  };
+
+  const registeredWebinarCount = webinars.filter((w) => w.isRegistered).length;
+  const upcomingAppointmentCount = appointments.filter(
+    (a) => a.status === 'SCHEDULED' || a.status === 'CONFIRMED'
+  ).length;
+
+  if (loading) {
+    return (
+      <div className="app-container" style={{ textAlign: 'center', padding: '5rem 2rem' }}>
+        <div style={{ color: '#5B4FE9', fontWeight: 750, fontSize: '1.15rem' }}>
+          Loading consultations, webinars, and university shortlists...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-container">
+      {/* 1. TOP HERO HEADER */}
+      <div className="app-header-card">
+        <div className="app-hero-badge">
+          <Sparkles size={13} />
+          <span>Module 12 &bull; Direct Guidance & Admissions Portal</span>
+        </div>
+        <h1 className="app-hero-title">Appointments, Webinars & Shortlists</h1>
+        <p className="app-hero-subtitle">
+          Book certified 1-on-1 career counselling sessions, join live admissions webinars
+          with university delegates, and anchor your consultations with your shortlisted institutions.
+        </p>
+      </div>
+
+      {/* 2. SUB-NAVIGATION TABS */}
+      <div className="app-tabs-nav">
+        <button
+          className={`app-tab-btn ${activeTab === 'book' ? 'active' : ''}`}
+          onClick={() => setActiveTab('book')}
+        >
+          <CalendarPlus size={16} />
+          <span>Book Appointment</span>
+        </button>
+
+        <button
+          className={`app-tab-btn ${activeTab === 'my-appointments' ? 'active' : ''}`}
+          onClick={() => setActiveTab('my-appointments')}
+        >
+          <CalendarCheck size={16} />
+          <span>My Appointments</span>
+          {upcomingAppointmentCount > 0 && (
+            <span className="app-tab-count">{upcomingAppointmentCount}</span>
+          )}
+        </button>
+
+        <button
+          className={`app-tab-btn ${activeTab === 'webinars' ? 'active' : ''}`}
+          onClick={() => setActiveTab('webinars')}
+        >
+          <Video size={16} />
+          <span>Webinars & Masterclasses</span>
+          {registeredWebinarCount > 0 && (
+            <span className="app-tab-count">{registeredWebinarCount}</span>
+          )}
+        </button>
+
+        <button
+          className={`app-tab-btn ${activeTab === 'shortlist' ? 'active' : ''}`}
+          onClick={() => setActiveTab('shortlist')}
+        >
+          <Bookmark size={16} />
+          <span>University Shortlist</span>
+          {shortlists.length > 0 && (
+            <span className="app-tab-count">{shortlists.length}</span>
+          )}
+        </button>
+      </div>
+
+      {/* 3. FEEDBACK ALERT */}
+      {feedback && (
+        <div className={`app-alert app-alert-${feedback.type}`}>
+          <div className="app-alert-icon">
+            {feedback.type === 'success' ? (
+              <CheckCircle size={18} />
+            ) : (
+              <AlertCircle size={18} />
+            )}
+          </div>
+          <div className="app-alert-content">{feedback.message}</div>
+          <button
+            className="app-alert-close"
+            onClick={() => setFeedback(null)}
+            aria-label="Close notification"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* ====================================================================
+          TAB 1: BOOK APPOINTMENT
+         ==================================================================== */}
+      {activeTab === 'book' && (
+        <div className="app-booking-layout">
+          {/* LEFT: BOOKING FORM */}
+          <div className="app-card">
+            <h2 className="app-card-title">
+              <Calendar size={20} color="#5B4FE9" />
+              <span>Schedule Counselling Session</span>
+            </h2>
+            <p className="app-card-desc">
+              Choose your consultation focus, select your preferred counsellor, and reserve an open time slot.
+            </p>
+
+            <form onSubmit={handleBookAppointment}>
+              {/* 1. Logged-in Student Identity (Readonly Strip) */}
+              <div className="app-student-strip">
+                <div className="app-student-strip-info">
+                  <div className="app-avatar-circle">
+                    {(user?.email || 'S').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="app-student-name">
+                      {user?.role === 'STUDENT' ? 'Registered Student Account' : 'Authenticated User'}
+                    </div>
+                    <div className="app-student-email">{user?.email}</div>
+                  </div>
+                </div>
+                <div className="app-verified-pill">
+                  <CheckCircle size={13} />
+                  <span>Verified Profile</span>
+                </div>
+              </div>
+
+              {/* 2. Appointment Type Selection */}
+              <div className="app-form-section">
+                <div className="app-form-section-label">
+                  <span>1. Select Appointment Type</span>
+                </div>
+                <div className="app-type-grid">
+                  {appointmentTypesList.map((item) => (
+                    <div
+                      key={item.type}
+                      className={`app-type-card ${
+                        bookingType === item.type ? 'selected' : ''
+                      }`}
+                      onClick={() => setBookingType(item.type)}
+                    >
+                      <div className="app-type-header">
+                        <div className="app-type-icon">{item.icon}</div>
+                        <span className="app-type-duration">{item.duration}</span>
+                      </div>
+                      <h4 className="app-type-title">{item.label}</h4>
+                      <p className="app-type-desc">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Counsellor Selection */}
+              <div className="app-form-section">
+                <div className="app-form-section-label">
+                  <span>2. Select Senior Counsellor</span>
+                </div>
+                {meta?.counsellors && meta.counsellors.length > 0 ? (
+                  <div className="app-counsellor-grid">
+                    {meta.counsellors.map((counsellor) => (
+                      <div
+                        key={counsellor.id}
+                        className={`app-counsellor-card ${
+                          selectedCounsellorId === counsellor.id ? 'selected' : ''
+                        }`}
+                        onClick={() => setSelectedCounsellorId(counsellor.id)}
+                      >
+                        <div className="app-counsellor-avatar">
+                          {counsellor.fullName.charAt(0)}
+                        </div>
+                        <div className="app-counsellor-info">
+                          <h5 className="app-counsellor-name">{counsellor.fullName}</h5>
+                          <span className="app-counsellor-spec">
+                            {counsellor.specialization || 'Academic Advisor'}
+                          </span>
+                          <p className="app-counsellor-bio">
+                            {counsellor.bio || 'Official certified guidance counsellor.'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: '#64748B', fontSize: '0.88rem' }}>
+                    Loading certified counsellors directory...
+                  </p>
+                )}
+              </div>
+
+              {/* 4. Date & Time Slot Selection */}
+              <div className="app-form-section">
+                <div className="app-form-section-label">
+                  <span>3. Choose Date & Time Slot</span>
+                </div>
+                <div className="app-datetime-row">
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        color: '#475569',
+                        marginBottom: '0.4rem',
+                      }}
+                    >
+                      Appointment Date (Future dates only)
+                    </label>
+                    <input
+                      type="date"
+                      className="app-input-field"
+                      min={tomorrowStr}
+                      value={scheduledDate}
+                      onChange={(e) => setScheduledDate(e.target.value)}
+                      required
+                    />
+                    <div style={{ fontSize: '0.74rem', color: '#64748B', marginTop: '0.35rem' }}>
+                      Selected: <strong>{new Date(scheduledDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</strong>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        color: '#475569',
+                        marginBottom: '0.4rem',
+                      }}
+                    >
+                      Available Time Slot (IST)
+                    </label>
+                    <div className="app-slot-grid">
+                      {(meta?.timeSlots || [
+                        '09:00 AM',
+                        '10:00 AM',
+                        '11:00 AM',
+                        '02:00 PM',
+                        '03:00 PM',
+                        '04:00 PM',
+                        '05:00 PM',
+                      ]).map((slot) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          className={`app-slot-btn ${
+                            timeSlot === slot ? 'selected' : ''
+                          }`}
+                          onClick={() => setTimeSlot(slot)}
+                        >
+                          {slot}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Meeting Mode Selection */}
+              <div className="app-form-section">
+                <div className="app-form-section-label">
+                  <span>4. Meeting Mode</span>
+                </div>
+                <div className="app-mode-grid">
+                  <div
+                    className={`app-mode-card ${
+                      meetingMode === 'ONLINE_COUNSELLING' ? 'selected' : ''
+                    }`}
+                    onClick={() => setMeetingMode('ONLINE_COUNSELLING')}
+                  >
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        background: 'rgba(91, 79, 233, 0.1)',
+                        color: '#5B4FE9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Video size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#172033' }}>
+                        Online Video Counselling
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#64748B' }}>
+                        Google Meet / Zoom direct encrypted link
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`app-mode-card ${
+                      meetingMode === 'IN_PERSON' ? 'selected' : ''
+                    }`}
+                    onClick={() => setMeetingMode('IN_PERSON')}
+                  >
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 8,
+                        background: 'rgba(91, 79, 233, 0.1)',
+                        color: '#5B4FE9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <MapPin size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#172033' }}>
+                        In-Person Campus Advisory
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#64748B' }}>
+                        Superconsciousness Guidance Center Office
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6. Shortlisted College Context (Module 6 & 12 Integration) */}
+              <div className="app-form-section">
+                <div className="app-form-section-label">
+                  <span>5. Link Shortlisted College Context (Optional)</span>
+                </div>
+                <select
+                  className="app-select"
+                  value={relatedCollegeId}
+                  onChange={(e) => setRelatedCollegeId(e.target.value)}
+                >
+                  <option value="">-- No specific college (General Advisory) --</option>
+                  {shortlists.map((college) => (
+                    <option key={college.institutionId} value={college.institutionId}>
+                      {college.name} ({college.city}, {college.country}) &bull; {college.fitCategory} Fit
+                    </option>
+                  ))}
+                </select>
+                {selectedCollegeObj && (
+                  <div
+                    style={{
+                      marginTop: '0.6rem',
+                      padding: '0.6rem 0.85rem',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>
+                      Selected context: <strong>{selectedCollegeObj.name}</strong> ({selectedCollegeObj.country})
+                    </span>
+                    <span className={`fit-category-pill fit-${selectedCollegeObj.fitCategory.toLowerCase()}`}>
+                      {selectedCollegeObj.fitCategory}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* 7. Student Notes / Discussion Topic */}
+              <div className="app-form-section">
+                <div className="app-form-section-label">
+                  <span>6. Questions or Notes for Counsellor (Optional)</span>
+                </div>
+                <textarea
+                  className="app-textarea"
+                  placeholder="e.g., Please review my 12th PCM cutoff eligibility for computer science programs and help evaluate merit scholarship deadlines."
+                  value={studentNotes}
+                  onChange={(e) => setStudentNotes(e.target.value)}
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="app-btn-submit"
+                disabled={submittingBooking}
+              >
+                {submittingBooking ? (
+                  <span>Reserving Appointment Slot...</span>
+                ) : (
+                  <>
+                    <span>Book Appointment Session</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* RIGHT: BOOKING SUMMARY & PREVIEW */}
+          <div className="app-summary-card">
+            <div className="app-summary-header">
+              <h3 className="app-summary-title">Booking Overview</h3>
+              <p className="app-summary-desc">Live preview of your chosen session</p>
+            </div>
+
+            <div className="app-summary-row">
+              <span className="app-summary-label">Session Focus</span>
+              <span className="app-summary-value">
+                {appointmentTypesList.find((t) => t.type === bookingType)?.label}
+              </span>
+            </div>
+
+            <div className="app-summary-row">
+              <span className="app-summary-label">Assigned Counsellor</span>
+              <span className="app-summary-value">
+                {currentCounsellor ? currentCounsellor.fullName : 'Selected upon booking'}
+              </span>
+            </div>
+
+            <div className="app-summary-row">
+              <span className="app-summary-label">Scheduled Date</span>
+              <span className="app-summary-value">{scheduledDate}</span>
+            </div>
+
+            <div className="app-summary-row">
+              <span className="app-summary-label">Time Slot</span>
+              <span className="app-summary-value">{timeSlot}</span>
+            </div>
+
+            <div className="app-summary-row">
+              <span className="app-summary-label">Format</span>
+              <span className="app-summary-value">
+                {meetingMode === 'ONLINE_COUNSELLING' ? 'Online Video' : 'In-Person Campus'}
+              </span>
+            </div>
+
+            {selectedCollegeObj && (
+              <div className="app-summary-row">
+                <span className="app-summary-label">College Context</span>
+                <span className="app-summary-value">{selectedCollegeObj.name}</span>
+              </div>
+            )}
+
+            <div style={{ marginTop: '1.5rem', background: '#F8FAFC', padding: '1rem', borderRadius: '10px', fontSize: '0.78rem', color: '#64748B', lineHeight: 1.5 }}>
+              <div style={{ fontWeight: 700, color: '#172033', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <CheckCircle size={14} color="#16A34A" />
+                <span>Superconsciousness Advisory Guarantee</span>
+              </div>
+              All consultations are complimentary for registered students. Rescheduling is permitted up to 2 hours prior to start time.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          TAB 2: MY APPOINTMENTS
+         ==================================================================== */}
+      {activeTab === 'my-appointments' && (
+        <div className="app-card">
+          <div className="app-filter-bar">
+            <div>
+              <h2 className="app-card-title" style={{ margin: 0 }}>
+                <CalendarCheck size={20} color="#5B4FE9" />
+                <span>My Counselling Appointments</span>
+              </h2>
+              <span style={{ fontSize: '0.84rem', color: '#64748B' }}>
+                Track upcoming appointments, join online sessions, or view consultation notes
+              </span>
+            </div>
+
+            <div className="app-filter-pills">
+              <button
+                className={`app-filter-pill ${appointmentFilter === 'ALL' ? 'active' : ''}`}
+                onClick={() => setAppointmentFilter('ALL')}
+              >
+                All ({appointments.length})
+              </button>
+              <button
+                className={`app-filter-pill ${appointmentFilter === 'UPCOMING' ? 'active' : ''}`}
+                onClick={() => setAppointmentFilter('UPCOMING')}
+              >
+                Upcoming
+              </button>
+              <button
+                className={`app-filter-pill ${appointmentFilter === 'PAST' ? 'active' : ''}`}
+                onClick={() => setAppointmentFilter('PAST')}
+              >
+                Past
+              </button>
+              <button
+                className={`app-filter-pill ${appointmentFilter === 'CANCELLED' ? 'active' : ''}`}
+                onClick={() => setAppointmentFilter('CANCELLED')}
+              >
+                Cancelled
+              </button>
+            </div>
+          </div>
+
+          {filteredAppointments.length > 0 ? (
+            <div className="app-grid">
+              {filteredAppointments.map((app) => {
+                const isCancelled = app.status === 'CANCELLED';
+                const isCompleted = app.status === 'COMPLETED';
+                const formattedDate = new Date(app.scheduledAt).toLocaleDateString(undefined, {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                });
+                const formattedTime = new Date(app.scheduledAt).toLocaleTimeString(undefined, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                });
+
+                return (
+                  <div key={app.id} className="app-item-card">
+                    <div>
+                      <div className="app-item-header">
+                        <span className="app-item-id">#{app.id.slice(-6).toUpperCase()}</span>
+                        <span className={`app-badge-status status-${app.status.toLowerCase()}`}>
+                          {app.status === 'CONFIRMED' && <CheckCircle size={12} />}
+                          {app.status === 'SCHEDULED' && <Clock size={12} />}
+                          {app.status === 'CANCELLED' && <X size={12} />}
+                          <span>{app.status}</span>
+                        </span>
+                      </div>
+
+                      <h3 className="app-item-title">{app.title}</h3>
+
+                      <div className="app-item-meta">
+                        <div className="app-item-meta-row">
+                          <User size={14} color="#64748B" />
+                          <span>
+                            Counsellor: <strong>{app.counsellorName}</strong>
+                          </span>
+                        </div>
+
+                        <div className="app-item-meta-row">
+                          <Clock size={14} color="#64748B" />
+                          <span>
+                            {formattedDate} &bull; {formattedTime} ({app.durationMinutes} min)
+                          </span>
+                        </div>
+
+                        <div className="app-item-meta-row">
+                          {app.meetingType === 'ONLINE_COUNSELLING' ? (
+                            <Video size={14} color="#5B4FE9" />
+                          ) : (
+                            <MapPin size={14} color="#059669" />
+                          )}
+                          <span>
+                            Mode:{' '}
+                            <strong>
+                              {app.meetingType === 'ONLINE_COUNSELLING'
+                                ? 'Online Video Meet'
+                                : 'In-Person Campus'}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {app.relatedCollegeName && (
+                        <div className="app-item-college-tag">
+                          <Bookmark size={12} color="#5B4FE9" />
+                          <span>Context: {app.relatedCollegeName}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="app-item-actions">
+                      <button
+                        className="app-btn-outline"
+                        onClick={() => setSelectedAppointment(app)}
+                      >
+                        <Info size={14} />
+                        <span>View Details</span>
+                      </button>
+
+                      {!isCancelled && !isCompleted && (
+                        <button
+                          className="app-btn-danger-outline"
+                          onClick={() => setCancellingAppointment(app)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+
+                      {app.meetingType === 'ONLINE_COUNSELLING' && !isCancelled && (
+                        <a
+                          href={app.meetingLocation || 'https://meet.google.com'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="app-btn-outline"
+                          style={{ color: '#5B4FE9', borderColor: '#C7D2FE' }}
+                        >
+                          <Video size={14} />
+                          <span>Join Meet</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="app-empty-state">
+              <div className="app-empty-icon">
+                <Calendar size={28} />
+              </div>
+              <h3 className="app-empty-title">No appointments found</h3>
+              <p className="app-empty-desc">
+                {appointmentFilter === 'ALL'
+                  ? 'You have not booked any counselling appointments yet. Connect with our certified advisors to plan your university roadmap.'
+                  : `No appointments matching the "${appointmentFilter.toLowerCase()}" filter.`}
+              </p>
+              <button
+                className="cmd-btn-primary"
+                style={{ margin: '0 auto' }}
+                onClick={() => setActiveTab('book')}
+              >
+                <span>Book a Consultation Session</span>
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ====================================================================
+          TAB 3: WEBINARS & ADMISSION MASTERCLASSES
+         ==================================================================== */}
+      {activeTab === 'webinars' && (
+        <div className="app-card">
+          <div className="app-filter-bar">
+            <div>
+              <h2 className="app-card-title" style={{ margin: 0 }}>
+                <Video size={20} color="#5B4FE9" />
+                <span>Admissions Webinars & Masterclasses</span>
+              </h2>
+              <span style={{ fontSize: '0.84rem', color: '#64748B' }}>
+                Interactive live sessions and university masterclasses with admissions deans
+              </span>
+            </div>
+
+            <div className="app-filter-pills">
+              <button
+                className={`app-filter-pill ${webinarFilter === 'ALL' ? 'active' : ''}`}
+                onClick={() => setWebinarFilter('ALL')}
+              >
+                All Sessions ({webinars.length})
+              </button>
+              <button
+                className={`app-filter-pill ${webinarFilter === 'REGISTERED' ? 'active' : ''}`}
+                onClick={() => setWebinarFilter('REGISTERED')}
+              >
+                My Registrations ({registeredWebinarCount})
+              </button>
+              <button
+                className={`app-filter-pill ${webinarFilter === 'UPCOMING' ? 'active' : ''}`}
+                onClick={() => setWebinarFilter('UPCOMING')}
+              >
+                Live / Upcoming
+              </button>
+              <button
+                className={`app-filter-pill ${webinarFilter === 'RECORDED' ? 'active' : ''}`}
+                onClick={() => setWebinarFilter('RECORDED')}
+              >
+                Recorded Library
+              </button>
+            </div>
+          </div>
+
+          {filteredWebinars.length > 0 ? (
+            <div className="app-grid">
+              {filteredWebinars.map((webinar) => {
+                const isUpcoming = webinar.webinarType === 'UPCOMING';
+                const formattedDate = webinar.scheduledAt
+                  ? new Date(webinar.scheduledAt).toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })
+                  : 'On-Demand';
+                const formattedTime = webinar.scheduledAt
+                  ? new Date(webinar.scheduledAt).toLocaleTimeString(undefined, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '';
+
+                return (
+                  <div key={webinar.id} className="webinar-card">
+                    <div>
+                      <div className="webinar-top-tags">
+                        <span className="webinar-topic-pill">{webinar.topic}</span>
+                        {webinar.isRegistered ? (
+                          <span className="webinar-registered-badge">
+                            <CheckCircle size={11} />
+                            <span>Registered</span>
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '0.74rem',
+                              color: isUpcoming ? '#2563EB' : '#475569',
+                              fontWeight: 700,
+                            }}
+                          >
+                            {isUpcoming ? '• Live Interactive' : '• On-Demand'}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="webinar-title">{webinar.title}</h3>
+                      <p className="webinar-desc">{webinar.description}</p>
+
+                      {/* Speaker Strip */}
+                      <div className="webinar-speaker-strip">
+                        <div className="webinar-speaker-avatar">
+                          {(webinar.speakerName || 'W').charAt(0)}
+                        </div>
+                        <div>
+                          <h5 className="webinar-speaker-name">{webinar.speakerName}</h5>
+                          <span className="webinar-speaker-title">
+                            {webinar.speakerTitle || 'Admissions Specialist'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Time & Duration */}
+                      <div className="webinar-info-strip">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Calendar size={13} color="#64748B" />
+                          <span>{formattedDate} {formattedTime && `at ${formattedTime}`}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Clock size={13} color="#64748B" />
+                          <span>{webinar.durationMinutes} mins</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Users size={13} color="#64748B" />
+                          <span>{webinar.registeredCount} Students Enrolled</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="webinar-footer-actions">
+                      {webinar.isRegistered ? (
+                        <>
+                          <a
+                            href={webinar.officialLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="app-btn-outline"
+                            style={{ color: '#5B4FE9', borderColor: '#C7D2FE', fontWeight: 700 }}
+                          >
+                            <ExternalLink size={14} />
+                            <span>Join Meeting Room</span>
+                          </a>
+                          <button
+                            className="app-btn-danger-outline"
+                            onClick={() => handleCancelWebinarRegistration(webinar)}
+                            disabled={actionLoadingId === webinar.id}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="cmd-btn-primary"
+                          style={{ width: '100%', justifyContent: 'center' }}
+                          onClick={() => handleRegisterWebinar(webinar)}
+                          disabled={actionLoadingId === webinar.id}
+                        >
+                          {actionLoadingId === webinar.id ? (
+                            <span>Registering...</span>
+                          ) : (
+                            <>
+                              <span>Register for Free</span>
+                              <ChevronRight size={15} />
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="app-empty-state">
+              <div className="app-empty-icon">
+                <Video size={28} />
+              </div>
+              <h3 className="app-empty-title">No webinars found</h3>
+              <p className="app-empty-desc">
+                {webinarFilter === 'REGISTERED'
+                  ? 'You have not registered for any webinars yet. Browse our upcoming sessions and claim your free seat.'
+                  : 'No masterclasses found matching the selected filter.'}
+              </p>
+              {webinarFilter === 'REGISTERED' && (
+                <button
+                  className="cmd-btn-primary"
+                  style={{ margin: '0 auto' }}
+                  onClick={() => setWebinarFilter('ALL')}
+                >
+                  View All Masterclasses
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ====================================================================
+          TAB 4: SHORTLIST INTEGRATION (MODULE 6 & 12)
+         ==================================================================== */}
+      {activeTab === 'shortlist' && (
+        <div className="app-card">
+          <div className="app-filter-bar">
+            <div>
+              <h2 className="app-card-title" style={{ margin: 0 }}>
+                <Bookmark size={20} color="#5B4FE9" />
+                <span>My University Shortlist & Context Hub</span>
+              </h2>
+              <span style={{ fontSize: '0.84rem', color: '#64748B' }}>
+                Institutions saved from College Discovery and Three-Tier fit. Click any college to book a targeted counselling session.
+              </span>
+            </div>
+
+            <div className="app-filter-pills">
+              <button
+                className={`app-filter-pill ${shortlistFilter === 'ALL' ? 'active' : ''}`}
+                onClick={() => setShortlistFilter('ALL')}
+              >
+                All ({shortlistMetrics.total})
+              </button>
+              <button
+                className={`app-filter-pill ${shortlistFilter === 'DREAM' ? 'active' : ''}`}
+                onClick={() => setShortlistFilter('DREAM')}
+              >
+                Dream ({shortlistMetrics.dream})
+              </button>
+              <button
+                className={`app-filter-pill ${shortlistFilter === 'REACH' ? 'active' : ''}`}
+                onClick={() => setShortlistFilter('REACH')}
+              >
+                Reach ({shortlistMetrics.reach})
+              </button>
+              <button
+                className={`app-filter-pill ${shortlistFilter === 'TARGET' ? 'active' : ''}`}
+                onClick={() => setShortlistFilter('TARGET')}
+              >
+                Target ({shortlistMetrics.target})
+              </button>
+              <button
+                className={`app-filter-pill ${shortlistFilter === 'SAFE' ? 'active' : ''}`}
+                onClick={() => setShortlistFilter('SAFE')}
+              >
+                Safe ({shortlistMetrics.safe})
+              </button>
+            </div>
+          </div>
+
+          {/* Metric Summary Cards */}
+          <div className="shortlist-stats-banner">
+            <div className="shortlist-stat-box">
+              <div className="shortlist-stat-num">{shortlistMetrics.total}</div>
+              <div className="shortlist-stat-label">Total Shortlisted</div>
+            </div>
+            <div className="shortlist-stat-box" style={{ borderLeft: '3px solid #C084FC' }}>
+              <div className="shortlist-stat-num" style={{ color: '#9333EA' }}>
+                {shortlistMetrics.dream}
+              </div>
+              <div className="shortlist-stat-label">Dream Tier</div>
+            </div>
+            <div className="shortlist-stat-box" style={{ borderLeft: '3px solid #60A5FA' }}>
+              <div className="shortlist-stat-num" style={{ color: '#2563EB' }}>
+                {shortlistMetrics.reach}
+              </div>
+              <div className="shortlist-stat-label">Reach Tier</div>
+            </div>
+            <div className="shortlist-stat-box" style={{ borderLeft: '3px solid #34D399' }}>
+              <div className="shortlist-stat-num" style={{ color: '#059669' }}>
+                {shortlistMetrics.target}
+              </div>
+              <div className="shortlist-stat-label">Target Tier</div>
+            </div>
+          </div>
+
+          {filteredShortlists.length > 0 ? (
+            <div className="app-grid">
+              {filteredShortlists.map((college) => (
+                <div key={college.institutionId || college.id} className="shortlist-college-card">
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                      <span className={`fit-category-pill fit-${college.fitCategory.toLowerCase()}`}>
+                        {college.fitCategory} FIT
+                      </span>
+                      <span style={{ fontSize: '0.76rem', color: '#64748B', fontWeight: 600 }}>
+                        {college.tier}
+                      </span>
+                    </div>
+
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 750, color: '#172033', margin: '0 0 0.35rem 0' }}>
+                      {college.name}
+                    </h3>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', color: '#64748B', marginBottom: '1rem' }}>
+                      <MapPin size={13} />
+                      <span>{college.city}, {college.country}</span>
+                    </div>
+
+                    <div style={{ background: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', fontSize: '0.8rem', color: '#334155', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>Acceptance Rate</div>
+                        <div style={{ fontWeight: 700 }}>{college.acceptanceRate || 'Competitive'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#64748B' }}>Est. Annual Fee</div>
+                        <div style={{ fontWeight: 700 }}>{college.avgTuitionFee || 'Available on enquiry'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid #F1F5F9' }}>
+                    <button
+                      className="cmd-btn-primary"
+                      style={{ width: '100%', justifyContent: 'center' }}
+                      onClick={() => handleBookForCollege(college)}
+                    >
+                      <CalendarPlus size={15} />
+                      <span>Book Consultation for this College</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="app-empty-state">
+              <div className="app-empty-icon">
+                <Bookmark size={28} />
+              </div>
+              <h3 className="app-empty-title">No universities shortlisted</h3>
+              <p className="app-empty-desc">
+                Explore the College Discovery catalog and Three-Tier fit recommendation engine to add colleges to your official shortlist.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ====================================================================
+          MODAL 1: VIEW APPOINTMENT DETAILS
+         ==================================================================== */}
+      {selectedAppointment && (
+        <div className="app-modal-overlay" onClick={() => setSelectedAppointment(null)}>
+          <div className="app-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button className="app-modal-close" onClick={() => setSelectedAppointment(null)}>
+              <X size={20} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'rgba(91, 79, 233, 0.1)',
+                  color: '#5B4FE9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <CalendarCheck size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#172033', margin: 0 }}>
+                  Appointment Details
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                  ID: #{selectedAppointment.id}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginBottom: '1.5rem', fontSize: '0.88rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
+                <span style={{ color: '#64748B' }}>Session Topic:</span>
+                <span style={{ fontWeight: 700, color: '#172033' }}>{selectedAppointment.title}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
+                <span style={{ color: '#64748B' }}>Status:</span>
+                <span className={`app-badge-status status-${selectedAppointment.status.toLowerCase()}`}>
+                  {selectedAppointment.status}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
+                <span style={{ color: '#64748B' }}>Assigned Counsellor:</span>
+                <span style={{ fontWeight: 600, color: '#172033' }}>
+                  {selectedAppointment.counsellorName} ({selectedAppointment.counsellorEmail})
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
+                <span style={{ color: '#64748B' }}>Date & Time:</span>
+                <span style={{ fontWeight: 600, color: '#172033' }}>
+                  {new Date(selectedAppointment.scheduledAt).toLocaleString()}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
+                <span style={{ color: '#64748B' }}>Meeting Format:</span>
+                <span style={{ fontWeight: 600, color: '#172033' }}>
+                  {selectedAppointment.meetingType === 'ONLINE_COUNSELLING'
+                    ? 'Online Video Call'
+                    : 'In-Person Campus Advisory'}
+                </span>
+              </div>
+
+              {selectedAppointment.relatedCollegeName && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
+                  <span style={{ color: '#64748B' }}>Referenced College:</span>
+                  <span style={{ fontWeight: 700, color: '#5B4FE9' }}>
+                    {selectedAppointment.relatedCollegeName}
+                  </span>
+                </div>
+              )}
+
+              {selectedAppointment.studentNotes && (
+                <div style={{ background: '#F8FAFC', padding: '0.85rem', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#475569', marginBottom: '0.25rem' }}>
+                    Your Discussion Notes:
+                  </div>
+                  <div style={{ color: '#172033', fontSize: '0.84rem' }}>
+                    {selectedAppointment.studentNotes}
+                  </div>
+                </div>
+              )}
+
+              {selectedAppointment.cancellationReason && (
+                <div style={{ background: '#FEF2F2', padding: '0.85rem', borderRadius: '8px', color: '#991B1B' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                    Cancellation Reason:
+                  </div>
+                  <div style={{ fontSize: '0.84rem' }}>
+                    {selectedAppointment.cancellationReason}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {selectedAppointment.meetingType === 'ONLINE_COUNSELLING' &&
+                selectedAppointment.status !== 'CANCELLED' && (
+                  <a
+                    href={selectedAppointment.meetingLocation || 'https://meet.google.com'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cmd-btn-primary"
+                    style={{ flex: 1, justifyContent: 'center' }}
+                  >
+                    <Video size={16} />
+                    <span>Join Video Meeting</span>
+                  </a>
+                )}
+              <button
+                className="app-btn-outline"
+                style={{ flex: 1 }}
+                onClick={() => setSelectedAppointment(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          MODAL 2: CANCEL APPOINTMENT CONFIRMATION
+         ==================================================================== */}
+      {cancellingAppointment && (
+        <div className="app-modal-overlay" onClick={() => setCancellingAppointment(null)}>
+          <div className="app-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button className="app-modal-close" onClick={() => setCancellingAppointment(null)}>
+              <X size={20} />
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: '#FEE2E2',
+                  color: '#DC2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AlertCircle size={24} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#172033', margin: 0 }}>
+                  Cancel Appointment?
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                  #{cancellingAppointment.id.slice(-6).toUpperCase()} &bull; {cancellingAppointment.title}
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.88rem', color: '#64748B', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+              Are you sure you want to cancel this counselling session? Your reserved slot will be released back into the counsellor schedule.
+            </p>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: '#475569',
+                  marginBottom: '0.4rem',
+                }}
+              >
+                Reason for cancellation (Optional)
+              </label>
+              <textarea
+                className="app-textarea"
+                rows={3}
+                placeholder="e.g., Schedule conflict, already resolved question, or rescheduling for next week."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                className="app-btn-outline"
+                style={{ flex: 1 }}
+                onClick={() => setCancellingAppointment(null)}
+              >
+                Keep Appointment
+              </button>
+              <button
+                className="app-btn-danger-outline"
+                style={{ flex: 1, padding: '0.75rem', background: '#DC2626', color: '#FFFFFF', border: 'none' }}
+                onClick={handleConfirmCancelAppointment}
+                disabled={actionLoadingId === cancellingAppointment.id}
+              >
+                {actionLoadingId === cancellingAppointment.id ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -142,5 +142,17 @@ export const API_ENDPOINTS = {
     COUNSELLOR_ACTION_PLAN: (reportId: string) =>
       `${API_BASE_URL}/assessments/counsellor/reports/${reportId}/action-plan`,
   },
+  APPOINTMENTS: {
+    META: `${API_BASE_URL}/appointments/meta`,
+    MY_APPOINTMENTS: `${API_BASE_URL}/appointments/my-appointments`,
+    BOOK: `${API_BASE_URL}/appointments/book`,
+    CANCEL: (id: string) => `${API_BASE_URL}/appointments/${id}/cancel`,
+    WEBINARS: `${API_BASE_URL}/appointments/webinars`,
+    REGISTER_WEBINAR: (id: string) => `${API_BASE_URL}/appointments/webinars/${id}/register`,
+    CANCEL_WEBINAR_REGISTRATION: (id: string) =>
+      `${API_BASE_URL}/appointments/webinars/${id}/cancel-registration`,
+    SHORTLISTS: `${API_BASE_URL}/appointments/shortlists`,
+    TOGGLE_SHORTLIST: `${API_BASE_URL}/appointments/shortlists/toggle`,
+  },
 } as const;
 

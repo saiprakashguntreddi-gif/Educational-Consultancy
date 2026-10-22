@@ -18,6 +18,7 @@ import { ScholarshipDiscoveryView } from '../../scholarships/components/Scholars
 import { FeeComparisonDashboard } from '../../fees/components/FeeComparisonDashboard';
 import { ExamIntelligencePage } from '../../exam-intelligence/pages/ExamIntelligencePage';
 import { EightPathwayAssessmentSuite } from '../../assessments/components/EightPathwayAssessmentSuite';
+import { AppointmentsDashboard } from '../../appointments/components/AppointmentsDashboard';
 import '../../../shared/styles/student-dashboard.css';
 import {
   LayoutDashboard,
@@ -51,7 +52,7 @@ import {
 } from 'lucide-react';
 
 interface StudentDashboardPageProps {
-  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'exam-intelligence' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees' | 'assessments';
+  initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'exam-intelligence' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees' | 'assessments' | 'appointments' | 'shortlist';
   onNavigateHome?: () => void;
 }
 
@@ -97,6 +98,10 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       ? 'fees'
       : initialSection === 'assessments'
       ? 'assessments'
+      : initialSection === 'appointments'
+      ? 'appointments'
+      : initialSection === 'shortlist'
+      ? 'shortlist'
       : 'dashboard'
   );
 
@@ -162,6 +167,10 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       setActiveMenu('fees');
     } else if (initialSection === 'assessments') {
       setActiveMenu('assessments');
+    } else if (initialSection === 'appointments') {
+      setActiveMenu('appointments');
+    } else if (initialSection === 'shortlist') {
+      setActiveMenu('shortlist');
     } else if (initialSection === 'dashboard') {
       setActiveMenu('dashboard');
     }
@@ -1647,29 +1656,14 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
           )}
 
           {/* ==========================================================
-              FUTURE MODULE PREVIEWS (PLACEHOLDERS ONLY, NO FAKE DATA)
+              VIEW 12: MODULE 12 — SHORTLISTS, WEBINARS & APPOINTMENTS
              ========================================================== */}
-          {(activeMenu === 'shortlist' || activeMenu === 'appointments') && (
-            <div className="cmd-future-module-card">
-              <div className="cmd-future-icon-wrap">
-                {activeMenu === 'shortlist' && <Bookmark size={28} />}
-                {activeMenu === 'appointments' && <Calendar size={28} />}
-              </div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#172033', margin: '0 0 0.5rem' }}>
-                {getActiveTitle()}
-              </h2>
-              <p style={{ fontSize: '0.92rem', color: '#667085', lineHeight: 1.5, margin: '0 0 1.5rem' }}>
-                This workspace module is scheduled for future release. Your completed student profile, preferences, and education details will seamlessly connect with this module once activated.
-              </p>
-              <button
-                className="cmd-btn-primary"
-                onClick={() => setActiveMenu('dashboard')}
-                style={{ margin: '0 auto' }}
-              >
-                <span>Return to Dashboard</span>
-                <ArrowRight size={15} />
-              </button>
-            </div>
+          {activeMenu === 'appointments' && (
+            <AppointmentsDashboard initialTab="book" />
+          )}
+
+          {activeMenu === 'shortlist' && (
+            <AppointmentsDashboard initialTab="shortlist" />
           )}
         </main>
       </div>
