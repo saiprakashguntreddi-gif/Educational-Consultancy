@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   Compass,
-  GraduationCap,
-  BookOpen,
   ShieldCheck,
   LogOut,
   Menu,
@@ -12,7 +10,6 @@ import {
   Building2,
   Layers,
   Award,
-  Target,
   Users,
   CheckSquare,
 } from 'lucide-react';
@@ -133,27 +130,10 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               How It Works
             </button>
             <button
-              onClick={() => handleNavClick('#student-guidance')}
-              className="nav-link-btn"
-            >
-              Student Guidance
-            </button>
-            <button
               onClick={() => handleNavClick('#resources')}
               className="nav-link-btn"
             >
               Resources
-            </button>
-            <button
-              onClick={() => handleNavClick('fees')}
-              className="nav-link-btn"
-              style={{
-                color: currentView === 'fees' ? '#FFFFFF' : '#E2E8F0',
-                fontWeight: currentView === 'fees' ? 700 : 500,
-              }}
-              id="nav-fees-btn"
-            >
-              Fee Calculator
             </button>
             <button
               onClick={() => handleNavClick('#contact')}
@@ -174,17 +154,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             >
               Home
             </button>
-            <button
-              onClick={() => handleNavClick('fees')}
-              className="nav-link-btn"
-              style={{
-                color: currentView === 'fees' ? '#FFFFFF' : '#E2E8F0',
-                fontWeight: currentView === 'fees' ? 700 : 500,
-              }}
-              id="nav-fees-btn"
-            >
-              Fee Calculator
-            </button>
           </nav>
         )}
 
@@ -192,46 +161,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
         <div className="nav-auth-actions">
           {user ? (
             <>
-              {/* Student Quick Navigation Buttons */}
+              {/* Student Navigation - all student features reside strictly inside Student Dashboard */}
               {user.role === 'STUDENT' && (
-                <>
-                  <button
-                    onClick={() => onNavigate('dashboard')}
-                    className="btn-nav-module"
-                    title="Student Dashboard"
-                    id="nav-dashboard-btn"
-                  >
-                    <LayoutDashboard size={15} color="#A78BFA" />
-                    <span>Dashboard</span>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('profile-intake')}
-                    className="btn-nav-module"
-                    title="Student Profile"
-                    id="nav-my-profile-btn"
-                  >
-                    <GraduationCap size={15} color="#A78BFA" />
-                    <span>My Profile</span>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('exam-intelligence')}
-                    className="btn-nav-module"
-                    title="Entrance Exam Intelligence & Mock Tests"
-                    id="nav-exam-intelligence-btn"
-                  >
-                    <Target size={15} color="#A78BFA" />
-                    <span>Exam Intelligence</span>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('assessments')}
-                    className="btn-nav-module"
-                    title="Module 11: Eight-Pathway Assessment Suite"
-                    id="nav-assessments-btn"
-                  >
-                    <Award size={15} color="#A78BFA" />
-                    <span>Assessments</span>
-                  </button>
-                </>
+                <button
+                  onClick={() => onNavigate('dashboard')}
+                  className="btn-nav-module"
+                  title="Student Dashboard"
+                  id="nav-dashboard-btn"
+                >
+                  <LayoutDashboard size={15} color="#A78BFA" />
+                  <span>Student Dashboard</span>
+                </button>
               )}
 
               {/* Staff Quick Action Button */}
@@ -380,25 +320,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             How It Works
           </button>
           <button
-            onClick={() => handleNavClick('#student-guidance')}
-            className="nav-mobile-link"
-            id="mobile-nav-guidance-btn"
-          >
-            Student Guidance
-          </button>
-          <button
             onClick={() => handleNavClick('#resources')}
             className="nav-mobile-link"
             id="mobile-nav-resources-btn"
           >
             Resources
-          </button>
-          <button
-            onClick={() => handleNavClick('fees')}
-            className="nav-mobile-link"
-            id="mobile-nav-fees-btn"
-          >
-            Fee Calculator
           </button>
           <button
             onClick={() => handleNavClick('#contact')}
@@ -417,56 +343,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               </div>
 
               {user.role === 'STUDENT' && (
-                <>
-                  <button
-                    onClick={() => handleNavClick('dashboard')}
-                    className="btn-primary-indigo"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-dashboard-btn"
-                  >
-                    <LayoutDashboard size={16} /> Student Dashboard
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('profile-intake')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-profile-btn"
-                  >
-                    <GraduationCap size={16} /> My Student Profile
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('preferences')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-preferences-btn"
-                  >
-                    <Compass size={16} /> Course Preferences
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('education')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-education-btn"
-                  >
-                    <BookOpen size={16} /> Education Details
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('exam-intelligence')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-exam-intelligence-btn"
-                  >
-                    <Target size={16} /> Exam Intelligence & Mock Tests
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('assessments')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-assessments-btn"
-                  >
-                    <Award size={16} /> Module 11: Assessment Suite
-                  </button>
-                </>
+                <button
+                  onClick={() => handleNavClick('dashboard')}
+                  className="btn-primary-indigo"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  id="mobile-nav-dashboard-btn"
+                >
+                  <LayoutDashboard size={16} /> Student Dashboard
+                </button>
               )}
 
               {(user.role === 'COUNSELLOR' || user.role === 'ADMIN') && (
