@@ -29,7 +29,6 @@ import {
   Info,
   ExternalLink,
   ChevronRight,
-  Sparkles,
   Users,
   Compass,
   GraduationCap,
@@ -459,10 +458,6 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
     <div className="app-container">
       {/* 1. TOP HERO HEADER */}
       <div className="app-header-card">
-        <div className="app-hero-badge">
-          <Sparkles size={13} />
-          <span>Module 12 &bull; Direct Guidance & Admissions Portal</span>
-        </div>
         <h1 className="app-hero-title">Appointments, Webinars & Shortlists</h1>
         <p className="app-hero-subtitle">
           Book certified 1-on-1 career counselling sessions, join live admissions webinars

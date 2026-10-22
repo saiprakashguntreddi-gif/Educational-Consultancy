@@ -29,7 +29,7 @@
 .app-header-card {
   background: linear-gradient(135deg, #0B1535 0%, #16244E 60%, #1E2D64 100%);
   border-radius: var(--cmd-radius-xl, 20px);
-  padding: 2.25rem 2.5rem;
+  padding: 2rem 2.5rem;
   color: #FFFFFF;
   position: relative;
   overflow: hidden;

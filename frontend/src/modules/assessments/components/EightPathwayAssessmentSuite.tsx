@@ -279,10 +279,6 @@ export const EightPathwayAssessmentSuite: React.FC<EightPathwayAssessmentSuitePr
 
       {/* 1. HERO BANNER */}
       <div className="asmt-hero-card">
-        <div className="asmt-hero-badge">
-          <Award size={14} />
-          <span>Module 11 • Eight-Pathway Assessment Suite</span>
-        </div>
         <h1 className="asmt-hero-title">
           Eight-Pathway Psychometric & Aptitude Diagnostic Suite
         </h1>
