@@ -11,6 +11,8 @@ import {
   WebinarDto,
 } from '../appointments.types';
 import '../appointments.css';
+import { InteractiveMeetingModal } from '../../counsellor/components/InteractiveMeetingModal';
+import { SessionAuditDetailsModal } from '../../counsellor/components/SessionAuditDetailsModal';
 
 // Feather / Lucide icons (available in project dependencies)
 import {
@@ -75,6 +77,8 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDto | null>(null);
   const [cancellingAppointment, setCancellingAppointment] = useState<AppointmentDto | null>(null);
   const [cancelReason, setCancelReason] = useState<string>('');
+  const [activeMeetingAppointment, setActiveMeetingAppointment] = useState<AppointmentDto | null>(null);
+  const [viewSessionRecord, setViewSessionRecord] = useState<AppointmentDto | null>(null);
 
   // Filters for My Appointments & Webinars & Shortlists
   const [appointmentFilter, setAppointmentFilter] = useState<'ALL' | 'UPCOMING' | 'PAST' | 'CANCELLED'>('ALL');
@@ -96,24 +100,97 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
   const [relatedCollegeId, setRelatedCollegeId] = useState<string>(preselectedCollegeId || '');
   const [studentNotes, setStudentNotes] = useState<string>('');
 
+  // Dynamic slot availability (PDF Requirement: slots limited to counsellor free timings)
+  const [availableSlots, setAvailableSlots] = useState<{ timeSlot: string; isAvailable: boolean; isBooked: boolean }[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
+
+  // Consultancy Enrollment & Policy Agreement State (PDF Requirement)
+  const [enrollmentStatus, setEnrollmentStatus] = useState<{
+    isEnrolled: boolean;
+    enrolledAt: string | null;
+    policyAgreed: boolean;
+    policyAgreedAt: string | null;
+    assignedCounsellor: any;
+    enrollment: any;
+  } | null>(null);
+  const [enrollmentModalOpen, setEnrollmentModalOpen] = useState<boolean>(false);
+  const [submittingEnrollment, setSubmittingEnrollment] = useState<boolean>(false);
+  const [agreedToPolicies, setAgreedToPolicies] = useState<boolean>(true);
+
+  // Fetch dynamic available slots for assigned counsellor on date
+  const fetchDynamicSlots = async (counsellorId: string, date: string) => {
+    if (!counsellorId || !date) return;
+    setLoadingSlots(true);
+    try {
+      const res = await AppointmentsService.getCounsellorAvailableSlots(counsellorId, date);
+      if (res.success && res.data) {
+        setAvailableSlots(res.data.slots);
+        const firstFree = res.data.slots.find((s) => s.isAvailable && !s.isBooked);
+        if (firstFree) {
+          setTimeSlot(firstFree.timeSlot);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch counsellor available slots:', err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  };
+
+  // Handle Official Consultancy Enrollment
+  const handleConfirmEnrollment = async () => {
+    if (!agreedToPolicies) {
+      alert('Please agree to company policies and agreements to proceed with enrollment.');
+      return;
+    }
+    setSubmittingEnrollment(true);
+    try {
+      const res = await AppointmentsService.enrollStudent({
+        counsellorId: selectedCounsellorId || meta?.assignedCounsellor?.id,
+        agreementSigned: true,
+      });
+      if (res.success) {
+        setFeedback({
+          type: 'success',
+          message: 'Congratulations! You are now officially enrolled with Superconsciousness Educational Consultancy! 1 performance token awarded to your counsellor.',
+        });
+        setEnrollmentModalOpen(false);
+        // Reload status
+        const statusRes = await AppointmentsService.getEnrollmentStatus().catch(() => null);
+        if (statusRes?.success && statusRes.data) {
+          setEnrollmentStatus(statusRes.data);
+        }
+      } else {
+        alert(res.message || 'Enrollment could not be processed.');
+      }
+    } catch (err: any) {
+      alert(`Enrollment failed: ${err.message}`);
+    } finally {
+      setSubmittingEnrollment(false);
+    }
+  };
+
   // Load all data on mount
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [metaRes, appRes, webRes, shortRes] = await Promise.all([
+      const [metaRes, appRes, webRes, shortRes, enrollRes] = await Promise.all([
         AppointmentsService.getMeta(),
         AppointmentsService.getMyAppointments(),
         AppointmentsService.listWebinars(),
         AppointmentsService.listShortlistedColleges(),
+        AppointmentsService.getEnrollmentStatus().catch(() => null),
       ]);
 
       if (metaRes.success && metaRes.data) {
         setMeta(metaRes.data);
-        if (metaRes.data.counsellors && metaRes.data.counsellors.length > 0) {
-          setSelectedCounsellorId(metaRes.data.counsellors[0].id);
-        }
-        if (metaRes.data.timeSlots && metaRes.data.timeSlots.length > 0) {
-          setTimeSlot(metaRes.data.timeSlots[0]);
+        const resolvedCounsellorId =
+          metaRes.data.assignedCounsellor?.id ||
+          (metaRes.data.counsellors && metaRes.data.counsellors.length > 0 ? metaRes.data.counsellors[0].id : '');
+        setSelectedCounsellorId(resolvedCounsellorId);
+
+        if (resolvedCounsellorId) {
+          fetchDynamicSlots(resolvedCounsellorId, scheduledDate);
         }
       }
 
@@ -127,6 +204,10 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
 
       if (shortRes.success && shortRes.data) {
         setShortlists(shortRes.data);
+      }
+
+      if (enrollRes?.success && enrollRes.data) {
+        setEnrollmentStatus(enrollRes.data);
       }
     } catch (err: any) {
       setFeedback({
@@ -152,6 +233,13 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
       setActiveTab('book');
     }
   }, [initialTab, preselectedCollegeId]);
+
+  // Dynamic slot availability on date or counsellor selection change (PDF Requirement)
+  useEffect(() => {
+    if (selectedCounsellorId && scheduledDate) {
+      fetchDynamicSlots(selectedCounsellorId, scheduledDate);
+    }
+  }, [selectedCounsellorId, scheduledDate]);
 
   // Appointment Type Metadata helper
   const appointmentTypesList = useMemo(() => {
@@ -551,6 +639,93 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
         <div className="app-booking-layout">
           {/* LEFT: BOOKING FORM */}
           <div className="app-card">
+            {/* Consultancy Enrollment & Policy Agreement Banner (PDF Requirement) */}
+            {enrollmentStatus?.isEnrolled ? (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  backgroundColor: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  borderRadius: '10px',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Award size={24} color="#059669" />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#065F46' }}>
+                      Official Consultancy Enrolled Student
+                    </h4>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#047857' }}>
+                      Agreement & Policies confirmed. Priority application processing & dedicated counsellor token awarded.
+                    </p>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: '#065F46',
+                    backgroundColor: '#D1FAE5',
+                    padding: '0.25rem 0.65rem',
+                    borderRadius: 9999,
+                    border: '1px solid #6EE7B7',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  ✓ Enrolled
+                </span>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  backgroundColor: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: '10px',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <GraduationCap size={24} color="#2563EB" />
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700, color: '#1E40AF' }}>
+                      Consultancy Enrollment & Policy Agreement
+                    </h4>
+                    <p style={{ margin: '0.2rem 0 0', fontSize: '0.78rem', color: '#3B82F6' }}>
+                      Agree to company policies and enroll with our consultancy to guarantee college admission guidance.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEnrollmentModalOpen(true)}
+                  style={{
+                    backgroundColor: '#2563EB',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '0.45rem 0.95rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                  }}
+                >
+                  Enroll with Consultancy
+                </button>
+              </div>
+            )}
+
             <h2 className="app-card-title">
               <Calendar size={20} color="#5B4FE9" />
               <span>Schedule Counselling Session</span>
@@ -604,40 +779,87 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                 </div>
               </div>
 
-              {/* 3. Counsellor Selection */}
+              {/* 3. Counsellor Selection (Enforcing Admin-controlled Assignment) */}
               <div className="app-form-section">
                 <div className="app-form-section-label">
-                  <span>2. Select Senior Counsellor</span>
+                  <span>2. Your Dedicated Senior Counsellor</span>
                 </div>
-                {meta?.counsellors && meta.counsellors.length > 0 ? (
-                  <div className="app-counsellor-grid">
-                    {meta.counsellors.map((counsellor) => (
-                      <div
-                        key={counsellor.id}
-                        className={`app-counsellor-card ${
-                          selectedCounsellorId === counsellor.id ? 'selected' : ''
-                        }`}
-                        onClick={() => setSelectedCounsellorId(counsellor.id)}
-                      >
-                        <div className="app-counsellor-avatar">
-                          {counsellor.fullName.charAt(0)}
-                        </div>
-                        <div className="app-counsellor-info">
-                          <h5 className="app-counsellor-name">{counsellor.fullName}</h5>
-                          <span className="app-counsellor-spec">
-                            {counsellor.specialization || 'Academic Advisor'}
-                          </span>
-                          <p className="app-counsellor-bio">
-                            {counsellor.bio || 'Official certified guidance counsellor.'}
-                          </p>
-                        </div>
+                {meta?.assignedCounsellor ? (
+                  <div
+                    style={{
+                      padding: '1.25rem 1.4rem',
+                      backgroundColor: '#F8FAFC',
+                      border: '2px solid #2563EB',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1.25rem',
+                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.08)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 58,
+                        height: 58,
+                        borderRadius: '50%',
+                        backgroundColor: '#EFF6FF',
+                        border: '2px solid #BFDBFE',
+                        color: '#2563EB',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.4rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {meta.assignedCounsellor.fullName?.charAt(0) || meta.assignedCounsellor.email?.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0F172A' }}>
+                          {meta.assignedCounsellor.fullName || meta.assignedCounsellor.email.split('@')[0]}
+                        </h4>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16A34A', backgroundColor: '#F0FDF4', padding: '0.15rem 0.55rem', borderRadius: 9999, border: '1px solid #BBF7D0' }}>
+                          ● Official Assigned Counsellor
+                        </span>
                       </div>
-                    ))}
+                      <div style={{ fontSize: '0.82rem', color: '#2563EB', fontWeight: 600, marginTop: 2 }}>
+                        {meta.assignedCounsellor.specialization || 'Academic & Admissions Guidance'} • {meta.assignedCounsellor.experienceYears || 5} years experience
+                      </div>
+                      <p style={{ margin: '0.35rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: 1.4 }}>
+                        {meta.assignedCounsellor.bio || 'Official institutional counsellor assigned to guide your admissions journey.'}
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.4rem' }}>
+                        {(meta.assignedCounsellor.skills || ['Career Guidance', 'University Selection']).map((skill: string, sIdx: number) => (
+                          <span key={sIdx} style={{ fontSize: '0.72rem', backgroundColor: '#F1F5F9', color: '#334155', padding: '0.15rem 0.45rem', borderRadius: 4 }}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <p style={{ color: '#64748B', fontSize: '0.88rem' }}>
-                    Loading certified counsellors directory...
-                  </p>
+                  <div
+                    style={{
+                      padding: '1.25rem 1.5rem',
+                      backgroundColor: '#FFFBEB',
+                      border: '1px solid #FDE68A',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                    }}
+                  >
+                    <AlertCircle size={32} color="#D97706" />
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#92400E' }}>
+                        Counsellor Assignment in Progress
+                      </h4>
+                      <p style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: '#B45309', lineHeight: 1.4 }}>
+                        Your student account is currently in the unassigned pool. An administrator will review your academic intake and allocate your dedicated senior counsellor shortly. Consultation booking will activate immediately upon assignment.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -685,26 +907,72 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                       Available Time Slot (IST)
                     </label>
                     <div className="app-slot-grid">
-                      {(meta?.timeSlots || [
-                        '09:00 AM',
-                        '10:00 AM',
-                        '11:00 AM',
-                        '02:00 PM',
-                        '03:00 PM',
-                        '04:00 PM',
-                        '05:00 PM',
-                      ]).map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          className={`app-slot-btn ${
-                            timeSlot === slot ? 'selected' : ''
-                          }`}
-                          onClick={() => setTimeSlot(slot)}
-                        >
-                          {slot}
-                        </button>
-                      ))}
+                      {loadingSlots ? (
+                        <div style={{ gridColumn: '1 / -1', padding: '0.75rem', color: '#64748B', fontSize: '0.82rem' }}>
+                          Checking counsellor's live schedule for {scheduledDate}...
+                        </div>
+                      ) : availableSlots.length > 0 ? (
+                        availableSlots.map((slot) => {
+                          const isUnavailable = !slot.isAvailable || slot.isBooked;
+                          return (
+                            <button
+                              key={slot.timeSlot}
+                              type="button"
+                              disabled={isUnavailable}
+                              className={`app-slot-btn ${
+                                timeSlot === slot.timeSlot && !isUnavailable ? 'selected' : ''
+                              }`}
+                              style={
+                                isUnavailable
+                                  ? {
+                                      opacity: 0.5,
+                                      cursor: 'not-allowed',
+                                      backgroundColor: '#F1F5F9',
+                                      color: '#94A3B8',
+                                      border: '1px dashed #CBD5E1',
+                                      position: 'relative',
+                                    }
+                                  : undefined
+                              }
+                              onClick={() => setTimeSlot(slot.timeSlot)}
+                              title={isUnavailable ? 'Counsellor is unavailable / already booked at this time' : 'Available'}
+                            >
+                              <span>{slot.timeSlot}</span>
+                              {slot.isBooked && (
+                                <span style={{ fontSize: '0.65rem', color: '#DC2626', fontWeight: 700, marginLeft: '0.35rem' }}>
+                                  (Booked)
+                                </span>
+                              )}
+                              {!slot.isAvailable && !slot.isBooked && (
+                                <span style={{ fontSize: '0.65rem', color: '#64748B', marginLeft: '0.35rem' }}>
+                                  (Busy)
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })
+                      ) : (
+                        (meta?.timeSlots || [
+                          '09:00 AM',
+                          '10:00 AM',
+                          '11:00 AM',
+                          '02:00 PM',
+                          '03:00 PM',
+                          '04:00 PM',
+                          '05:00 PM',
+                        ]).map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            className={`app-slot-btn ${
+                              timeSlot === slot ? 'selected' : ''
+                            }`}
+                            onClick={() => setTimeSlot(slot)}
+                          >
+                            {slot}
+                          </button>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -836,10 +1104,16 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
               <button
                 type="submit"
                 className="app-btn-submit"
-                disabled={submittingBooking}
+                disabled={submittingBooking || (user?.role === 'STUDENT' && !meta?.assignedCounsellor)}
+                style={{
+                  cursor: (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ? 'not-allowed' : 'pointer',
+                  opacity: (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ? 0.6 : 1,
+                }}
               >
                 {submittingBooking ? (
                   <span>Reserving Appointment Slot...</span>
+                ) : (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ? (
+                  <span>Awaiting Counsellor Assignment</span>
                 ) : (
                   <>
                     <span>Book Appointment Session</span>
@@ -1039,17 +1313,28 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                         </button>
                       )}
 
-                      {app.meetingType === 'ONLINE_COUNSELLING' && !isCancelled && (
-                        <a
-                          href={app.meetingLocation || 'https://meet.google.com'}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {(app.status === 'CONFIRMED' || app.status === 'SCHEDULED') && (
+                        <button
+                          onClick={() => setActiveMeetingAppointment(app)}
                           className="app-btn-outline"
-                          style={{ color: '#5B4FE9', borderColor: '#C7D2FE' }}
+                          style={{ color: '#2563EB', borderColor: '#BFDBFE', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          type="button"
                         >
                           <Video size={14} />
-                          <span>Join Meet</span>
-                        </a>
+                          <span>Join Live Meeting</span>
+                        </button>
+                      )}
+
+                      {isCompleted && (
+                        <button
+                          onClick={() => setViewSessionRecord(app)}
+                          className="app-btn-outline"
+                          style={{ color: '#16A34A', borderColor: '#BBF7D0', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          type="button"
+                        >
+                          <CheckCircle size={14} />
+                          <span>View Session Notes</span>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1609,6 +1894,178 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                 disabled={actionLoadingId === cancellingAppointment.id}
               >
                 {actionLoadingId === cancellingAppointment.id ? 'Cancelling...' : 'Confirm Cancellation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeMeetingAppointment && (
+        <InteractiveMeetingModal
+          appointment={activeMeetingAppointment}
+          userRole="STUDENT"
+          onClose={() => setActiveMeetingAppointment(null)}
+        />
+      )}
+
+      {viewSessionRecord && (
+        <SessionAuditDetailsModal
+          session={viewSessionRecord}
+          onClose={() => setViewSessionRecord(null)}
+        />
+      )}
+
+      {/* Consultancy Enrollment & Policy Agreement Modal (PDF Requirement) */}
+      {enrollmentModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '580px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#F8FAFC',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '8px',
+                    backgroundColor: '#EFF6FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#2563EB',
+                  }}
+                >
+                  <Award size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0F172A' }}>
+                    Consultancy Enrollment & Policy Agreement
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>
+                    Official consultancy registration for your chosen university admission
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEnrollmentModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+              <div
+                style={{
+                  padding: '0.85rem 1rem',
+                  backgroundColor: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: '8px',
+                  fontSize: '0.82rem',
+                  color: '#1E40AF',
+                  lineHeight: 1.5,
+                }}
+              >
+                <strong>Company Policy & Guaranteed Admission Guidance:</strong> When enrolled, our certified educational consultants process your applications end-to-end, assist with scholarships, and provide verified guidance to prevent fake admissions.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.82rem', color: '#334155' }}>
+                  <CheckCircle size={16} color="#16A34A" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span><strong>Dedicated Counsellor Token:</strong> Your assigned counsellor receives official performance points to oversee your admission from university shortlist to enrollment.</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.82rem', color: '#334155' }}>
+                  <CheckCircle size={16} color="#16A34A" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span><strong>Verified University Submissions:</strong> Official document dispatch preventing fraudulent or duplicate university filings.</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.6rem', fontSize: '0.82rem', color: '#334155' }}>
+                  <CheckCircle size={16} color="#16A34A" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span><strong>Transparent Support:</strong> All advisory sessions and progress are audited by central administration.</span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  padding: '0.85rem 1rem',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  id="agreeCheckbox"
+                  style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2563EB' }}
+                  checked={agreedToPolicies}
+                  onChange={(e) => setAgreedToPolicies(e.target.checked)}
+                />
+                <label htmlFor="agreeCheckbox" style={{ fontSize: '0.82rem', color: '#0F172A', cursor: 'pointer', fontWeight: 600 }}>
+                  I accept the Superconsciousness Company Agreement and Admissions Policies
+                </label>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '1rem 1.5rem',
+                borderTop: '1px solid #E2E8F0',
+                backgroundColor: '#F8FAFC',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setEnrollmentModalOpen(false)}
+                className="saas-btn saas-btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmEnrollment}
+                disabled={submittingEnrollment || !agreedToPolicies}
+                className="saas-btn saas-btn-primary"
+                style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
+              >
+                {submittingEnrollment ? 'Enrolling...' : 'Confirm Official Enrollment'}
               </button>
             </div>
           </div>

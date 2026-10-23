@@ -29,28 +29,45 @@ export class CounsellorService {
    * Get Counsellor Dashboard Metrics & Workload
    */
   public static async getCounsellorDashboard(counsellorId: string) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
     const [
       assignedCount,
-      pendingVerificationCount,
+      todayAppointmentsList,
       upcomingAppointments,
-      pendingActionPlans,
-      recentNotes,
+      pendingRequestsList,
+      pendingFollowUpsCount,
+      recentCompletedSessions,
       counsellorUser,
       assignedStudentsRaw,
     ] = await Promise.all([
+      // 1. My Students count
       prisma.studentProfile.count({
         where: { assignedCounsellorId: counsellorId },
       }),
-      prisma.studentProfile.count({
-        where: {
-          assignedCounsellorId: counsellorId,
-          verificationStatus: 'PENDING',
-        },
-      }),
+      // 2. Today's Appointments
       prisma.appointment.findMany({
         where: {
           counsellorId,
-          scheduledAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          scheduledAt: { gte: startOfToday, lte: endOfToday },
+        },
+        include: {
+          studentProfile: {
+            select: { id: true, fullName: true, grade: true, contactEmail: true, phone: true },
+          },
+        },
+        orderBy: { scheduledAt: 'asc' },
+      }),
+      // 3. Upcoming 7-day appointments
+      prisma.appointment.findMany({
+        where: {
+          counsellorId,
+          scheduledAt: { gte: endOfToday, lte: nextWeek },
+          status: { in: ['SCHEDULED', 'CONFIRMED'] },
         },
         include: {
           studentProfile: {
@@ -60,29 +77,55 @@ export class CounsellorService {
         orderBy: { scheduledAt: 'asc' },
         take: 6,
       }),
-      prisma.actionPlanItem.count({
+      // 4. Pending appointment requests needing counsellor response
+      prisma.appointment.findMany({
         where: {
           counsellorId,
-          status: { in: ['PENDING', 'IN_PROGRESS'] },
+          status: 'SCHEDULED',
         },
-      }),
-      prisma.studentCounsellorNote.findMany({
-        where: { counsellorId },
         include: {
           studentProfile: {
-            select: { id: true, fullName: true },
+            select: { id: true, fullName: true, grade: true, contactEmail: true },
           },
         },
-        orderBy: { createdAt: 'desc' },
-        take: 5,
+        orderBy: { scheduledAt: 'asc' },
       }),
+      // 5. Sessions needing follow-up
+      prisma.appointment.count({
+        where: {
+          counsellorId,
+          status: 'COMPLETED',
+          followUpRequired: true,
+        },
+      }),
+      // 6. Recent completed sessions with outcome records
+      prisma.appointment.findMany({
+        where: {
+          counsellorId,
+          status: 'COMPLETED',
+        },
+        include: {
+          studentProfile: {
+            select: { id: true, fullName: true, grade: true, contactEmail: true },
+          },
+        },
+        orderBy: { completedAt: 'desc' },
+        take: 6,
+      }),
+      // 7. Counsellor user + profile
       prisma.user.findUnique({
         where: { id: counsellorId },
-        select: { id: true, email: true, role: true },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          counsellorProfile: true,
+        },
       }),
+      // 8. Assigned students with action plans and profile status
       prisma.studentProfile.findMany({
         where: { assignedCounsellorId: counsellorId },
-        take: 6,
+        take: 20,
         orderBy: { updatedAt: 'desc' },
         include: {
           user: { select: { id: true, email: true } },
@@ -90,49 +133,111 @@ export class CounsellorService {
           actionPlans: {
             select: { id: true, status: true, title: true, category: true },
           },
+          appointments: {
+            where: { counsellorId },
+            orderBy: { scheduledAt: 'desc' },
+            take: 1,
+          },
         },
       }),
     ]);
 
-    // Unassigned students pool count (available for claiming)
-    const unassignedCount = await prisma.studentProfile.count({
-      where: { assignedCounsellorId: null },
-    });
-
-    // Count applications/shortlists for assigned students
-    const activeApplications = await prisma.shortlistItem.count({
-      where: {
-        studentProfile: {
-          assignedCounsellorId: counsellorId,
-        },
-      },
-    });
-
-    return {
-      counsellor: counsellorUser,
-      metrics: {
-        assignedStudents: assignedCount,
-        pendingVerifications: pendingVerificationCount,
-        upcomingAppointmentsCount: upcomingAppointments.length,
-        activeActionPlans: pendingActionPlans,
-        unassignedPoolCount: unassignedCount,
-        activeApplications,
-      },
-      recentStudents: assignedStudentsRaw.map((s) => ({
+    // Compute "Students Requiring Attention"
+    const studentsRequiringAttention = assignedStudentsRaw
+      .filter((s) => {
+        const hasPendingVerification = s.verificationStatus === 'PENDING';
+        const hasPendingPlans = s.actionPlans.some(
+          (a) => a.status === 'PENDING' || a.status === 'IN_PROGRESS'
+        );
+        const lastApt = s.appointments[0];
+        const hasFollowUp = lastApt && lastApt.followUpRequired;
+        return hasPendingVerification || hasPendingPlans || hasFollowUp;
+      })
+      .slice(0, 6)
+      .map((s) => ({
         id: s.id,
         fullName: s.fullName,
         email: s.contactEmail || s.user.email,
         phone: s.phone,
         grade: s.grade,
         verificationStatus: s.verificationStatus,
-        countryPreference: s.preference?.primaryCountry || 'Global',
-        department: s.preference?.department || 'General',
-        pendingActions: s.actionPlans.filter(
+        reason:
+          s.verificationStatus === 'PENDING'
+            ? 'Profile Verification Pending'
+            : s.appointments[0]?.followUpRequired
+            ? 'Session Follow-up Required'
+            : 'Active Milestones in Progress',
+        pendingActionsCount: s.actionPlans.filter(
           (a) => a.status === 'PENDING' || a.status === 'IN_PROGRESS'
         ).length,
+      }));
+
+    return {
+      counsellor: {
+        id: counsellorUser?.id,
+        email: counsellorUser?.email,
+        role: counsellorUser?.role,
+        fullName: counsellorUser?.counsellorProfile?.fullName || counsellorUser?.email?.split('@')[0],
+        specialization: counsellorUser?.counsellorProfile?.specialization || 'Academic & Admissions Counsellor',
+        profile: counsellorUser?.counsellorProfile,
+      },
+      metrics: {
+        myStudents: assignedCount,
+        assignedStudents: assignedCount,
+        todayAppointments: todayAppointmentsList.length,
+        upcomingSessions: upcomingAppointments.length,
+        pendingRequests: pendingRequestsList.length,
+        pendingFollowUps: pendingFollowUpsCount,
+      },
+      todaySchedule: todayAppointmentsList.map((a) => ({
+        id: a.id,
+        title: a.title,
+        appointmentType: a.appointmentType,
+        scheduledAt: a.scheduledAt.toISOString(),
+        durationMinutes: a.durationMinutes,
+        status: a.status,
+        meetingType: a.meetingType,
+        meetingLocation: a.meetingLocation || `https://meet.superconsciousness.internal/room/${a.id.slice(0, 8)}`,
+        studentId: a.studentProfile.id,
+        studentName: a.studentProfile.fullName,
+        studentEmail: a.studentProfile.contactEmail,
+        studentPhone: a.studentProfile.phone,
       })),
-      upcomingAppointments,
-      recentNotes,
+      pendingAppointmentRequests: pendingRequestsList.map((a) => ({
+        id: a.id,
+        title: a.title,
+        appointmentType: a.appointmentType,
+        scheduledAt: a.scheduledAt.toISOString(),
+        durationMinutes: a.durationMinutes,
+        status: a.status,
+        studentName: a.studentProfile.fullName,
+        studentEmail: a.studentProfile.contactEmail,
+        studentGrade: a.studentProfile.grade,
+      })),
+      studentsRequiringAttention,
+      recentSessions: recentCompletedSessions.map((s) => ({
+        id: s.id,
+        title: s.title,
+        scheduledAt: s.scheduledAt.toISOString(),
+        completedAt: s.completedAt?.toISOString(),
+        durationMinutes: s.durationMinutes,
+        status: s.status,
+        sessionOutcome: s.sessionOutcome || 'General Consultation Completed',
+        recommendations: s.recommendations,
+        followUpRequired: s.followUpRequired,
+        nextAction: s.nextAction,
+        studentName: s.studentProfile.fullName,
+        studentEmail: s.studentProfile.contactEmail,
+      })),
+      upcomingAppointments: upcomingAppointments.map((a) => ({
+        id: a.id,
+        title: a.title,
+        appointmentType: a.appointmentType,
+        scheduledAt: a.scheduledAt.toISOString(),
+        durationMinutes: a.durationMinutes,
+        status: a.status,
+        studentName: a.studentProfile.fullName,
+      })),
     };
   }
 

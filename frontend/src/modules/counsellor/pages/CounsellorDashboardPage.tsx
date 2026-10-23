@@ -12,8 +12,12 @@ import {
   Video,
   ChevronRight,
   ArrowRight,
-  Award,
   ClipboardList,
+  CheckCircle2,
+  Clock,
+  Bell,
+  MessageSquare,
+  Settings,
 } from 'lucide-react';
 import {
   CounsellorClientService,
@@ -21,8 +25,11 @@ import {
   CounsellorStudentSummary,
 } from '../services/counsellor.service';
 import { AdminClientService } from '../services/admin.service';
+import { AppointmentsService } from '../../appointments/services/appointments.service';
 import { Student360Modal } from '../components/Student360Modal';
 import { CreateStudentModal } from '../components/CreateStudentModal';
+import { InteractiveMeetingModal } from '../components/InteractiveMeetingModal';
+import { RecordSessionOutcomeModal } from '../components/RecordSessionOutcomeModal';
 import { SaaSShell } from '../components/saas/SaaSShell';
 import { SaaSStatCard } from '../components/saas/SaaSStatCard';
 import { StatusBadge } from '../components/saas/StatusBadge';
@@ -52,9 +59,85 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
   const [isLoading, setIsLoading] = useState(true);
   const [isStudentsLoading, setIsStudentsLoading] = useState(false);
 
-  // Modals
+  // Modals & Interactive Meeting States
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [activeMeetingAppointment, setActiveMeetingAppointment] = useState<any | null>(null);
+  const [recordOutcomeAppointment, setRecordOutcomeAppointment] = useState<any | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  const [slotModalOpen, setSlotModalOpen] = useState(false);
+  const [slotDate, setSlotDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customSlots, setCustomSlots] = useState<string[]>([
+    '09:00 AM',
+    '10:00 AM',
+    '11:00 AM',
+    '02:00 PM',
+    '03:00 PM',
+    '04:00 PM',
+    '05:00 PM',
+  ]);
+  const [savingSlots, setSavingSlots] = useState(false);
+
+  const handleSendReminder = async (appointmentId: string, method: 'WHATSAPP' | 'SMS' = 'WHATSAPP') => {
+    setActionLoadingId(appointmentId);
+    try {
+      const res = await AppointmentsService.sendAppointmentReminder(appointmentId, method);
+      if (res.success && res.data) {
+        if (res.data.whatsappLink && method === 'WHATSAPP') {
+          window.open(res.data.whatsappLink, '_blank');
+        }
+        alert(`${method} reminder logged and dispatched!`);
+        loadDashboard();
+      } else {
+        alert(res.message || 'Failed to dispatch reminder');
+      }
+    } catch (err: any) {
+      alert(`Reminder error: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleSaveSlots = async () => {
+    setSavingSlots(true);
+    try {
+      const res = await AppointmentsService.setCounsellorSlots(slotDate, customSlots);
+      if (res.success) {
+        alert(`Successfully updated availability timings for ${slotDate}! Bookings blocked for other hours.`);
+        setSlotModalOpen(false);
+      } else {
+        alert(res.message || 'Failed to update slots');
+      }
+    } catch (err: any) {
+      alert(`Error updating slots: ${err.message}`);
+    } finally {
+      setSavingSlots(false);
+    }
+  };
+
+  const handleUpdateAppointmentStatus = async (
+    appointmentId: string,
+    status: 'CONFIRMED' | 'CANCELLED' | 'RESCHEDULED',
+    counsellorNotes?: string
+  ) => {
+    setActionLoadingId(appointmentId);
+    try {
+      const res = await AppointmentsService.updateCounsellorAppointmentStatus(appointmentId, {
+        status,
+        reason: counsellorNotes,
+      });
+      if (res.success) {
+        loadDashboard();
+      } else {
+        alert(res.message || 'Action failed');
+      }
+    } catch (err: any) {
+      alert(`Error updating appointment: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   const loadDashboard = async () => {
     setIsLoading(true);
@@ -176,52 +259,215 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
           </div>
 
           {/* Counsellor KPI Cards */}
-          <div className="saas-kpi-grid">
+          <div className="saas-kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <SaaSStatCard
               label="My Students"
               value={dashboardData?.metrics.assignedStudents ?? totalStudents}
               subtext="Assigned caseload"
-              trend="Active advising"
+              trend="Active roster"
               icon={<Users size={22} />}
               color="blue"
             />
             <SaaSStatCard
-              label="Active Applications"
-              value={dashboardData?.metrics.activeApplications ?? applications.length}
-              subtext="College submissions"
-              trend="Admissions progress"
-              icon={<FileText size={22} />}
-              color="green"
-            />
-            <SaaSStatCard
-              label="Pending Tasks"
-              value={dashboardData?.metrics.activeActionPlans ?? 0}
-              subtext="Action plan milestones"
-              trend="Milestones in progress"
-              icon={<CheckSquare size={22} />}
-              color="amber"
-            />
-            <SaaSStatCard
-              label="Upcoming Appointments"
-              value={dashboardData?.metrics.upcomingAppointmentsCount ?? 0}
-              subtext="Scheduled sessions"
-              trend="Calendar bookings"
-              icon={<Calendar size={22} />}
+              label="Today's Appointments"
+              value={dashboardData?.metrics.todayAppointmentsCount ?? 0}
+              subtext="Scheduled for today"
+              trend="Today's calendar"
+              icon={<Clock size={22} />}
               color="purple"
+            />
+            <SaaSStatCard
+              label="Upcoming Sessions"
+              value={dashboardData?.metrics.upcomingAppointmentsCount ?? 0}
+              subtext="Next 7 days"
+              trend="Consultations"
+              icon={<Calendar size={22} />}
+              color="blue"
+            />
+            <SaaSStatCard
+              label="Pending Requests"
+              value={dashboardData?.metrics.pendingRequestsCount ?? 0}
+              subtext="Awaiting your response"
+              trend={dashboardData?.metrics.pendingRequestsCount ? 'Action Required' : 'Up to date'}
+              icon={<CheckSquare size={22} />}
+              color={dashboardData?.metrics.pendingRequestsCount ? 'amber' : 'green'}
+            />
+            <SaaSStatCard
+              label="Pending Follow-ups"
+              value={dashboardData?.metrics.pendingFollowUpsCount ?? 0}
+              subtext="Milestones due"
+              trend="Action tracking"
+              icon={<ClipboardList size={22} />}
+              color="amber"
             />
           </div>
 
-          {/* 2-Column Student-Centric Layout */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.75fr 1.15fr', gap: '1.5rem' }}>
-            {/* LEFT COLUMN: My Students & Recent Submissions */}
+          {/* 1. TODAY'S SCHEDULE */}
+          <div className="saas-card" style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+            <div className="saas-card-header">
+              <div>
+                <h3 className="saas-card-title">Today's Schedule</h3>
+                <span className="saas-card-subtitle">
+                  Interactive consultations & meetings scheduled for today
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setSlotModalOpen(true)}
+                  className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                  type="button"
+                >
+                  <Settings size={13} /> Manage Availability Timings
+                </button>
+                <button
+                  onClick={() => setActiveTab('appointments')}
+                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                  type="button"
+                >
+                  View Full Calendar
+                </button>
+              </div>
+            </div>
+            <div className="saas-table-container">
+              <table className="saas-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Student</th>
+                    <th>Session Type</th>
+                    <th>Mode</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(dashboardData?.todaySchedule || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                        <Clock size={28} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                        <p style={{ margin: 0, fontWeight: 500 }}>No consultations scheduled for today.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    (dashboardData?.todaySchedule || []).map((app: any) => (
+                      <tr key={app.id}>
+                        <td>
+                          <strong style={{ fontSize: '0.85rem', color: '#2563EB' }}>
+                            {new Date(app.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </strong>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#0F172A' }}>
+                            {app.studentProfile?.fullName || 'Student'}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                            {app.studentProfile?.contactEmail}
+                          </div>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#475569' }}>
+                          {app.title || app.appointmentType?.replace('_', ' ')}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.75rem', backgroundColor: '#EFF6FF', color: '#2563EB', padding: '0.15rem 0.5rem', borderRadius: 4 }}>
+                            {app.meetingMode || 'Online Video'}
+                          </span>
+                        </td>
+                        <td>
+                          <StatusBadge status={app.status} />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            {app.status === 'CONFIRMED' && (
+                              <>
+                                <button
+                                  onClick={() => handleSendReminder(app.id, 'WHATSAPP')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-sm"
+                                  style={{ backgroundColor: '#25D366', color: '#FFFFFF', border: 'none' }}
+                                  type="button"
+                                  title="Send WhatsApp Reminder to Student Mobile"
+                                >
+                                  <MessageSquare size={13} /> WhatsApp
+                                </button>
+                                <button
+                                  onClick={() => handleSendReminder(app.id, 'SMS')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  type="button"
+                                  title="Send SMS Reminder"
+                                >
+                                  <Bell size={13} /> SMS
+                                </button>
+                                <button
+                                  onClick={() => setActiveMeetingAppointment(app)}
+                                  className="saas-btn saas-btn-primary saas-btn-sm"
+                                  type="button"
+                                  title="Launch Interactive Session"
+                                >
+                                  <Video size={13} /> Launch Meeting
+                                </button>
+                                <button
+                                  onClick={() => setRecordOutcomeAppointment(app)}
+                                  className="saas-btn saas-btn-sm"
+                                  style={{ backgroundColor: '#10B981', color: '#FFFFFF', border: 'none' }}
+                                  type="button"
+                                  title="Record Session Outcome"
+                                >
+                                  <CheckCircle2 size={13} /> Record Outcome
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'SCHEDULED' && (
+                              <>
+                                <button
+                                  onClick={() => handleUpdateAppointmentStatus(app.id, 'CONFIRMED')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-primary saas-btn-sm"
+                                  style={{ backgroundColor: '#16A34A', border: 'none' }}
+                                  type="button"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateAppointmentStatus(app.id, 'CANCELLED')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  style={{ color: '#DC2626' }}
+                                  type="button"
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'COMPLETED' && (
+                              <button
+                                onClick={() => setRecordOutcomeAppointment(app)}
+                                className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                                type="button"
+                              >
+                                Edit Outcome
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* 2-Column Layout: Students Requiring Attention & Recent Sessions */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr', gap: '1.5rem' }}>
+            {/* LEFT COLUMN: Students Requiring Attention */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {/* My Students Requiring Attention */}
               <div className="saas-card" style={{ marginBottom: 0 }}>
                 <div className="saas-card-header">
                   <div>
-                    <h3 className="saas-card-title">My Students</h3>
+                    <h3 className="saas-card-title">Students Requiring Attention</h3>
                     <span className="saas-card-subtitle">
-                      Priority attention and active caseload
+                      Assigned students with pending follow-ups or action items
                     </span>
                   </div>
                   <button
@@ -229,7 +475,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                     className="saas-btn saas-btn-secondary saas-btn-sm"
                     type="button"
                   >
-                    View All <ArrowRight size={14} />
+                    View All Students <ArrowRight size={14} />
                   </button>
                 </div>
                 <div className="saas-table-container">
@@ -237,137 +483,56 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                     <thead>
                       <tr>
                         <th>Student</th>
-                        <th>Course Interest</th>
-                        <th>Country Preference</th>
-                        <th>Attention</th>
-                        <th>Status</th>
-                        <th style={{ textAlign: 'right' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(dashboardData?.recentStudents || (students.slice(0, 6) as any[])).length === 0 ? (
-                        <tr>
-                          <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
-                            <Users size={28} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
-                            <p style={{ margin: 0 }}>No students currently assigned to your caseload.</p>
-                          </td>
-                        </tr>
-                      ) : (
-                        (dashboardData?.recentStudents || (students.slice(0, 6) as any[])).map((s: any) => {
-                          const needsAttention =
-                            s.verificationStatus === 'PENDING' ||
-                            (s.pendingActions && s.pendingActions > 0) ||
-                            (s.pendingActionsCount && s.pendingActionsCount > 0);
-                          return (
-                            <tr key={s.id}>
-                              <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                                  <div className="saas-user-avatar" style={{ width: 32, height: 32, fontSize: '0.78rem' }}>
-                                    {s.fullName.slice(0, 2).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <div style={{ fontWeight: 600, color: '#0F172A' }}>{s.fullName}</div>
-                                    <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                                      {s.email || s.contactEmail || s.user?.email}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ fontSize: '0.82rem', color: '#475569' }}>
-                                {s.department || s.preferenceSummary?.department || 'Undergraduate'}
-                              </td>
-                              <td>
-                                <span style={{ fontSize: '0.78rem', color: '#1E293B', backgroundColor: '#F1F5F9', padding: '0.15rem 0.5rem', borderRadius: 4 }}>
-                                  {s.countryPreference || s.preferenceSummary?.primaryCountry || 'Global'}
-                                </span>
-                              </td>
-                              <td>
-                                {needsAttention ? (
-                                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#D97706', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', padding: '0.15rem 0.45rem', borderRadius: 9999 }}>
-                                    ● Attention Needed
-                                  </span>
-                                ) : (
-                                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#16A34A', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '0.15rem 0.45rem', borderRadius: 9999 }}>
-                                    ● On Track
-                                  </span>
-                                )}
-                              </td>
-                              <td>
-                                <StatusBadge status={s.verificationStatus} />
-                              </td>
-                              <td style={{ textAlign: 'right' }}>
-                                <button
-                                  onClick={() => setSelectedProfileId(s.id)}
-                                  className="saas-btn saas-btn-outline-primary saas-btn-sm"
-                                  type="button"
-                                >
-                                  <Eye size={13} /> View
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Recent Applications Table */}
-              <div className="saas-card" style={{ marginBottom: 0 }}>
-                <div className="saas-card-header">
-                  <div>
-                    <h3 className="saas-card-title">Recent Applications</h3>
-                    <span className="saas-card-subtitle">
-                      University applications submitted across your roster
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('applications')}
-                    className="saas-btn saas-btn-secondary saas-btn-sm"
-                    type="button"
-                  >
-                    View All <ArrowRight size={14} />
-                  </button>
-                </div>
-                <div className="saas-table-container">
-                  <table className="saas-table">
-                    <thead>
-                      <tr>
-                        <th>Student</th>
-                        <th>Program & Institution</th>
+                        <th>Target Discipline</th>
                         <th>Country</th>
                         <th>Status</th>
-                        <th>Applied On</th>
+                        <th style={{ textAlign: 'right' }}>Profile</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {applications.slice(0, 5).length === 0 ? (
+                      {(dashboardData?.studentsRequiringAttention || (students.slice(0, 5) as any[])).length === 0 ? (
                         <tr>
-                          <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#64748B' }}>
-                            <FileText size={28} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
-                            <p style={{ margin: 0 }}>No applications logged yet.</p>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                            <CheckCircle2 size={28} color="#10B981" style={{ margin: '0 auto 0.5rem' }} />
+                            <p style={{ margin: 0, fontWeight: 500 }}>All assigned students are currently on track!</p>
                           </td>
                         </tr>
                       ) : (
-                        applications.slice(0, 5).map((app) => (
-                          <tr key={app.id}>
+                        (dashboardData?.studentsRequiringAttention || (students.slice(0, 5) as any[])).map((s: any) => (
+                          <tr key={s.id}>
                             <td>
-                              <span style={{ fontWeight: 600, color: '#0F172A' }}>{app.studentName}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                <div className="saas-user-avatar" style={{ width: 32, height: 32, fontSize: '0.78rem' }}>
+                                  {s.fullName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <div style={{ fontWeight: 600, color: '#0F172A' }}>{s.fullName}</div>
+                                  <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                                    {s.contactEmail || s.user?.email}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ fontSize: '0.82rem', color: '#475569' }}>
+                              {s.department || s.preferenceSummary?.department || 'General'}
                             </td>
                             <td>
-                              <div style={{ fontSize: '0.82rem', color: '#0F172A', fontWeight: 500 }}>{app.institutionName}</div>
-                              <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{app.program}</div>
-                            </td>
-                            <td>
-                              <span style={{ fontSize: '0.78rem', color: '#475569', backgroundColor: '#F1F5F9', padding: '0.15rem 0.45rem', borderRadius: 4 }}>
-                                {app.country}
+                              <span style={{ fontSize: '0.78rem', color: '#1E293B', backgroundColor: '#F1F5F9', padding: '0.15rem 0.5rem', borderRadius: 4 }}>
+                                {s.countryPreference || s.preferenceSummary?.primaryCountry || 'Global'}
                               </span>
                             </td>
                             <td>
-                              <StatusBadge status={app.status} />
+                              <StatusBadge status={s.verificationStatus} />
                             </td>
-                            <td style={{ fontSize: '0.8rem', color: '#64748B' }}>{app.appliedOn}</td>
+                            <td style={{ textAlign: 'right' }}>
+                              <button
+                                onClick={() => setSelectedProfileId(s.id)}
+                                className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                                type="button"
+                              >
+                                <Eye size={13} /> 360°
+                              </button>
+                            </td>
                           </tr>
                         ))
                       )}
@@ -375,107 +540,132 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                   </table>
                 </div>
               </div>
-            </div>
 
-            {/* RIGHT COLUMN: Upcoming Appointments, Pool & Quick Actions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {/* Upcoming Appointments Card */}
-              <div className="saas-card" style={{ marginBottom: 0 }}>
-                <div className="saas-card-header">
-                  <div>
-                    <h3 className="saas-card-title">Upcoming Appointments</h3>
-                    <span className="saas-card-subtitle">Scheduled consultations</span>
+              {/* Pending Appointment Requests Card (if any pending) */}
+              {(dashboardData?.upcomingAppointments || []).filter((a) => a.status === 'SCHEDULED').length > 0 && (
+                <div className="saas-card" style={{ marginBottom: 0 }}>
+                  <div className="saas-card-header">
+                    <div>
+                      <h3 className="saas-card-title">Pending Appointment Requests</h3>
+                      <span className="saas-card-subtitle">
+                        Student consultation bookings awaiting your confirmation
+                      </span>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setActiveTab('appointments')}
-                    className="saas-btn saas-btn-secondary saas-btn-sm"
-                    type="button"
-                  >
-                    View All
-                  </button>
-                </div>
-                <div className="saas-card-body" style={{ padding: '1rem 1.25rem' }}>
-                  {dashboardData?.upcomingAppointments && dashboardData.upcomingAppointments.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                      {dashboardData.upcomingAppointments.map((app) => (
+                  <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {(dashboardData?.upcomingAppointments || [])
+                      .filter((a) => a.status === 'SCHEDULED')
+                      .map((req) => (
                         <div
-                          key={app.id}
+                          key={req.id}
                           style={{
                             padding: '0.85rem 1rem',
-                            backgroundColor: '#F8FAFC',
-                            border: '1px solid #E2E8F0',
-                            borderRadius: '10px',
+                            backgroundColor: '#FFFBEB',
+                            border: '1px solid #FDE68A',
+                            borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div className="saas-user-avatar" style={{ width: 36, height: 36 }}>
-                              {(app.studentProfile?.fullName || 'ST').slice(0, 2).toUpperCase()}
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#92400E', fontSize: '0.88rem' }}>
+                              {req.studentProfile?.fullName || 'Student'} • {req.title || req.appointmentType?.replace('_', ' ')}
                             </div>
-                            <div>
-                              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>
-                                {app.studentProfile?.fullName || 'Enrolled Student'}
-                              </div>
-                              <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                                {app.title || app.appointmentType?.replace('_', ' ')}
-                              </div>
-                              <div style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 600, marginTop: 2 }}>
-                                {new Date(app.scheduledAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} at{' '}
-                                {new Date(app.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </div>
+                            <div style={{ fontSize: '0.75rem', color: '#B45309', marginTop: 2 }}>
+                              Requested for{' '}
+                              {new Date(req.scheduledAt).toLocaleDateString([], { month: 'short', day: 'numeric' })} at{' '}
+                              {new Date(req.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
-                          <button
-                            onClick={() => alert(`Connecting to consultation session with ${app.studentProfile?.fullName}...`)}
-                            className="saas-btn saas-btn-primary saas-btn-sm"
-                            type="button"
-                          >
-                            <Video size={13} /> Join
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            <button
+                              onClick={() => handleUpdateAppointmentStatus(req.id, 'CONFIRMED')}
+                              disabled={actionLoadingId === req.id}
+                              className="saas-btn saas-btn-sm saas-btn-primary"
+                              style={{ backgroundColor: '#16A34A', border: 'none' }}
+                              type="button"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => handleUpdateAppointmentStatus(req.id, 'CANCELLED')}
+                              disabled={actionLoadingId === req.id}
+                              className="saas-btn saas-btn-sm saas-btn-secondary"
+                              style={{ color: '#DC2626' }}
+                              type="button"
+                            >
+                              Decline
+                            </button>
+                          </div>
                         </div>
                       ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT COLUMN: Recent Completed Sessions & Quick Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Recent Sessions */}
+              <div className="saas-card" style={{ marginBottom: 0 }}>
+                <div className="saas-card-header">
+                  <div>
+                    <h3 className="saas-card-title">Recent Sessions</h3>
+                    <span className="saas-card-subtitle">Completed consultations & follow-ups</span>
+                  </div>
+                </div>
+                <div className="saas-card-body" style={{ padding: '0.85rem 1rem' }}>
+                  {(dashboardData?.recentSessions || []).length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748B' }}>
+                      <Calendar size={28} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                      <p style={{ margin: 0, fontSize: '0.82rem' }}>No completed sessions recorded yet.</p>
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748B' }}>
-                      <Calendar size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
-                      <p style={{ margin: 0, fontSize: '0.85rem' }}>No sessions scheduled for today.</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {(dashboardData?.recentSessions || []).map((session: any) => (
+                        <div
+                          key={session.id}
+                          style={{
+                            padding: '0.75rem 0.9rem',
+                            backgroundColor: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '8px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ fontSize: '0.85rem', color: '#0F172A' }}>
+                              {session.studentProfile?.fullName || 'Student'}
+                            </strong>
+                            <span style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                              {new Date(session.scheduledAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                          <p style={{ margin: '0.35rem 0', fontSize: '0.78rem', color: '#475569', lineHeight: 1.4 }}>
+                            {session.sessionOutcome || 'Session completed.'}
+                          </p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem' }}>
+                            {session.followUpRequired ? (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#D97706', backgroundColor: '#FFFBEB', padding: '0.1rem 0.4rem', borderRadius: 4, border: '1px solid #FDE68A' }}>
+                                Follow-up Required
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: '#16A34A' }}>Follow-up complete</span>
+                            )}
+                            <button
+                              onClick={() => setRecordOutcomeAppointment(session)}
+                              style={{ background: 'none', border: 'none', color: '#2563EB', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                              type="button"
+                            >
+                              Edit Notes →
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Unassigned Pool Card */}
-              {(dashboardData?.metrics.unassignedPoolCount ?? 0) > 0 && (
-                <div
-                  style={{
-                    backgroundColor: '#EFF6FF',
-                    border: '1px solid #BFDBFE',
-                    borderRadius: '12px',
-                    padding: '1.25rem 1.35rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E3A8A' }}>
-                      Unassigned Students Pool
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: '#2563EB', marginTop: 2 }}>
-                      {dashboardData?.metrics.unassignedPoolCount} student(s) waiting for counselling allocation.
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => onNavigateView?.('counsellor-queue')}
-                    className="saas-btn saas-btn-primary saas-btn-sm"
-                    type="button"
-                  >
-                    Claim Student
-                  </button>
-                </div>
-              )}
 
               {/* Quick Actions Card */}
               <div className="saas-card" style={{ marginBottom: 0 }}>
@@ -487,13 +677,25 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                 </div>
                 <div className="saas-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <button
-                    onClick={() => setCreateModalOpen(true)}
+                    onClick={() => setActiveTab('students')}
                     className="saas-quick-action-item"
                     type="button"
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                      <UserPlus size={16} color="#2563EB" />
-                      <span>Onboard New Student</span>
+                      <Users size={16} color="#2563EB" />
+                      <span>View My Students</span>
+                    </div>
+                    <ChevronRight size={16} color="#94A3B8" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('appointments')}
+                    className="saas-quick-action-item"
+                    type="button"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <Calendar size={16} color="#2563EB" />
+                      <span>Appointments & Schedule</span>
                     </div>
                     <ChevronRight size={16} color="#94A3B8" />
                   </button>
@@ -505,19 +707,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                       <FileText size={16} color="#2563EB" />
-                      <span>View Applications</span>
-                    </div>
-                    <ChevronRight size={16} color="#94A3B8" />
-                  </button>
-
-                  <button
-                    onClick={() => onNavigateView?.('scholarship-management')}
-                    className="saas-quick-action-item"
-                    type="button"
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                      <Award size={16} color="#2563EB" />
-                      <span>Scholarship Discovery</span>
+                      <span>View Student Applications</span>
                     </div>
                     <ChevronRight size={16} color="#94A3B8" />
                   </button>
@@ -529,7 +719,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                       <ClipboardList size={16} color="#2563EB" />
-                      <span>Session Advisory Notes</span>
+                      <span>Advisory Notes</span>
                     </div>
                     <ChevronRight size={16} color="#94A3B8" />
                   </button>
@@ -883,13 +1073,65 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                           <StatusBadge status={app.status || 'SCHEDULED'} />
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <button
-                            onClick={() => alert(`Starting session with ${app.studentProfile?.fullName || 'student'}...`)}
-                            className="saas-btn saas-btn-primary saas-btn-sm"
-                            type="button"
-                          >
-                            <Video size={13} /> Join
-                          </button>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                            {app.status === 'CONFIRMED' && (
+                              <>
+                                <button
+                                  onClick={() => setActiveMeetingAppointment(app)}
+                                  className="saas-btn saas-btn-primary saas-btn-sm"
+                                  type="button"
+                                >
+                                  <Video size={13} /> Launch Meeting
+                                </button>
+                                <button
+                                  onClick={() => setRecordOutcomeAppointment(app)}
+                                  className="saas-btn saas-btn-sm"
+                                  style={{ backgroundColor: '#10B981', color: '#FFFFFF', border: 'none' }}
+                                  type="button"
+                                >
+                                  <CheckCircle2 size={13} /> Record Outcome
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'SCHEDULED' && (
+                              <>
+                                <button
+                                  onClick={() => setActiveMeetingAppointment(app)}
+                                  className="saas-btn saas-btn-primary saas-btn-sm"
+                                  type="button"
+                                >
+                                  <Video size={13} /> Start Meeting
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateAppointmentStatus(app.id, 'CONFIRMED')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-sm"
+                                  style={{ backgroundColor: '#16A34A', color: '#FFFFFF', border: 'none' }}
+                                  type="button"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateAppointmentStatus(app.id, 'CANCELLED')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  style={{ color: '#DC2626' }}
+                                  type="button"
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'COMPLETED' && (
+                              <button
+                                onClick={() => setRecordOutcomeAppointment(app)}
+                                className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                                type="button"
+                              >
+                                Edit Record
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1011,6 +1253,198 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
             loadStudents(1);
           }}
         />
+      )}
+
+      {activeMeetingAppointment && (
+        <InteractiveMeetingModal
+          appointment={activeMeetingAppointment}
+          userRole="COUNSELLOR"
+          onClose={() => setActiveMeetingAppointment(null)}
+          onRecordOutcome={(app) => {
+            setActiveMeetingAppointment(null);
+            setRecordOutcomeAppointment(app);
+          }}
+        />
+      )}
+
+      {recordOutcomeAppointment && (
+        <RecordSessionOutcomeModal
+          appointment={recordOutcomeAppointment}
+          onClose={() => setRecordOutcomeAppointment(null)}
+          onSuccess={() => {
+            loadDashboard();
+          }}
+        />
+      )}
+
+      {/* Counsellor Slot Availability Management Modal (PDF Requirement) */}
+      {slotModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#F8FAFC',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '8px',
+                    backgroundColor: '#EFF6FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#2563EB',
+                  }}
+                >
+                  <Settings size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0F172A' }}>
+                    Manage Availability Timings
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>
+                    Control open slots so students can only book during your free hours
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSlotModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  Target Date
+                </label>
+                <input
+                  type="date"
+                  className="saas-input"
+                  style={{ width: '100%' }}
+                  value={slotDate}
+                  onChange={(e) => setSlotDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>
+                  Open Slots for Student Booking (Unselected will be blocked)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                  {[
+                    '09:00 AM',
+                    '10:00 AM',
+                    '11:00 AM',
+                    '12:00 PM',
+                    '02:00 PM',
+                    '03:00 PM',
+                    '04:00 PM',
+                    '05:00 PM',
+                    '06:00 PM',
+                  ].map((slot) => {
+                    const isChecked = customSlots.includes(slot);
+                    return (
+                      <label
+                        key={slot}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.55rem 0.75rem',
+                          border: isChecked ? '1px solid #2563EB' : '1px solid #CBD5E1',
+                          borderRadius: '6px',
+                          backgroundColor: isChecked ? '#EFF6FF' : '#FFFFFF',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: isChecked ? '#1D4ED8' : '#334155',
+                          fontWeight: isChecked ? 600 : 400,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCustomSlots((prev) => [...prev, slot]);
+                            } else {
+                              setCustomSlots((prev) => prev.filter((s) => s !== slot));
+                            }
+                          }}
+                          style={{ accentColor: '#2563EB' }}
+                        />
+                        <span>{slot}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '1rem 1.5rem',
+                borderTop: '1px solid #E2E8F0',
+                backgroundColor: '#F8FAFC',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setSlotModalOpen(false)}
+                className="saas-btn saas-btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSlots}
+                disabled={savingSlots || customSlots.length === 0}
+                className="saas-btn saas-btn-primary"
+              >
+                {savingSlots ? 'Saving Timings...' : 'Save & Block Other Hours'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </SaaSShell>
   );

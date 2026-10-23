@@ -58,6 +58,8 @@ export const SaaSSidebar: React.FC<SaaSSidebarProps> = ({
     {
       title: 'Intelligence & Security',
       items: [
+        { id: 'session-audit', label: 'Session Audits', icon: <Calendar size={18} /> },
+        { id: 'counsellor-performance', label: 'Counsellor Performance', icon: <Award size={18} /> },
         { id: 'reports', label: 'Reports & Analytics', icon: <BarChart3 size={18} /> },
         { id: 'audit', label: 'Security Audit Logs', icon: <ShieldCheck size={18} /> },
         { id: 'settings', label: 'System Settings', icon: <Settings size={18} /> },

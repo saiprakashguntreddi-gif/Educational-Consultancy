@@ -95,4 +95,122 @@ export class AppointmentsService {
       payload
     );
   }
+
+  /**
+   * 10. Get schedule for logged in counsellor
+   */
+  public static async getCounsellorSchedule(): Promise<ApiResponse<any[]>> {
+    return apiClient.get(API_ENDPOINTS.APPOINTMENTS.COUNSELLOR_SCHEDULE);
+  }
+
+  /**
+   * 11. Counsellor accepts, reschedules or rejects appointment
+   */
+  public static async updateCounsellorAppointmentStatus(
+    id: string,
+    payload: {
+      status: 'CONFIRMED' | 'RESCHEDULED' | 'CANCELLED';
+      reason?: string;
+      scheduledDate?: string;
+      timeSlot?: string;
+      meetingLocation?: string;
+    }
+  ): Promise<ApiResponse<any>> {
+    return apiClient.patch(API_ENDPOINTS.APPOINTMENTS.UPDATE_COUNSELLOR_STATUS(id), payload);
+  }
+
+  /**
+   * 12. Complete session and record outcome, recommendations, student interest report, and send policy link
+   */
+  public static async recordSessionOutcome(
+    id: string,
+    payload: {
+      actualStartTime?: string;
+      actualEndTime?: string;
+      durationMinutes?: number;
+      sessionOutcome: string;
+      recommendations?: string;
+      followUpRequired?: boolean;
+      nextAction?: string;
+      followUpActions?: string;
+      privateCounsellorNotes?: string;
+      studentInterest?: 'INTERESTED' | 'NOT_INTERESTED' | 'UNDECIDED';
+      targetStream?: string;
+      targetDepartments?: string;
+      targetColleges?: string;
+      targetCity?: string;
+      studyScope?: 'DOMESTIC' | 'INTERNATIONAL' | 'BOTH';
+      detailedInterestReport?: string;
+      sendPolicyViaWhatsApp?: boolean;
+    }
+  ): Promise<ApiResponse<any>> {
+    return apiClient.post(API_ENDPOINTS.APPOINTMENTS.RECORD_SESSION_OUTCOME(id), payload);
+  }
+
+  /**
+   * 13. Dynamic unbooked slots for assigned counsellor on a date
+   */
+  public static async getCounsellorAvailableSlots(
+    counsellorId: string,
+    date: string
+  ): Promise<ApiResponse<{ date: string; slots: { timeSlot: string; isAvailable: boolean; isBooked: boolean }[] }>> {
+    return apiClient.get(API_ENDPOINTS.APPOINTMENTS.AVAILABLE_SLOTS(counsellorId, date));
+  }
+
+  /**
+   * 14. Counsellor: Update or override free availability slots for a date
+   */
+  public static async setCounsellorSlots(
+    date: string,
+    timeSlots: string[]
+  ): Promise<ApiResponse<any>> {
+    return apiClient.post(API_ENDPOINTS.APPOINTMENTS.SET_COUNSELLOR_SLOTS, { date, timeSlots });
+  }
+
+  /**
+   * 15. Counsellor: Send appointment reminder via WhatsApp or SMS before meeting
+   */
+  public static async sendAppointmentReminder(
+    appointmentId: string,
+    method: 'WHATSAPP' | 'SMS' = 'WHATSAPP'
+  ): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    reminderSentAt: string;
+    reminderSentVia: string;
+    phone: string;
+    whatsappLink: string;
+    smsText: string;
+  }>> {
+    return apiClient.post(API_ENDPOINTS.APPOINTMENTS.SEND_REMINDER(appointmentId), { method });
+  }
+
+  /**
+   * 16. Student or Staff: Confirm consultancy enrollment & policy agreement
+   */
+  public static async enrollStudent(payload?: {
+    studentProfileId?: string;
+    counsellorId?: string;
+    targetCollege?: string;
+    targetStream?: string;
+    agreementSigned?: boolean;
+  }): Promise<ApiResponse<any>> {
+    return apiClient.post(API_ENDPOINTS.APPOINTMENTS.ENROLL_STUDENT, payload || { agreementSigned: true });
+  }
+
+  /**
+   * 17. Student: Get current enrollment and policy status
+   */
+  public static async getEnrollmentStatus(): Promise<ApiResponse<{
+    isEnrolled: boolean;
+    enrolledAt: string | null;
+    policyAgreed: boolean;
+    policyAgreedAt: string | null;
+    assignedCounsellor: any;
+    enrollment: any;
+  }>> {
+    return apiClient.get(API_ENDPOINTS.APPOINTMENTS.ENROLLMENT_STATUS);
+  }
 }
+
+

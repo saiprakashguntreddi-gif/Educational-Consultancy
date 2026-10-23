@@ -18,6 +18,8 @@ import { ScholarshipDiscoveryView } from '../../scholarships/components/Scholars
 import { FeeComparisonDashboard } from '../../fees/components/FeeComparisonDashboard';
 import { EightPathwayAssessmentSuite } from '../../assessments/components/EightPathwayAssessmentSuite';
 import { AppointmentsDashboard } from '../../appointments/components/AppointmentsDashboard';
+import { AppointmentsService } from '../../appointments/services/appointments.service';
+import { CounsellorSummary } from '../../appointments/appointments.types';
 import '../../../shared/styles/student-dashboard.css';
 import {
   LayoutDashboard,
@@ -47,6 +49,8 @@ import {
   ArrowLeft,
   Check,
   ExternalLink,
+  UserCheck,
+  CalendarCheck,
 } from 'lucide-react';
 
 interface StudentDashboardPageProps {
@@ -63,6 +67,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   const [profile, setProfile] = useState<StudentProfileRecord | null>(null);
   const [preferences, setPreferences] = useState<StudentPreferenceRecord | null>(null);
   const [education, setEducation] = useState<StudentEducationRecord | null>(null);
+  const [assignedCounsellor, setAssignedCounsellor] = useState<CounsellorSummary | null>(null);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEditingBasic, setIsEditingBasic] = useState<boolean>(false);
@@ -132,6 +137,19 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         setEducation(eduRes.data);
       } else {
         setEducation(null);
+      }
+
+      // 4. Fetch Assigned Counsellor from Appointments metadata
+      try {
+        const metaRes = await AppointmentsService.getMeta();
+        if (metaRes.success && metaRes.data) {
+          const assigned = metaRes.data.studentInfo?.assignedCounsellor || 
+                           metaRes.data.counsellors?.find((c: any) => c.isAssigned) || 
+                           null;
+          setAssignedCounsellor(assigned);
+        }
+      } catch {
+        // Appointments/counsellor metadata not loaded yet
       }
     } catch {
       // Student record not initialized yet
@@ -772,6 +790,223 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                     <span>{nextAction.buttonText}</span>
                   </button>
                 </div>
+              </div>
+
+              {/* DEDICATED ASSIGNED COUNSELLOR SECTION */}
+              <div style={{ marginBottom: '1.75rem' }}>
+                {assignedCounsellor ? (
+                  <div
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1.25rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: '1px solid #F1F5F9',
+                        paddingBottom: '0.875rem',
+                        flexWrap: 'wrap',
+                        gap: '0.75rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            background: '#EFF6FF',
+                            color: '#2563EB',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <UserCheck size={18} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                            My Assigned Counsellor
+                          </h3>
+                          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                            Your designated academic advisor assigned by administration
+                          </span>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.375rem',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          background: '#DCFCE7',
+                          color: '#15803D',
+                        }}
+                      >
+                        <ShieldCheck size={14} />
+                        <span>Verified & Active</span>
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '1.25rem',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <div
+                          style={{
+                            width: '56px',
+                            height: '56px',
+                            borderRadius: '14px',
+                            background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.35rem',
+                            fontWeight: 800,
+                            flexShrink: 0,
+                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                          }}
+                        >
+                          {assignedCounsellor.fullName?.charAt(0) || 'C'}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0F172A' }}>
+                            {assignedCounsellor.fullName}
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: '#2563EB', fontWeight: 600, marginTop: '2px' }}>
+                            {assignedCounsellor.specialization || 'Academic & Admissions Guidance'}
+                          </div>
+                          <div style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '3px' }}>
+                            {assignedCounsellor.experienceYears ? `${assignedCounsellor.experienceYears} Years Experience` : 'Senior Advisory Staff'} &bull; {assignedCounsellor.email}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        {assignedCounsellor.bio && (
+                          <p style={{ fontSize: '0.82rem', color: '#475569', margin: '0 0 0.5rem', lineHeight: 1.45 }}>
+                            {assignedCounsellor.bio}
+                          </p>
+                        )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                          {(Array.isArray(assignedCounsellor.skills) ? assignedCounsellor.skills : ['Admissions', 'Career Counselling']).slice(0, 4).map((sk: string, idx: number) => (
+                            <span
+                              key={idx}
+                              style={{
+                                padding: '0.2rem 0.5rem',
+                                background: '#F1F5F9',
+                                color: '#334155',
+                                borderRadius: '6px',
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {sk}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          className="cmd-btn-primary"
+                          onClick={() => handleNavSelection('appointments')}
+                          style={{
+                            padding: '0.75rem 1.25rem',
+                            borderRadius: '10px',
+                            background: '#2563EB',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            fontWeight: 700,
+                            fontSize: '0.86rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                          }}
+                        >
+                          <CalendarCheck size={16} />
+                          <span>Book Appointment</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: '#F8FAFC',
+                      border: '1px dashed #CBD5E1',
+                      borderRadius: '14px',
+                      padding: '1.25rem 1.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '1rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          background: '#E2E8F0',
+                          color: '#475569',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Clock size={20} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1E293B' }}>
+                          Counsellor Assignment in Progress
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '2px' }}>
+                          The administration will assign a dedicated counsellor to guide your study applications.
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleNavSelection('appointments')}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        background: '#FFFFFF',
+                        border: '1px solid #CBD5E1',
+                        color: '#334155',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      View Appointments Desk
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* 3. STUDENT JOURNEY HORIZONTAL PROGRESS TIMELINE */}

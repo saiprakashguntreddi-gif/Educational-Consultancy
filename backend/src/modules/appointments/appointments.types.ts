@@ -51,6 +51,7 @@ export interface AppointmentDto {
   studentProfileId: string;
   studentName: string;
   studentEmail: string;
+  studentPhone?: string | null;
   counsellorId: string;
   counsellorName: string;
   counsellorEmail: string;
@@ -58,8 +59,43 @@ export interface AppointmentDto {
   followUpActions?: string | null;
   cancellationReason?: string | null;
   cancelledAt?: string | null;
+  studentInterest?: 'INTERESTED' | 'NOT_INTERESTED' | 'UNDECIDED' | null;
+  targetStream?: string | null;
+  targetDepartments?: string | null;
+  targetColleges?: string | null;
+  targetCity?: string | null;
+  studyScope?: 'DOMESTIC' | 'INTERNATIONAL' | 'BOTH' | null;
+  detailedInterestReport?: string | null;
+  reminderSentAt?: string | null;
+  reminderSentVia?: string | null;
+  isRecorded?: boolean;
+  recordingUrl?: string | null;
+  sessionOutcome?: string | null;
+  recommendations?: string | null;
+  followUpRequired?: boolean;
+  nextAction?: string | null;
   createdAt: string;
 }
+
+export interface SlotAvailabilityDto {
+  date: string;
+  timeSlot: string;
+  isAvailable: boolean;
+  isBooked: boolean;
+}
+
+export interface StudentEnrollmentDto {
+  id: string;
+  studentProfileId: string;
+  counsellorId: string;
+  status: string;
+  pointsAwarded: number;
+  agreementSigned: boolean;
+  targetCollege?: string | null;
+  targetStream?: string | null;
+  enrolledAt: string;
+}
+
 
 export interface WebinarDto {
   id: string;

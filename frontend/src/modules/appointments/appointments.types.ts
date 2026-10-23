@@ -20,8 +20,13 @@ export interface CounsellorSummary {
   fullName: string;
   role: string;
   specialization?: string;
+  skills?: string[];
+  experienceYears?: number;
   bio?: string;
   avatarUrl?: string;
+  availability?: string;
+  isAssigned?: boolean;
+  verificationStatus?: string;
 }
 
 export interface BookAppointmentInput {
@@ -56,6 +61,14 @@ export interface AppointmentDto {
   counsellorEmail: string;
   attachments?: string | null;
   followUpActions?: string | null;
+  privateCounsellorNotes?: string | null;
+  actualStartTime?: string | null;
+  actualEndTime?: string | null;
+  sessionOutcome?: string | null;
+  recommendations?: string | null;
+  followUpRequired?: boolean;
+  nextAction?: string | null;
+  completedAt?: string | null;
   cancellationReason?: string | null;
   cancelledAt?: string | null;
   createdAt: string;
@@ -97,6 +110,14 @@ export interface ShortlistedCollegeDto {
 }
 
 export interface AppointmentsMetaResponse {
+  assignedCounsellor?: CounsellorSummary | null;
+  studentInfo?: {
+    fullName: string;
+    email: string;
+    grade: string;
+    assignedCounsellorId?: string | null;
+    assignedCounsellor?: CounsellorSummary | null;
+  };
   counsellors: CounsellorSummary[];
   appointmentTypes: {
     type: AppointmentType;

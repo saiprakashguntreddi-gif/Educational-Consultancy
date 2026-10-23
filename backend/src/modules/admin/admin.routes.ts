@@ -9,6 +9,11 @@ import {
   listAdminStudentsQuerySchema,
   assignCounsellorSchema,
   adminAuditLogsQuerySchema,
+  createCounsellorSchema,
+  updateCounsellorSchema,
+  updateCounsellorStatusSchema,
+  updateCounsellorSkillsSchema,
+  sessionAuditQuerySchema,
 } from './admin.validation';
 
 const router = Router();
@@ -36,21 +41,75 @@ router.post(
   validateRequest(assignCounsellorSchema),
   AdminController.assignCounsellor
 );
+router.patch(
+  '/students/:profileId/assign',
+  validateRequest(assignCounsellorSchema),
+  AdminController.assignCounsellor
+);
 
-// 4. List Counsellors Directory & Workloads
+// 4. Student Assignment History
+router.get(
+  '/students/:profileId/assignment-history',
+  AdminController.getStudentAssignmentHistory
+);
+
+// 5. Counsellor Directory & Lifecycle Management
 router.get('/counsellors', AdminController.listCounsellors);
+router.post(
+  '/counsellors',
+  validateRequest(createCounsellorSchema),
+  AdminController.createCounsellor
+);
+router.patch(
+  '/counsellors/:counsellorId',
+  validateRequest(updateCounsellorSchema),
+  AdminController.updateCounsellor
+);
+router.patch(
+  '/counsellors/:counsellorId/status',
+  validateRequest(updateCounsellorStatusSchema),
+  AdminController.updateCounsellorStatus
+);
+router.patch(
+  '/counsellors/:counsellorId/skills',
+  validateRequest(updateCounsellorSkillsSchema),
+  AdminController.updateCounsellorSkills
+);
 
-// 5. System Audit Logs
+// 6. Counselling Session Audit Log (All meetings, outcomes, notes)
+router.get(
+  '/sessions/audit',
+  validateRequest(sessionAuditQuerySchema),
+  AdminController.listSessionAudits
+);
+router.get(
+  '/session-audits',
+  validateRequest(sessionAuditQuerySchema),
+  AdminController.listSessionAudits
+);
+
+// 7. Counsellor Performance Leaderboard & Points Module (PDF Requirement)
+router.get(
+  '/counsellors/performance',
+  AdminController.getCounsellorPerformance
+);
+router.post(
+  '/counsellors/:id/award-points',
+  AdminController.awardCounsellorPoints
+);
+
+// 8. System Audit Logs
 router.get(
   '/audit-logs',
   validateRequest(adminAuditLogsQuerySchema),
   AdminController.getAuditLogs
 );
 
-// 6. Export Platform Students CSV
+// 9. Export Platform Students CSV
 router.get('/export', AdminController.exportStudents);
 
-// 7. Platform Applications Overview
+// 10. Platform Applications Overview
 router.get('/applications', AdminController.listApplications);
 
 export { router as adminRouter };
+
