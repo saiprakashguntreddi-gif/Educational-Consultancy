@@ -50,4 +50,7 @@ router.get(
 // 6. Export Platform Students CSV
 router.get('/export', AdminController.exportStudents);
 
+// 7. Platform Applications Overview
+router.get('/applications', AdminController.listApplications);
+
 export { router as adminRouter };

@@ -36,6 +36,7 @@ export class CounsellorService {
       pendingActionPlans,
       recentNotes,
       counsellorUser,
+      assignedStudentsRaw,
     ] = await Promise.all([
       prisma.studentProfile.count({
         where: { assignedCounsellorId: counsellorId },
@@ -57,7 +58,7 @@ export class CounsellorService {
           },
         },
         orderBy: { scheduledAt: 'asc' },
-        take: 5,
+        take: 6,
       }),
       prisma.actionPlanItem.count({
         where: {
@@ -79,11 +80,32 @@ export class CounsellorService {
         where: { id: counsellorId },
         select: { id: true, email: true, role: true },
       }),
+      prisma.studentProfile.findMany({
+        where: { assignedCounsellorId: counsellorId },
+        take: 6,
+        orderBy: { updatedAt: 'desc' },
+        include: {
+          user: { select: { id: true, email: true } },
+          preference: true,
+          actionPlans: {
+            select: { id: true, status: true, title: true, category: true },
+          },
+        },
+      }),
     ]);
 
     // Unassigned students pool count (available for claiming)
     const unassignedCount = await prisma.studentProfile.count({
       where: { assignedCounsellorId: null },
+    });
+
+    // Count applications/shortlists for assigned students
+    const activeApplications = await prisma.shortlistItem.count({
+      where: {
+        studentProfile: {
+          assignedCounsellorId: counsellorId,
+        },
+      },
     });
 
     return {
@@ -94,7 +116,21 @@ export class CounsellorService {
         upcomingAppointmentsCount: upcomingAppointments.length,
         activeActionPlans: pendingActionPlans,
         unassignedPoolCount: unassignedCount,
+        activeApplications,
       },
+      recentStudents: assignedStudentsRaw.map((s) => ({
+        id: s.id,
+        fullName: s.fullName,
+        email: s.contactEmail || s.user.email,
+        phone: s.phone,
+        grade: s.grade,
+        verificationStatus: s.verificationStatus,
+        countryPreference: s.preference?.primaryCountry || 'Global',
+        department: s.preference?.department || 'General',
+        pendingActions: s.actionPlans.filter(
+          (a) => a.status === 'PENDING' || a.status === 'IN_PROGRESS'
+        ).length,
+      })),
       upcomingAppointments,
       recentNotes,
     };

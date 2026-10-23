@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
     COUNSELLORS: `${API_BASE_URL}/admin/counsellors`,
     AUDIT_LOGS: `${API_BASE_URL}/admin/audit-logs`,
     EXPORT: `${API_BASE_URL}/admin/export`,
+    APPLICATIONS: `${API_BASE_URL}/admin/applications`,
   },
   PREFERENCES: {
     ME: `${API_BASE_URL}/preferences/me`,

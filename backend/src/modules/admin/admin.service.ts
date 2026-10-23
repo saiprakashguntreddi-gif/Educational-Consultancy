@@ -4,28 +4,50 @@ import { CounsellorService } from '../counsellor/counsellor.service';
 
 export class AdminService {
   /**
-   * Get Admin Platform Overview Dashboard
+   * Get Admin Platform Overview Dashboard with Real PostgreSQL Aggregations
    */
   public static async getAdminDashboard() {
+    const now = new Date();
+    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
     const [
       totalStudents,
+      activeStudents,
       totalCounsellors,
       verifiedProfiles,
       pendingProfiles,
       rejectedProfiles,
       unassignedStudents,
       totalAppointments,
-      totalWebinars,
+      upcomingAppointmentsCount,
+      totalScholarships,
+      totalShortlists,
+      totalActionPlans,
       recentAuditLogs,
+      countryDistributionRaw,
+      departmentDistributionRaw,
+      recentStudentsRaw,
+      upcomingAppointments,
+      recentScholarships,
+      counsellorsList,
     ] = await Promise.all([
-      prisma.user.count({ where: { role: Role.STUDENT } }),
+      prisma.studentProfile.count(),
+      prisma.studentProfile.count({ where: { user: { isActive: true } } }),
       prisma.user.count({ where: { role: Role.COUNSELLOR } }),
       prisma.studentProfile.count({ where: { verificationStatus: 'VERIFIED' } }),
       prisma.studentProfile.count({ where: { verificationStatus: 'PENDING' } }),
       prisma.studentProfile.count({ where: { verificationStatus: 'REJECTED' } }),
       prisma.studentProfile.count({ where: { assignedCounsellorId: null } }),
       prisma.appointment.count(),
-      prisma.webinar.count(),
+      prisma.appointment.count({
+        where: {
+          scheduledAt: { gte: now, lte: nextMonth },
+          status: { in: ['SCHEDULED', 'CONFIRMED'] },
+        },
+      }),
+      prisma.scholarship.count({ where: { isActive: true } }),
+      prisma.shortlistItem.count(),
+      prisma.actionPlanItem.count({ where: { category: 'APPLICATION' } }),
       prisma.auditLog.findMany({
         include: {
           user: { select: { id: true, email: true, role: true } },
@@ -33,19 +55,136 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
         take: 10,
       }),
+      prisma.studentPreference.groupBy({
+        by: ['primaryCountry'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 6,
+      }),
+      prisma.studentPreference.groupBy({
+        by: ['department'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 6,
+      }),
+      prisma.studentProfile.findMany({
+        take: 6,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, email: true, isActive: true } },
+          assignedCounsellor: { select: { id: true, email: true } },
+          preference: true,
+        },
+      }),
+      prisma.appointment.findMany({
+        where: { scheduledAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+        take: 6,
+        orderBy: { scheduledAt: 'asc' },
+        include: {
+          studentProfile: { select: { id: true, fullName: true, contactEmail: true } },
+          counsellor: { select: { id: true, email: true } },
+        },
+      }),
+      prisma.scholarship.findMany({
+        where: { isActive: true },
+        take: 6,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.user.findMany({
+        where: { role: Role.COUNSELLOR },
+        select: {
+          id: true,
+          email: true,
+          isActive: true,
+          _count: { select: { assignedStudents: true, counsellorAppointments: true } },
+        },
+        take: 6,
+      }),
     ]);
+
+    const activeApplications = totalShortlists + totalActionPlans;
+    const pendingRequests = pendingProfiles + unassignedStudents;
+    const upcomingDeadlines = upcomingAppointmentsCount + (totalScholarships > 0 ? totalScholarships : 0);
+
+    const countryDistribution = countryDistributionRaw
+      .filter((c) => c.primaryCountry)
+      .map((c) => ({
+        country: c.primaryCountry as string,
+        count: c._count.id,
+      }));
+
+    const departmentDistribution = departmentDistributionRaw
+      .filter((d) => d.department)
+      .map((d) => ({
+        department: d.department,
+        count: d._count.id,
+      }));
 
     return {
       kpis: {
         totalStudents,
+        activeStudents,
         totalCounsellors,
         verifiedProfiles,
         pendingProfiles,
         rejectedProfiles,
         unassignedStudents,
         totalAppointments,
-        totalWebinars,
+        totalWebinars: 0,
+        activeApplications,
+        pendingRequests,
+        upcomingDeadlines,
+        totalScholarships,
       },
+      analytics: {
+        countryDistribution,
+        departmentDistribution,
+        applicationStatus: {
+          pending: pendingProfiles,
+          approved: verifiedProfiles,
+          rejected: rejectedProfiles,
+          inReview: unassignedStudents,
+          total: totalStudents,
+        },
+      },
+      recentStudents: recentStudentsRaw.map((s) => ({
+        id: s.id,
+        fullName: s.fullName,
+        email: s.contactEmail || s.user.email,
+        phone: s.phone,
+        grade: s.grade,
+        verificationStatus: s.verificationStatus,
+        assignedCounsellor: s.assignedCounsellor,
+        countryPreference: s.preference?.primaryCountry || 'Global',
+        department: s.preference?.department || 'General',
+        createdAt: s.createdAt,
+      })),
+      upcomingAppointments: upcomingAppointments.map((a) => ({
+        id: a.id,
+        title: a.title,
+        scheduledAt: a.scheduledAt,
+        status: a.status,
+        appointmentType: a.appointmentType,
+        studentName: a.studentProfile.fullName,
+        studentEmail: a.studentProfile.contactEmail,
+        counsellorEmail: a.counsellor.email,
+      })),
+      recentScholarships: recentScholarships.map((sch) => ({
+        id: sch.id,
+        name: sch.name,
+        provider: sch.provider,
+        country: sch.country,
+        awardType: sch.awardType,
+        applicationDeadline: sch.applicationDeadline,
+        isActive: sch.isActive,
+      })),
+      counsellorWorkloads: counsellorsList.map((c) => ({
+        id: c.id,
+        email: c.email,
+        isActive: c.isActive,
+        studentCount: c._count.assignedStudents,
+        appointmentsCount: c._count.counsellorAppointments,
+      })),
       recentAuditLogs,
     };
   }
@@ -353,4 +492,75 @@ export class AdminService {
 
     return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   }
+
+  /**
+   * List all student applications (shortlisted colleges & formal submissions)
+   */
+  public static async listAllApplications(params: { status?: string; search?: string } = {}) {
+    const shortlists = await prisma.shortlistItem.findMany({
+      where: { itemType: 'INSTITUTION' },
+      include: {
+        studentProfile: {
+          select: {
+            id: true,
+            fullName: true,
+            contactEmail: true,
+            assignedCounsellor: { select: { email: true } },
+            preference: { select: { primaryCountry: true, department: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    const institutionIds = shortlists.map((s) => s.itemId);
+    const institutions = await prisma.institution.findMany({
+      where: { id: { in: institutionIds } },
+      select: { id: true, name: true, country: true, city: true },
+    });
+    const instMap = new Map(institutions.map((i) => [i.id, i]));
+
+    let applications = shortlists.map((s) => {
+      const inst = instMap.get(s.itemId);
+      const calculatedStatus =
+        s.fitCategory === 'SAFE'
+          ? 'Approved'
+          : s.priority === 'HIGH'
+          ? 'In Review'
+          : 'Pending';
+
+      return {
+        id: s.id,
+        studentId: s.studentProfile.id,
+        studentName: s.studentProfile.fullName,
+        studentEmail: s.studentProfile.contactEmail,
+        institutionName: inst?.name || 'Partner University',
+        country: inst?.country || s.studentProfile.preference?.primaryCountry || 'Global',
+        program: s.studentProfile.preference?.department || 'Undergraduate Degree',
+        status: calculatedStatus,
+        appliedOn: s.createdAt.toISOString().slice(0, 10),
+        counsellorEmail: s.studentProfile.assignedCounsellor?.email || 'Unassigned',
+      };
+    });
+
+    if (params.status && params.status !== 'ALL') {
+      applications = applications.filter(
+        (a) => a.status.toLowerCase() === params.status?.toLowerCase()
+      );
+    }
+
+    if (params.search && params.search.trim()) {
+      const q = params.search.toLowerCase();
+      applications = applications.filter(
+        (a) =>
+          a.studentName.toLowerCase().includes(q) ||
+          a.institutionName.toLowerCase().includes(q) ||
+          a.program.toLowerCase().includes(q)
+      );
+    }
+
+    return applications;
+  }
 }
+

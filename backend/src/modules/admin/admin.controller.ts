@@ -70,4 +70,15 @@ export class AdminController {
       return next(err);
     }
   }
+
+  public static async listApplications(req: Request, res: Response, next: NextFunction) {
+    try {
+      const query = req.query as any;
+      const data = await AdminService.listAllApplications(query);
+      return ApiResponse.success(res, data, 'Platform applications retrieved');
+    } catch (err) {
+      return next(err);
+    }
+  }
 }
+

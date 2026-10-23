@@ -5,6 +5,7 @@ import { CounsellorStudentSummary } from './counsellor.service';
 export interface AdminDashboardData {
   kpis: {
     totalStudents: number;
+    activeStudents?: number;
     totalCounsellors: number;
     verifiedProfiles: number;
     pendingProfiles: number;
@@ -12,7 +13,60 @@ export interface AdminDashboardData {
     unassignedStudents: number;
     totalAppointments: number;
     totalWebinars: number;
+    activeApplications?: number;
+    pendingRequests?: number;
+    upcomingDeadlines?: number;
+    totalScholarships?: number;
   };
+  analytics?: {
+    countryDistribution: { country: string; count: number }[];
+    departmentDistribution: { department: string; count: number }[];
+    applicationStatus: {
+      pending: number;
+      approved: number;
+      rejected: number;
+      inReview: number;
+      total: number;
+    };
+  };
+  recentStudents?: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    grade: string;
+    verificationStatus: string;
+    assignedCounsellor?: { id: string; email: string } | null;
+    countryPreference: string;
+    department: string;
+    createdAt: string;
+  }[];
+  upcomingAppointments?: {
+    id: string;
+    title: string;
+    scheduledAt: string;
+    status: string;
+    appointmentType: string;
+    studentName: string;
+    studentEmail: string;
+    counsellorEmail: string;
+  }[];
+  recentScholarships?: {
+    id: string;
+    name: string;
+    provider: string;
+    country: string;
+    awardType?: string | null;
+    applicationDeadline?: string | null;
+    isActive: boolean;
+  }[];
+  counsellorWorkloads?: {
+    id: string;
+    email: string;
+    isActive: boolean;
+    studentCount: number;
+    appointmentsCount: number;
+  }[];
   recentAuditLogs: any[];
 }
 
@@ -78,6 +132,14 @@ export class AdminClientService {
 
     const queryStr = q.toString() ? `?${q.toString()}` : '';
     return apiClient.get(`${API_ENDPOINTS.ADMIN.AUDIT_LOGS}${queryStr}`);
+  }
+
+  public static async listApplications(params: { status?: string; search?: string } = {}): Promise<ApiResponse<any[]>> {
+    const q = new URLSearchParams();
+    if (params.status) q.append('status', params.status);
+    if (params.search) q.append('search', params.search);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return apiClient.get(`${API_ENDPOINTS.ADMIN.APPLICATIONS}${qs}`);
   }
 
   public static async downloadExportCsv(): Promise<void> {

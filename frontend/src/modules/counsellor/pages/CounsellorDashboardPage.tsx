@@ -1,30 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users,
-  ShieldCheck,
-  Calendar,
   CheckSquare,
+  Calendar,
+  FileText,
   Search,
   Download,
   UserPlus,
   Eye,
-  Clock,
+  RefreshCw,
+  Video,
+  ChevronRight,
+  ArrowRight,
+  Award,
+  ClipboardList,
 } from 'lucide-react';
 import {
   CounsellorClientService,
   CounsellorDashboardData,
   CounsellorStudentSummary,
 } from '../services/counsellor.service';
+import { AdminClientService } from '../services/admin.service';
 import { Student360Modal } from '../components/Student360Modal';
 import { CreateStudentModal } from '../components/CreateStudentModal';
+import { SaaSShell } from '../components/saas/SaaSShell';
+import { SaaSStatCard } from '../components/saas/SaaSStatCard';
+import { StatusBadge } from '../components/saas/StatusBadge';
+import { CollegeDiscoveryView } from '../../colleges/components/CollegeDiscoveryView';
 
 interface CounsellorDashboardPageProps {
   onNavigateView?: (view: string) => void;
 }
 
-export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = () => {
+export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = ({
+  onNavigateView,
+}) => {
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [dashboardData, setDashboardData] = useState<CounsellorDashboardData | null>(null);
   const [students, setStudents] = useState<CounsellorStudentSummary[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -32,11 +46,10 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
   // Filters
   const [search, setSearch] = useState('');
   const [boardFilter, setBoardFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
+  const [yearFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isStudentsLoading, setIsStudentsLoading] = useState(false);
 
   // Modals
@@ -46,12 +59,19 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
   const loadDashboard = async () => {
     setIsLoading(true);
     try {
-      const res = await CounsellorClientService.getDashboard();
-      if (res.success && res.data) {
-        setDashboardData(res.data);
+      const [dashRes, appsRes] = await Promise.all([
+        CounsellorClientService.getDashboard(),
+        AdminClientService.listApplications(),
+      ]);
+
+      if (dashRes.success && dashRes.data) {
+        setDashboardData(dashRes.data);
+      }
+      if (appsRes.success && appsRes.data) {
+        setApplications(appsRes.data);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load counsellor dashboard');
+      console.error('Failed to load counsellor dashboard:', err);
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +96,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
         setTotalPages(res.data.totalPages);
       }
     } catch (err: any) {
-      console.error(err);
+      console.error('Failed to load assigned students:', err);
     } finally {
       setIsStudentsLoading(false);
     }
@@ -100,554 +120,889 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
     }
   };
 
-  if (isLoading && !dashboardData) {
-    return (
-      <div style={{ maxWidth: '1360px', margin: '4rem auto', textAlign: 'center', color: '#94A3B8' }}>
-        <p>Loading counsellor workstation...</p>
-      </div>
-    );
-  }
+  const counsellorDisplayName = dashboardData?.counsellor?.email?.split('@')[0] || 'Counsellor';
 
   return (
-    <div style={{ maxWidth: '1360px', margin: '2rem auto', padding: '0 1.5rem', color: '#F8FAFC' }}>
-      {error && (
-        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', border: '1px solid #EF4444', color: '#FCA5A5', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-          {error}
+    <SaaSShell
+      activeTab={activeTab}
+      onSelectTab={setActiveTab}
+      role="COUNSELLOR"
+      onGlobalSearch={(q) => {
+        setSearch(q);
+        if (activeTab !== 'students' && q.trim()) {
+          setActiveTab('students');
+        }
+      }}
+      searchPlaceholder="Search assigned students, applications, notes..."
+      onNavigateLanding={() => onNavigateView?.('home')}
+    >
+      {isLoading && (
+        <div style={{ height: 3, backgroundColor: '#BFDBFE', width: '100%', marginBottom: '1rem', borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: '45%', backgroundColor: '#2563EB', borderRadius: 2 }} />
         </div>
       )}
-      {/* Header Banner */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '2rem',
-          marginBottom: '2rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1.25rem',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-        }}
-      >
+
+      {/* =========================================================================
+          TAB 1: COUNSELLOR DASHBOARD (STUDENT-CENTRIC)
+          ========================================================================= */}
+      {activeTab === 'dashboard' && (
         <div>
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              padding: '0.3rem 0.75rem',
-              borderRadius: '9999px',
-              backgroundColor: 'rgba(99, 102, 241, 0.2)',
-              border: '1px solid rgba(167, 139, 250, 0.35)',
-              color: '#C7D2FE',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              marginBottom: '0.75rem',
-            }}
-          >
-            <ShieldCheck size={14} color="#A78BFA" /> COUNSELLOR & GUIDANCE SUITE (MODULE 13 & 14)
-          </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, margin: 0 }}>
-            Counsellor Workstation
-          </h1>
-          <p style={{ color: '#94A3B8', fontSize: '0.9rem', marginTop: '0.35rem', margin: '0.35rem 0 0' }}>
-            Manage assigned students, monitor profile completion, review recommendations, and coordinate guidance action plans.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setCreateModalOpen(true)}
-            style={{
-              padding: '0.65rem 1.25rem',
-              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#FFFFFF',
-              fontWeight: 700,
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              boxShadow: '0 4px 12px rgba(79, 70, 229, 0.4)',
-            }}
-          >
-            <UserPlus size={16} /> Onboard Student
-          </button>
-          <button
-            onClick={handleExportCsv}
-            style={{
-              padding: '0.65rem 1.1rem',
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '8px',
-              color: '#E2E8F0',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <Download size={16} /> Export Roster
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards Row */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '1rem',
-          marginBottom: '2rem',
-        }}
-      >
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '1.25rem',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>Assigned Students</span>
-            <Users size={18} color="#A78BFA" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FFFFFF', marginTop: '0.5rem' }}>
-            {dashboardData?.metrics.assignedStudents || 0}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>
-            Active caseload assigned to you
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '1.25rem',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>Pending Verifications</span>
-            <ShieldCheck size={18} color="#FBBF24" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#FBBF24', marginTop: '0.5rem' }}>
-            {dashboardData?.metrics.pendingVerifications || 0}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>
-            Intakes awaiting review
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '1.25rem',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>Upcoming Appointments</span>
-            <Calendar size={18} color="#34D399" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#34D399', marginTop: '0.5rem' }}>
-            {dashboardData?.metrics.upcomingAppointmentsCount || 0}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>
-            Scheduled 1-on-1 sessions
-          </div>
-        </div>
-
-        <div
-          style={{
-            background: 'rgba(30, 41, 59, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '1.25rem',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 600 }}>Active Milestones</span>
-            <CheckSquare size={18} color="#60A5FA" />
-          </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#60A5FA', marginTop: '0.5rem' }}>
-            {dashboardData?.metrics.activeActionPlans || 0}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>
-            Student guidance action items
-          </div>
-        </div>
-      </div>
-
-      {/* Main Student Management Section (Module 14) */}
-      <div
-        style={{
-          background: 'rgba(30, 41, 59, 0.4)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '16px',
-          padding: '1.75rem',
-          marginBottom: '2rem',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.25rem',
-            flexWrap: 'wrap',
-            gap: '1rem',
-          }}
-        >
-          <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0 }}>
-              Manage Assigned Students
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: '0.2rem 0 0' }}>
-              Showing {students.length} of {totalStudents} assigned students under your guidance roster
-            </p>
-          </div>
-        </div>
-
-        {/* Search and Filters Bar */}
-        <form
-          onSubmit={handleSearchSubmit}
-          style={{
-            display: 'flex',
-            gap: '0.75rem',
-            marginBottom: '1.25rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <div style={{ flex: '1 1 240px', position: 'relative' }}>
-            <Search
-              size={16}
-              color="#94A3B8"
-              style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
-            />
-            <input
-              type="text"
-              placeholder="Search by student name, contact email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.55rem 0.75rem 0.55rem 2.3rem',
-                background: '#0B1535',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: '8px',
-                color: '#FFFFFF',
-                fontSize: '0.85rem',
-              }}
-            />
-          </div>
-
-          <select
-            value={boardFilter}
-            onChange={(e) => setBoardFilter(e.target.value)}
-            style={{
-              padding: '0.55rem 0.85rem',
-              background: '#0B1535',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '8px',
-              color: '#FFFFFF',
-              fontSize: '0.85rem',
-            }}
-          >
-            <option value="">All Boards</option>
-            <option value="CBSE">CBSE</option>
-            <option value="ICSE">ICSE / ISC</option>
-            <option value="IB">IB</option>
-            <option value="Cambridge">Cambridge</option>
-            <option value="State Board">State Board</option>
-          </select>
-
-          <select
-            value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value)}
-            style={{
-              padding: '0.55rem 0.85rem',
-              background: '#0B1535',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '8px',
-              color: '#FFFFFF',
-              fontSize: '0.85rem',
-            }}
-          >
-            <option value="">All Years</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: '0.55rem 0.85rem',
-              background: '#0B1535',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '8px',
-              color: '#FFFFFF',
-              fontSize: '0.85rem',
-            }}
-          >
-            <option value="">All Statuses</option>
-            <option value="VERIFIED">Verified</option>
-            <option value="PENDING">Pending</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-
-          <button
-            type="submit"
-            style={{
-              padding: '0.55rem 1.1rem',
-              background: '#3B82F6',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#FFFFFF',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-            }}
-          >
-            Apply Filters
-          </button>
-        </form>
-
-        {/* Student Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              fontSize: '0.875rem',
-              textAlign: 'left',
-            }}
-          >
-            <thead>
-              <tr
-                style={{
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#94A3B8',
-                  fontSize: '0.775rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                <th style={{ padding: '0.75rem 1rem' }}>Student</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Contact</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Academics</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Target & Prefs</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Status</th>
-                <th style={{ padding: '0.75rem 1rem' }}>Completion</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isStudentsLoading ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
-                    <Clock size={24} style={{ animation: 'spin 1.5s linear infinite' }} />
-                    <p style={{ marginTop: '0.5rem' }}>Loading students...</p>
-                  </td>
-                </tr>
-              ) : students.length === 0 ? (
-                <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94A3B8' }}>
-                    <Users size={36} style={{ opacity: 0.4, marginBottom: '0.5rem' }} />
-                    <p>No students match the current filters.</p>
-                  </td>
-                </tr>
-              ) : (
-                students.map((s) => (
-                  <tr
-                    key={s.id}
-                    style={{
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                      transition: 'background 0.15s ease',
-                    }}
-                  >
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      <div style={{ fontWeight: 700, color: '#FFFFFF' }}>{s.fullName}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
-                        {s.grade} • Passing: {s.passingOutYear}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      <div>{s.contactEmail}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{s.phone}</div>
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '0.15rem 0.5rem',
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          borderRadius: '4px',
-                        }}
-                      >
-                        {s.board}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      {s.preferenceSummary ? (
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{s.preferenceSummary.primaryCountry || 'Global'}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#A78BFA' }}>
-                            {s.preferenceSummary.department}
-                          </div>
-                        </div>
-                      ) : (
-                        <span style={{ color: '#64748B', fontSize: '0.75rem' }}>Not configured</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          padding: '0.2rem 0.55rem',
-                          borderRadius: '9999px',
-                          backgroundColor:
-                            s.verificationStatus === 'VERIFIED'
-                              ? 'rgba(16, 185, 129, 0.15)'
-                              : s.verificationStatus === 'REJECTED'
-                              ? 'rgba(239, 68, 68, 0.15)'
-                              : 'rgba(245, 158, 11, 0.15)',
-                          color:
-                            s.verificationStatus === 'VERIFIED'
-                              ? '#34D399'
-                              : s.verificationStatus === 'REJECTED'
-                              ? '#F87171'
-                              : '#FBBF24',
-                        }}
-                      >
-                        ● {s.verificationStatus}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div
-                          style={{
-                            flex: 1,
-                            maxWidth: 80,
-                            height: 6,
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            borderRadius: '3px',
-                            overflow: 'hidden',
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: `${s.completionScore}%`,
-                              height: '100%',
-                              background: 'linear-gradient(90deg, #4F46E5, #7C3AED)',
-                            }}
-                          />
-                        </div>
-                        <span style={{ fontSize: '0.75rem', color: '#A78BFA', fontWeight: 700 }}>
-                          {s.completionScore}%
-                        </span>
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.9rem 1rem', textAlign: 'right' }}>
-                      <button
-                        onClick={() => setSelectedProfileId(s.id)}
-                        style={{
-                          padding: '0.4rem 0.85rem',
-                          background: 'rgba(99, 102, 241, 0.2)',
-                          border: '1px solid rgba(167, 139, 250, 0.35)',
-                          borderRadius: '6px',
-                          color: '#C7D2FE',
-                          fontWeight: 700,
-                          fontSize: '0.8rem',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                        }}
-                      >
-                        <Eye size={14} /> 360° View
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Bar */}
-        {totalPages > 1 && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '1.5rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              fontSize: '0.85rem',
-              color: '#94A3B8',
-            }}
-          >
-            <span>
-              Page {page} of {totalPages}
-            </span>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {/* Welcome Greeting */}
+          <div className="saas-welcome-banner">
+            <div>
+              <h1 className="saas-welcome-title">
+                Good Morning, {counsellorDisplayName}! 👋
+              </h1>
+              <p className="saas-welcome-sub">
+                Here's a quick overview of your assigned students, tasks, and today's guidance schedule.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
-                disabled={page <= 1}
-                onClick={() => loadStudents(page - 1)}
-                style={{
-                  padding: '0.35rem 0.8rem',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: page <= 1 ? '#475569' : '#FFFFFF',
-                  cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                }}
+                onClick={() => setCreateModalOpen(true)}
+                className="saas-btn saas-btn-primary"
+                type="button"
               >
-                Previous
+                <UserPlus size={16} /> Onboard Student
               </button>
               <button
-                disabled={page >= totalPages}
-                onClick={() => loadStudents(page + 1)}
-                style={{
-                  padding: '0.35rem 0.8rem',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: page >= totalPages ? '#475569' : '#FFFFFF',
-                  cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                }}
+                onClick={handleExportCsv}
+                className="saas-btn saas-btn-secondary"
+                type="button"
               >
-                Next
+                <Download size={16} /> Export Caseload
               </button>
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Student 360 Modal */}
+          {/* Counsellor KPI Cards */}
+          <div className="saas-kpi-grid">
+            <SaaSStatCard
+              label="My Students"
+              value={dashboardData?.metrics.assignedStudents ?? totalStudents}
+              subtext="Assigned caseload"
+              trend="Active advising"
+              icon={<Users size={22} />}
+              color="blue"
+            />
+            <SaaSStatCard
+              label="Active Applications"
+              value={dashboardData?.metrics.activeApplications ?? applications.length}
+              subtext="College submissions"
+              trend="Admissions progress"
+              icon={<FileText size={22} />}
+              color="green"
+            />
+            <SaaSStatCard
+              label="Pending Tasks"
+              value={dashboardData?.metrics.activeActionPlans ?? 0}
+              subtext="Action plan milestones"
+              trend="Milestones in progress"
+              icon={<CheckSquare size={22} />}
+              color="amber"
+            />
+            <SaaSStatCard
+              label="Upcoming Appointments"
+              value={dashboardData?.metrics.upcomingAppointmentsCount ?? 0}
+              subtext="Scheduled sessions"
+              trend="Calendar bookings"
+              icon={<Calendar size={22} />}
+              color="purple"
+            />
+          </div>
+
+          {/* 2-Column Student-Centric Layout */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.75fr 1.15fr', gap: '1.5rem' }}>
+            {/* LEFT COLUMN: My Students & Recent Submissions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* My Students Requiring Attention */}
+              <div className="saas-card" style={{ marginBottom: 0 }}>
+                <div className="saas-card-header">
+                  <div>
+                    <h3 className="saas-card-title">My Students</h3>
+                    <span className="saas-card-subtitle">
+                      Priority attention and active caseload
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('students')}
+                    className="saas-btn saas-btn-secondary saas-btn-sm"
+                    type="button"
+                  >
+                    View All <ArrowRight size={14} />
+                  </button>
+                </div>
+                <div className="saas-table-container">
+                  <table className="saas-table">
+                    <thead>
+                      <tr>
+                        <th>Student</th>
+                        <th>Course Interest</th>
+                        <th>Country Preference</th>
+                        <th>Attention</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(dashboardData?.recentStudents || (students.slice(0, 6) as any[])).length === 0 ? (
+                        <tr>
+                          <td colSpan={6} style={{ textAlign: 'center', padding: '2.5rem', color: '#64748B' }}>
+                            <Users size={28} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                            <p style={{ margin: 0 }}>No students currently assigned to your caseload.</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        (dashboardData?.recentStudents || (students.slice(0, 6) as any[])).map((s: any) => {
+                          const needsAttention =
+                            s.verificationStatus === 'PENDING' ||
+                            (s.pendingActions && s.pendingActions > 0) ||
+                            (s.pendingActionsCount && s.pendingActionsCount > 0);
+                          return (
+                            <tr key={s.id}>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                                  <div className="saas-user-avatar" style={{ width: 32, height: 32, fontSize: '0.78rem' }}>
+                                    {s.fullName.slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <div style={{ fontWeight: 600, color: '#0F172A' }}>{s.fullName}</div>
+                                    <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                                      {s.email || s.contactEmail || s.user?.email}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td style={{ fontSize: '0.82rem', color: '#475569' }}>
+                                {s.department || s.preferenceSummary?.department || 'Undergraduate'}
+                              </td>
+                              <td>
+                                <span style={{ fontSize: '0.78rem', color: '#1E293B', backgroundColor: '#F1F5F9', padding: '0.15rem 0.5rem', borderRadius: 4 }}>
+                                  {s.countryPreference || s.preferenceSummary?.primaryCountry || 'Global'}
+                                </span>
+                              </td>
+                              <td>
+                                {needsAttention ? (
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#D97706', backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', padding: '0.15rem 0.45rem', borderRadius: 9999 }}>
+                                    ● Attention Needed
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#16A34A', backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '0.15rem 0.45rem', borderRadius: 9999 }}>
+                                    ● On Track
+                                  </span>
+                                )}
+                              </td>
+                              <td>
+                                <StatusBadge status={s.verificationStatus} />
+                              </td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button
+                                  onClick={() => setSelectedProfileId(s.id)}
+                                  className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                                  type="button"
+                                >
+                                  <Eye size={13} /> View
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Applications Table */}
+              <div className="saas-card" style={{ marginBottom: 0 }}>
+                <div className="saas-card-header">
+                  <div>
+                    <h3 className="saas-card-title">Recent Applications</h3>
+                    <span className="saas-card-subtitle">
+                      University applications submitted across your roster
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('applications')}
+                    className="saas-btn saas-btn-secondary saas-btn-sm"
+                    type="button"
+                  >
+                    View All <ArrowRight size={14} />
+                  </button>
+                </div>
+                <div className="saas-table-container">
+                  <table className="saas-table">
+                    <thead>
+                      <tr>
+                        <th>Student</th>
+                        <th>Program & Institution</th>
+                        <th>Country</th>
+                        <th>Status</th>
+                        <th>Applied On</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {applications.slice(0, 5).length === 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#64748B' }}>
+                            <FileText size={28} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                            <p style={{ margin: 0 }}>No applications logged yet.</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        applications.slice(0, 5).map((app) => (
+                          <tr key={app.id}>
+                            <td>
+                              <span style={{ fontWeight: 600, color: '#0F172A' }}>{app.studentName}</span>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '0.82rem', color: '#0F172A', fontWeight: 500 }}>{app.institutionName}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{app.program}</div>
+                            </td>
+                            <td>
+                              <span style={{ fontSize: '0.78rem', color: '#475569', backgroundColor: '#F1F5F9', padding: '0.15rem 0.45rem', borderRadius: 4 }}>
+                                {app.country}
+                              </span>
+                            </td>
+                            <td>
+                              <StatusBadge status={app.status} />
+                            </td>
+                            <td style={{ fontSize: '0.8rem', color: '#64748B' }}>{app.appliedOn}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: Upcoming Appointments, Pool & Quick Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Upcoming Appointments Card */}
+              <div className="saas-card" style={{ marginBottom: 0 }}>
+                <div className="saas-card-header">
+                  <div>
+                    <h3 className="saas-card-title">Upcoming Appointments</h3>
+                    <span className="saas-card-subtitle">Scheduled consultations</span>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('appointments')}
+                    className="saas-btn saas-btn-secondary saas-btn-sm"
+                    type="button"
+                  >
+                    View All
+                  </button>
+                </div>
+                <div className="saas-card-body" style={{ padding: '1rem 1.25rem' }}>
+                  {dashboardData?.upcomingAppointments && dashboardData.upcomingAppointments.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                      {dashboardData.upcomingAppointments.map((app) => (
+                        <div
+                          key={app.id}
+                          style={{
+                            padding: '0.85rem 1rem',
+                            backgroundColor: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <div className="saas-user-avatar" style={{ width: 36, height: 36 }}>
+                              {(app.studentProfile?.fullName || 'ST').slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A' }}>
+                                {app.studentProfile?.fullName || 'Enrolled Student'}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                {app.title || app.appointmentType?.replace('_', ' ')}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#2563EB', fontWeight: 600, marginTop: 2 }}>
+                                {new Date(app.scheduledAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} at{' '}
+                                {new Date(app.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => alert(`Connecting to consultation session with ${app.studentProfile?.fullName}...`)}
+                            className="saas-btn saas-btn-primary saas-btn-sm"
+                            type="button"
+                          >
+                            <Video size={13} /> Join
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#64748B' }}>
+                      <Calendar size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                      <p style={{ margin: 0, fontSize: '0.85rem' }}>No sessions scheduled for today.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Unassigned Pool Card */}
+              {(dashboardData?.metrics.unassignedPoolCount ?? 0) > 0 && (
+                <div
+                  style={{
+                    backgroundColor: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    borderRadius: '12px',
+                    padding: '1.25rem 1.35rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1E3A8A' }}>
+                      Unassigned Students Pool
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#2563EB', marginTop: 2 }}>
+                      {dashboardData?.metrics.unassignedPoolCount} student(s) waiting for counselling allocation.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onNavigateView?.('counsellor-queue')}
+                    className="saas-btn saas-btn-primary saas-btn-sm"
+                    type="button"
+                  >
+                    Claim Student
+                  </button>
+                </div>
+              )}
+
+              {/* Quick Actions Card */}
+              <div className="saas-card" style={{ marginBottom: 0 }}>
+                <div className="saas-card-header">
+                  <div>
+                    <h3 className="saas-card-title">Quick Actions</h3>
+                    <span className="saas-card-subtitle">Common counsellor tasks</span>
+                  </div>
+                </div>
+                <div className="saas-card-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <button
+                    onClick={() => setCreateModalOpen(true)}
+                    className="saas-quick-action-item"
+                    type="button"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <UserPlus size={16} color="#2563EB" />
+                      <span>Onboard New Student</span>
+                    </div>
+                    <ChevronRight size={16} color="#94A3B8" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('applications')}
+                    className="saas-quick-action-item"
+                    type="button"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <FileText size={16} color="#2563EB" />
+                      <span>View Applications</span>
+                    </div>
+                    <ChevronRight size={16} color="#94A3B8" />
+                  </button>
+
+                  <button
+                    onClick={() => onNavigateView?.('scholarship-management')}
+                    className="saas-quick-action-item"
+                    type="button"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <Award size={16} color="#2563EB" />
+                      <span>Scholarship Discovery</span>
+                    </div>
+                    <ChevronRight size={16} color="#94A3B8" />
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('notes')}
+                    className="saas-quick-action-item"
+                    type="button"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <ClipboardList size={16} color="#2563EB" />
+                      <span>Session Advisory Notes</span>
+                    </div>
+                    <ChevronRight size={16} color="#94A3B8" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 2: MY STUDENTS FULL ROSTER
+          ========================================================================= */}
+      {activeTab === 'students' && (
+        <div>
+          <div className="saas-welcome-banner">
+            <div>
+              <h1 className="saas-welcome-title">My Students Roster</h1>
+              <p className="saas-welcome-sub">
+                Complete portfolio of students under your educational guidance.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setCreateModalOpen(true)}
+                className="saas-btn saas-btn-primary"
+                type="button"
+              >
+                <UserPlus size={16} /> Onboard Student
+              </button>
+              <button
+                onClick={handleExportCsv}
+                className="saas-btn saas-btn-secondary"
+                type="button"
+              >
+                <Download size={16} /> Export Caseload
+              </button>
+            </div>
+          </div>
+
+          <div className="saas-card">
+            {/* Filter Bar */}
+            <form onSubmit={handleSearchSubmit} className="saas-filter-bar">
+              <div className="saas-search-container" style={{ width: 280 }}>
+                <Search size={15} color="#94A3B8" />
+                <input
+                  type="text"
+                  className="saas-search-input"
+                  placeholder="Search student name or email..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <div className="saas-filter-group">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="saas-select"
+                >
+                  <option value="">All Verification Statuses</option>
+                  <option value="VERIFIED">Verified / Approved</option>
+                  <option value="PENDING">Pending Verification</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+
+                <select
+                  value={boardFilter}
+                  onChange={(e) => setBoardFilter(e.target.value)}
+                  className="saas-select"
+                >
+                  <option value="">All Boards</option>
+                  <option value="CBSE">CBSE</option>
+                  <option value="ICSE">ICSE</option>
+                  <option value="IB">IB</option>
+                  <option value="Cambridge">Cambridge</option>
+                </select>
+
+                <button type="submit" className="saas-btn saas-btn-primary saas-btn-sm">
+                  Apply
+                </button>
+              </div>
+            </form>
+
+            {/* Students Table */}
+            <div className="saas-table-container">
+              <table className="saas-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Country Preference</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Profile Score</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isStudentsLoading ? (
+                    <tr>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                        <RefreshCw size={24} style={{ animation: 'spin 1.5s linear infinite', margin: '0 auto 0.5rem' }} />
+                        <p style={{ margin: 0 }}>Loading student roster...</p>
+                      </td>
+                    </tr>
+                  ) : students.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                        <Users size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                        <p style={{ margin: 0, fontWeight: 600 }}>No students found in your roster.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    students.map((student) => (
+                      <tr key={student.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                            <div className="saas-user-avatar" style={{ width: 32, height: 32, fontSize: '0.8rem' }}>
+                              {student.fullName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#0F172A' }}>{student.fullName}</div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                                {student.grade} • {student.board}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ color: '#475569', fontSize: '0.82rem' }}>{student.contactEmail || student.user.email}</td>
+                        <td style={{ color: '#64748B', fontSize: '0.82rem' }}>{student.phone}</td>
+                        <td>
+                          <span style={{ fontSize: '0.8rem', color: '#1E293B', backgroundColor: '#F1F5F9', padding: '0.2rem 0.5rem', borderRadius: 4 }}>
+                            {student.preferenceSummary?.primaryCountry || 'Global'}
+                          </span>
+                        </td>
+                        <td style={{ fontSize: '0.8rem', color: '#475569' }}>
+                          {student.preferenceSummary?.department || 'General'}
+                        </td>
+                        <td>
+                          <StatusBadge status={student.verificationStatus} />
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <div style={{ width: 45, height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  width: `${student.completionScore}%`,
+                                  height: '100%',
+                                  backgroundColor: student.completionScore > 75 ? '#16A34A' : '#2563EB',
+                                }}
+                              />
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>
+                              {student.completionScore}%
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            onClick={() => setSelectedProfileId(student.id)}
+                            className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                            type="button"
+                          >
+                            <Eye size={13} /> View 360°
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="saas-pagination">
+              <span>
+                Showing {students.length > 0 ? (page - 1) * 15 + 1 : 0} to{' '}
+                {Math.min(page * 15, totalStudents)} of {totalStudents} assigned students
+              </span>
+              <div style={{ display: 'flex', gap: '0.35rem' }}>
+                <button
+                  onClick={() => loadStudents(page - 1)}
+                  disabled={page <= 1}
+                  className="saas-page-btn"
+                  type="button"
+                >
+                  ‹
+                </button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pNum = i + 1;
+                  return (
+                    <button
+                      key={pNum}
+                      onClick={() => loadStudents(pNum)}
+                      className={`saas-page-btn ${page === pNum ? 'active' : ''}`}
+                      type="button"
+                    >
+                      {pNum}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => loadStudents(page + 1)}
+                  disabled={page >= totalPages}
+                  className="saas-page-btn"
+                  type="button"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 3: APPLICATIONS MANAGEMENT
+          ========================================================================= */}
+      {activeTab === 'applications' && (
+        <div>
+          <div className="saas-welcome-banner">
+            <div>
+              <h1 className="saas-welcome-title">Student Applications</h1>
+              <p className="saas-welcome-sub">
+                Target college admissions milestones and shortlist submissions.
+              </p>
+            </div>
+          </div>
+
+          <div className="saas-card">
+            <div className="saas-table-container">
+              <table className="saas-table">
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Program</th>
+                    <th>Target University</th>
+                    <th>Country</th>
+                    <th>Status</th>
+                    <th>Applied Date</th>
+                    <th style={{ textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {applications.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                        <FileText size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                        <p style={{ margin: 0 }}>No student applications found.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    applications.map((app) => (
+                      <tr key={app.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#0F172A' }}>{app.studentName}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>{app.studentEmail}</div>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#475569' }}>{app.program}</td>
+                        <td style={{ fontWeight: 500, color: '#0F172A' }}>{app.institutionName}</td>
+                        <td>
+                          <span style={{ fontSize: '0.78rem', color: '#1E293B', backgroundColor: '#F1F5F9', padding: '0.15rem 0.5rem', borderRadius: 4 }}>
+                            {app.country}
+                          </span>
+                        </td>
+                        <td>
+                          <StatusBadge status={app.status} />
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#64748B' }}>{app.appliedOn}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            onClick={() => setSelectedProfileId(app.studentId)}
+                            className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                            type="button"
+                          >
+                            <Eye size={13} /> View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 4: APPOINTMENTS SCHEDULE
+          ========================================================================= */}
+      {activeTab === 'appointments' && (
+        <div>
+          <div className="saas-welcome-banner">
+            <div>
+              <h1 className="saas-welcome-title">Counselling Appointments</h1>
+              <p className="saas-welcome-sub">
+                Manage upcoming 1-on-1 consultations and past guidance sessions.
+              </p>
+            </div>
+          </div>
+
+          <div className="saas-card">
+            <div className="saas-table-container">
+              <table className="saas-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Student</th>
+                    <th>Appointment Type</th>
+                    <th>Duration</th>
+                    <th>Meeting Mode</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboardData?.upcomingAppointments && dashboardData.upcomingAppointments.length > 0 ? (
+                    dashboardData.upcomingAppointments.map((app) => (
+                      <tr key={app.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
+                            {new Date(app.scheduledAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#2563EB', fontWeight: 500 }}>
+                            {new Date(app.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#0F172A' }}>
+                            {app.studentProfile?.fullName || 'Enrolled Student'}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                            {app.studentProfile?.contactEmail}
+                          </div>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#475569' }}>
+                          {app.title || app.appointmentType?.replace('_', ' ')}
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                          {app.durationMinutes || 45} mins
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.78rem', color: '#2563EB', backgroundColor: '#EFF6FF', padding: '0.2rem 0.5rem', borderRadius: 4 }}>
+                            {app.meetingType || 'Online Video'}
+                          </span>
+                        </td>
+                        <td>
+                          <StatusBadge status={app.status || 'SCHEDULED'} />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            onClick={() => alert(`Starting session with ${app.studentProfile?.fullName || 'student'}...`)}
+                            className="saas-btn saas-btn-primary saas-btn-sm"
+                            type="button"
+                          >
+                            <Video size={13} /> Join
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                        <Calendar size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                        <p style={{ margin: 0 }}>No counselling appointments scheduled.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 5: ADVISORY NOTES
+          ========================================================================= */}
+      {activeTab === 'notes' && (
+        <div>
+          <div className="saas-welcome-banner">
+            <div>
+              <h1 className="saas-welcome-title">Advisory Notes & Observations</h1>
+              <p className="saas-welcome-sub">
+                Confidential session insights and student guidance notes.
+              </p>
+            </div>
+          </div>
+
+          <div className="saas-card">
+            <div className="saas-table-container">
+              <table className="saas-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Student</th>
+                    <th>Title</th>
+                    <th>Note Content</th>
+                    <th>Privacy</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dashboardData?.recentNotes && dashboardData.recentNotes.length > 0 ? (
+                    dashboardData.recentNotes.map((note) => (
+                      <tr key={note.id}>
+                        <td style={{ fontSize: '0.8rem', color: '#64748B', whiteSpace: 'nowrap' }}>
+                          {new Date(note.createdAt).toLocaleDateString()}
+                        </td>
+                        <td style={{ fontWeight: 600, color: '#0F172A' }}>
+                          {note.studentProfile?.fullName || 'Student'}
+                        </td>
+                        <td style={{ fontWeight: 500, color: '#0F172A', fontSize: '0.85rem' }}>
+                          {note.title || 'Guidance Session'}
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#475569', maxWidth: 350, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {note.content}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.15rem 0.5rem', borderRadius: 4 }}>
+                            Confidential
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                        <ClipboardList size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                        <p style={{ margin: 0 }}>No session notes recorded yet.</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB 6: INSTITUTION CATALOGUE
+          ========================================================================= */}
+      {activeTab === 'colleges' && (
+        <div>
+          <div className="saas-welcome-banner">
+            <div>
+              <h1 className="saas-welcome-title">Institution Catalogue</h1>
+              <p className="saas-welcome-sub">
+                Explore universities and programs to guide student shortlists.
+              </p>
+            </div>
+          </div>
+          <div className="saas-card" style={{ padding: '1.5rem' }}>
+            <CollegeDiscoveryView onBackToDashboard={() => setActiveTab('dashboard')} />
+          </div>
+        </div>
+      )}
+
+      {/* MODALS */}
       {selectedProfileId && (
         <Student360Modal
           profileId={selectedProfileId}
           onClose={() => setSelectedProfileId(null)}
-          onRefresh={() => loadStudents(page)}
+          onRefresh={() => {
+            loadDashboard();
+            loadStudents(page);
+          }}
         />
       )}
 
-      {/* Create Student Account Modal */}
       {createModalOpen && (
         <CreateStudentModal
           onClose={() => setCreateModalOpen(false)}
@@ -657,6 +1012,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
           }}
         />
       )}
-    </div>
+    </SaaSShell>
   );
 };
+export default CounsellorDashboardPage;

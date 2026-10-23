@@ -45,7 +45,19 @@ export interface CounsellorDashboardData {
     upcomingAppointmentsCount: number;
     activeActionPlans: number;
     unassignedPoolCount: number;
+    activeApplications?: number;
   };
+  recentStudents?: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    grade: string;
+    verificationStatus: string;
+    countryPreference: string;
+    department: string;
+    pendingActions: number;
+  }[];
   upcomingAppointments: any[];
   recentNotes: any[];
 }
