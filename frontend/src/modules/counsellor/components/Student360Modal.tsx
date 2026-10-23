@@ -541,7 +541,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
               {activeTab === 'exams' && (
                 <div>
                   <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
-                    Target Entrance Exam Plans (Module 4 & 10)
+                    Target Entrance Exam Plans (Module 4)
                   </h3>
                   {data.examPlans && data.examPlans.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>

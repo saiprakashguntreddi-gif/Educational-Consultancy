@@ -117,16 +117,6 @@ export const API_ENDPOINTS = {
     COMPARE: `${API_BASE_URL}/fees/compare`,
     BUDGET_DECISION: `${API_BASE_URL}/fees/budget-decision`,
   },
-  EXAM_INTELLIGENCE: {
-    OVERVIEW: `${API_BASE_URL}/exam-intelligence/overview`,
-    PREPARATION_PLAN: (examId: string) => `${API_BASE_URL}/exam-intelligence/preparation-plan/${examId}`,
-    MOCK_TEST_BY_ID: (testId: string) => `${API_BASE_URL}/exam-intelligence/mock-tests/${testId}`,
-    MOCK_TEST_SUBMIT: (testId: string) => `${API_BASE_URL}/exam-intelligence/mock-tests/${testId}/submit`,
-    PLAN_SAVE: `${API_BASE_URL}/exam-intelligence/plan`,
-    PLAN_ITEM: (id: string) => `${API_BASE_URL}/exam-intelligence/plan/${id}`,
-    STAFF_STUDENT_REVIEW: (profileId: string) =>
-      `${API_BASE_URL}/exam-intelligence/counsellor/student/${profileId}`,
-  },
   ASSESSMENTS: {
     PATHWAYS: `${API_BASE_URL}/assessments/pathways`,
     PATHWAY_BY_CODE: (code: string) => `${API_BASE_URL}/assessments/pathways/${code}`,

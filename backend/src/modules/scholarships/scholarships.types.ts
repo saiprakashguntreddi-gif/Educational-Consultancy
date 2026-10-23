@@ -3,7 +3,7 @@ export type EligibilityStatus = 'ELIGIBLE' | 'POTENTIALLY_ELIGIBLE' | 'NOT_ELIGI
 export type CriterionStatus = 'MET' | 'NOT_MET' | 'NEEDS_REVIEW';
 
 export interface EligibilityCriterionCheck {
-  criterion: 'academic' | 'board' | 'destination' | 'department' | 'citizenship' | 'gender' | 'financial' | 'entranceExam';
+  criterion: 'academic' | 'board' | 'destination' | 'department' | 'citizenship' | 'gender' | 'financial' | 'entranceExam' | 'studyLevel';
   status: CriterionStatus;
   label: string;
   detail: string;

@@ -629,14 +629,14 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = () => {
                               s.verificationStatus === 'VERIFIED'
                                 ? 'rgba(16, 185, 129, 0.15)'
                                 : s.verificationStatus === 'REJECTED'
-                                ? 'rgba(239, 68, 68, 0.15)'
-                                : 'rgba(245, 158, 11, 0.15)',
+                                  ? 'rgba(239, 68, 68, 0.15)'
+                                  : 'rgba(245, 158, 11, 0.15)',
                             color:
                               s.verificationStatus === 'VERIFIED'
                                 ? '#34D399'
                                 : s.verificationStatus === 'REJECTED'
-                                ? '#F87171'
-                                : '#FBBF24',
+                                  ? '#F87171'
+                                  : '#FBBF24',
                           }}
                         >
                           ● {s.verificationStatus}

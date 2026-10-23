@@ -275,12 +275,12 @@ async function testFullSuite() {
   });
   assert(planRes.data.success && planRes.data.data.counsellorActionPlan?.actionMilestones.length === 2, 'Counsellor action plan successfully attached and persisted');
 
-  // 8. Regression Verification: Check Module 9 (Fees & College Tiers) & Module 10 (Exam Intelligence)
+  // 8. Regression Verification: Check Module 9 (Fees & College Tiers) & Module 4 (Entrance Exams)
   const tierRes = await request(`${API_BASE}/fees/tier-summary`, studentAuth);
   assert(tierRes.status === 200 && tierRes.data?.success === true, 'Module 9 (Fees & College Tiers) API is healthy and operational');
 
-  const examRes = await request(`${API_BASE}/exam-intelligence/overview`, studentAuth);
-  assert(examRes.status === 200 && examRes.data?.success === true, 'Module 10 (Exam Intelligence) API is healthy and operational');
+  const examRes = await request(`${API_BASE}/exams`, studentAuth);
+  assert(examRes.status === 200 && examRes.data?.success === true, 'Module 4 (Entrance Exams) API is healthy and operational');
 
   console.log('================================================================');
   console.log(` RESULTS: ${passed} PASSED, ${failed} FAILED`);

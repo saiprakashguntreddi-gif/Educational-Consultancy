@@ -86,6 +86,9 @@ export interface ScholarshipQueryFilters {
   search?: string;
   country?: string;
   department?: string;
+  studyLevel?: string;
+  awardType?: string;
+  deadlineStatus?: 'ALL' | 'OPEN' | 'CLOSING_SOON' | 'EXPIRED';
   eligibilityStatus?: 'ALL' | 'ELIGIBLE' | 'POTENTIALLY_ELIGIBLE' | 'NOT_ELIGIBLE' | 'SAVED';
   page?: number;
   limit?: number;
@@ -119,4 +122,4 @@ export interface CreateScholarshipInput {
   isPublished?: boolean;
 }
 
-export interface UpdateScholarshipInput extends Partial<CreateScholarshipInput> {}
+export interface UpdateScholarshipInput extends Partial<CreateScholarshipInput> { }

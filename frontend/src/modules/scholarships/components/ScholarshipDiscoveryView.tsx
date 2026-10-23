@@ -169,11 +169,10 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                   Verified Profile Reference
                 </span>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    profileContext.isVerified
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${profileContext.isVerified
                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                       : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                  }`}
+                    }`}
                 >
                   {profileContext.isVerified ? 'VERIFIED' : 'PENDING VERIFICATION'}
                 </span>
@@ -252,55 +251,50 @@ export const ScholarshipDiscoveryView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
           <button
             onClick={() => setEligibilityFilter('ALL')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-              eligibilityFilter === 'ALL'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'ALL'
                 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
                 : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
+              }`}
           >
             All Opportunities <span className="opacity-75">({counts.all})</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('ELIGIBLE')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-              eligibilityFilter === 'ELIGIBLE'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'ELIGIBLE'
                 ? 'bg-emerald-600 text-white shadow-sm'
                 : 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100'
-            }`}
+              }`}
           >
             <CheckCircle2 size={13} /> Eligible <span className="opacity-75">({counts.eligible})</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('POTENTIALLY_ELIGIBLE')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-              eligibilityFilter === 'POTENTIALLY_ELIGIBLE'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'POTENTIALLY_ELIGIBLE'
                 ? 'bg-amber-600 text-white shadow-sm'
                 : 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100'
-            }`}
+              }`}
           >
             <AlertTriangle size={13} /> Needs Review <span className="opacity-75">({counts.potentiallyEligible})</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('NOT_ELIGIBLE')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-              eligibilityFilter === 'NOT_ELIGIBLE'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'NOT_ELIGIBLE'
                 ? 'bg-rose-600 text-white shadow-sm'
                 : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 hover:bg-rose-100'
-            }`}
+              }`}
           >
             <XCircle size={13} /> Not Eligible <span className="opacity-75">({counts.notEligible})</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('SAVED')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
-              eligibilityFilter === 'SAVED'
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'SAVED'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'bg-indigo-50 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100'
-            }`}
+              }`}
           >
             <Bookmark size={13} /> Saved / Shortlisted <span className="opacity-75">({counts.saved})</span>
           </button>
@@ -373,13 +367,12 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                     <div className="flex flex-wrap items-center gap-1.5">
                       {eligibility && (
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
-                            eligibility.status === 'ELIGIBLE'
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${eligibility.status === 'ELIGIBLE'
                               ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                               : eligibility.status === 'POTENTIALLY_ELIGIBLE'
-                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                              : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                          }`}
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                            }`}
                         >
                           {eligibility.status === 'ELIGIBLE' ? (
                             <CheckCircle2 size={13} />
@@ -391,8 +384,8 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                           {eligibility.status === 'ELIGIBLE'
                             ? 'Eligible'
                             : eligibility.status === 'POTENTIALLY_ELIGIBLE'
-                            ? 'Needs Review'
-                            : 'Not Eligible'}
+                              ? 'Needs Review'
+                              : 'Not Eligible'}
                         </span>
                       )}
 
@@ -406,11 +399,10 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                     <button
                       onClick={() => handleToggleSave(scholarship.id)}
                       disabled={savingId === scholarship.id}
-                      className={`p-2 rounded-xl transition ${
-                        scholarship.isSaved
+                      className={`p-2 rounded-xl transition ${scholarship.isSaved
                           ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300'
                           : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
+                        }`}
                       aria-label="Bookmark scholarship"
                     >
                       <Bookmark
@@ -475,13 +467,12 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                   {/* Personalized Explanation Box */}
                   {eligibility && (
                     <div
-                      className={`p-3 rounded-xl text-xs border ${
-                        eligibility.status === 'ELIGIBLE'
+                      className={`p-3 rounded-xl text-xs border ${eligibility.status === 'ELIGIBLE'
                           ? 'bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40'
                           : eligibility.status === 'POTENTIALLY_ELIGIBLE'
-                          ? 'bg-amber-50/40 dark:bg-amber-950/20 text-amber-900 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40'
-                          : 'bg-rose-50/40 dark:bg-rose-950/20 text-rose-900 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/40'
-                      }`}
+                            ? 'bg-amber-50/40 dark:bg-amber-950/20 text-amber-900 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40'
+                            : 'bg-rose-50/40 dark:bg-rose-950/20 text-rose-900 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/40'
+                        }`}
                     >
                       <span className="font-bold">Eligibility Insight:</span>{' '}
                       {eligibility.summary}
