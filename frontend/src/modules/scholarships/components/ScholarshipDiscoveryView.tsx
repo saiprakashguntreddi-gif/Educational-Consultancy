@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Search,
   Award,
@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   ChevronRight,
   BookOpen,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { ScholarshipsService } from '../services/scholarships.service';
 import {
@@ -22,6 +24,7 @@ import {
   StudentProfileContext,
 } from '../scholarships.types';
 import { ScholarshipDetailModal } from './ScholarshipDetailModal';
+import '../scholarships.css';
 
 export const ScholarshipDiscoveryView: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
@@ -34,6 +37,7 @@ export const ScholarshipDiscoveryView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [countryFilter, setCountryFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  const [studyLevelFilter, setStudyLevelFilter] = useState<string>('');
   const [eligibilityFilter, setEligibilityFilter] = useState<
     'ALL' | 'ELIGIBLE' | 'POTENTIALLY_ELIGIBLE' | 'NOT_ELIGIBLE' | 'SAVED'
   >('ALL');
@@ -56,11 +60,11 @@ export const ScholarshipDiscoveryView: React.FC = () => {
       if (res.success && res.data) {
         setData(res.data);
       } else {
-        const errStr = typeof res.error === 'string' ? res.error : 'Failed to load scholarships';
+        const errStr = typeof res.error === 'string' ? res.error : 'Failed to load scholarship records.';
         setError(errStr);
       }
     } catch (err: any) {
-      setError(err?.message || 'Error communicating with scholarship service');
+      setError(err?.message || 'Error communicating with scholarship service.');
     } finally {
       setLoading(false);
     }
@@ -76,17 +80,17 @@ export const ScholarshipDiscoveryView: React.FC = () => {
       setSavingId(scholarshipId);
       const res = await ScholarshipsService.toggleSaveScholarship(scholarshipId);
       if (res.success) {
-        // Update local state
+        const isNowSaved = res.data?.isSaved;
         if (data) {
           const updatedList = data.scholarships.map((s) =>
-            s.id === scholarshipId ? { ...s, isSaved: res.data?.isSaved ?? !s.isSaved } : s
+            s.id === scholarshipId ? { ...s, isSaved: isNowSaved } : s
           );
           setData({
             ...data,
             scholarships: updatedList,
             counts: {
               ...data.counts,
-              saved: res.data?.isSaved
+              saved: isNowSaved
                 ? data.counts.saved + 1
                 : Math.max(0, data.counts.saved - 1),
             },
@@ -95,7 +99,7 @@ export const ScholarshipDiscoveryView: React.FC = () => {
         if (selectedScholarship && selectedScholarship.id === scholarshipId) {
           setSelectedScholarship({
             ...selectedScholarship,
-            isSaved: res.data?.isSaved ?? !selectedScholarship.isSaved,
+            isSaved: isNowSaved,
           });
         }
       }
@@ -115,264 +119,384 @@ export const ScholarshipDiscoveryView: React.FC = () => {
     saved: 0,
   };
 
-  // Distinct countries & departments from current catalogue for filters
-  const uniqueCountries = Array.from(
-    new Set(
-      (data?.scholarships || [])
-        .map((s) => s.destinationCountry || s.country)
-        .filter(Boolean) as string[]
-    )
-  ).sort();
+  // Filter scholarships by study level in frontend if specified
+  const filteredScholarships = useMemo(() => {
+    if (!data?.scholarships) return [];
+    if (!studyLevelFilter) return data.scholarships;
+    return data.scholarships.filter((s) => {
+      if (!s.studyLevel) return true;
+      if (s.studyLevel.toUpperCase() === 'ALL') return true;
+      return s.studyLevel.toUpperCase() === studyLevelFilter.toUpperCase();
+    });
+  }, [data?.scholarships, studyLevelFilter]);
 
-  const uniqueDepartments = Array.from(
-    new Set(
-      (data?.scholarships || [])
-        .map((s) => s.department)
-        .filter(Boolean) as string[]
-    )
-  ).sort();
+  // Distinct countries & departments from current catalogue for filters
+  const uniqueCountries = useMemo(() => {
+    const set = new Set<string>();
+    (data?.scholarships || []).forEach((s) => {
+      if (s.destinationCountry) set.add(s.destinationCountry);
+      if (s.country) set.add(s.country);
+    });
+    return Array.from(set).sort();
+  }, [data?.scholarships]);
+
+  const uniqueDepartments = useMemo(() => {
+    const set = new Set<string>();
+    (data?.scholarships || []).forEach((s) => {
+      if (s.department) set.add(s.department);
+    });
+    return Array.from(set).sort();
+  }, [data?.scholarships]);
+
+  // Helper: Format days remaining or deadline text
+  const getDeadlineInfo = (deadlineStr?: string | null) => {
+    if (!deadlineStr) return null;
+    const deadlineDate = new Date(deadlineStr);
+    const now = new Date();
+    const diffTime = deadlineDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const formattedDate = deadlineDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    return {
+      formattedDate,
+      diffDays,
+      isUpcoming: diffDays > 0,
+      isExpired: diffDays < 0,
+      isUrgent: diffDays > 0 && diffDays <= 30,
+    };
+  };
+
+  // Helper: Format currency and amount
+  const formatAward = (amount?: number | null, currency?: string | null, type?: string | null) => {
+    if (amount !== null && amount !== undefined) {
+      const curr = currency || 'USD';
+      if (curr === 'INR') {
+        return `₹${amount.toLocaleString('en-IN')}`;
+      } else if (curr === 'USD') {
+        return `$${amount.toLocaleString('en-US')} USD`;
+      } else if (curr === 'GBP') {
+        return `£${amount.toLocaleString('en-GB')}`;
+      } else if (curr === 'EUR') {
+        return `€${amount.toLocaleString('en-EU')}`;
+      }
+      return `${curr} ${amount.toLocaleString()}`;
+    }
+    return type || 'Full / Partial Coverage';
+  };
+
+  const hasActiveFilters =
+    Boolean(searchTerm) ||
+    Boolean(countryFilter) ||
+    Boolean(departmentFilter) ||
+    Boolean(studyLevelFilter) ||
+    eligibilityFilter !== 'ALL';
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setCountryFilter('');
+    setDepartmentFilter('');
+    setStudyLevelFilter('');
+    setEligibilityFilter('ALL');
+  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header & Subtitle */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-            <Award className="text-indigo-600 dark:text-indigo-400" size={28} />
-            Scholarship Discovery & Eligibility
-          </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-            Discover verified scholarships tailored to your academic profile and study goals. Each opportunity is evaluated using verified student credentials.
-          </p>
-        </div>
+    <div className="sch-container" id="module8-scholarship-discovery">
+      {/* 1. HERO HEADER CARD */}
+      <div className="sch-hero-card">
+        <div className="sch-hero-top">
+          <div className="sch-hero-text">
+            <div className="sch-hero-badge">
+              <Sparkles size={13} />
+              <span>Official Global Catalogue</span>
+            </div>
+            <h1 className="sch-hero-title">
+              <Award size={28} />
+              Scholarship Discovery & Eligibility
+            </h1>
+            <p className="sch-hero-subtitle">
+              Find verified funding opportunities that match your academic background, destination country, department, and demographic preferences. Every opportunity includes automated eligibility assessment against official provider benchmarks.
+            </p>
+          </div>
 
-        <button
-          onClick={() => loadScholarships()}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 text-xs md:text-sm font-semibold rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition shadow-sm self-start md:self-auto"
-        >
-          <RefreshCw size={15} className={loading ? 'animate-spin text-indigo-600' : ''} />
-          Refresh
-        </button>
+          <div className="sch-hero-actions">
+            <button
+              onClick={() => loadScholarships()}
+              disabled={loading}
+              className="sch-btn-refresh"
+              title="Refresh catalogue & recalculate eligibility"
+              id="scholarships-refresh-btn"
+            >
+              <RefreshCw size={15} className={loading ? 'sch-spinner' : ''} />
+              <span>{loading ? 'Evaluating...' : 'Refresh'}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Verified Profile Context Banner */}
+      {/* 2. VERIFIED PROFILE STRIP */}
       {profileContext && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50/80 via-purple-50/50 to-blue-50/80 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-blue-950/40 border border-indigo-100 dark:border-indigo-900/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-indigo-600 text-white shadow-sm mt-0.5">
-              <ShieldCheck size={20} />
+        <div className="sch-profile-strip" id="sch-profile-context-strip">
+          <div className="sch-profile-left">
+            <div className="sch-profile-icon">
+              <ShieldCheck size={22} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
-                  Verified Profile Reference
-                </span>
+            <div className="sch-profile-content">
+              <div className="sch-profile-header-line">
+                <span className="sch-profile-tag">Verified Profile Benchmark Reference</span>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${profileContext.isVerified
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                    }`}
+                  className={`sch-profile-verified-badge ${
+                    profileContext.isVerified ? 'verified' : 'pending'
+                  }`}
                 >
-                  {profileContext.isVerified ? 'VERIFIED' : 'PENDING VERIFICATION'}
+                  {profileContext.isVerified ? 'VERIFIED PROFILE' : 'PENDING VERIFICATION'}
                 </span>
               </div>
-              <p className="text-xs md:text-sm font-semibold text-slate-900 dark:text-white mt-0.5">
+              <p className="sch-profile-params">
                 {profileContext.studentName || 'Student'} • Academic Score:{' '}
-                <span className="text-indigo-600 dark:text-indigo-400">
+                <span className="highlight">
                   {profileContext.percentage !== null ? `${profileContext.percentage}%` : 'Not recorded'}
                 </span>
-                {profileContext.board && ` (${profileContext.board})`} • Target:{' '}
-                <span className="text-slate-700 dark:text-slate-300">
-                  {profileContext.primaryCountry || 'Global'}
+                {profileContext.board && ` (${profileContext.board})`} • Target Destination:{' '}
+                <span className="highlight">
+                  {profileContext.primaryCountry || 'Global / United States'}
                 </span>
                 {profileContext.department && ` • ${profileContext.department}`}
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                Eligibility engine compares your verified academic performance, board, and study preferences against official catalogue benchmarks.
+              <p className="sch-profile-note">
+                Eligibility engine compares your verified high school marks, board, study destination, department, and demographic criteria against published provider cutoffs.
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Search & Filter Controls */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row gap-3">
+      {/* 3. SEARCH & CONTROLS CARD */}
+      <div className="sch-controls-card">
+        <div className="sch-filters-row">
           {/* Search Input */}
-          <div className="relative flex-1">
-            <Search
-              size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
+          <div className="sch-search-box">
+            <Search size={16} className="sch-search-icon" />
             <input
               type="text"
-              placeholder="Search scholarships by name, provider, or keyword..."
+              id="sch-search-input"
+              placeholder="Search scholarships by name, official provider, or keyword..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+              className="sch-search-input"
             />
           </div>
 
-          {/* Country Filter */}
-          <div className="w-full md:w-52">
+          {/* Filter Dropdowns */}
+          <div className="sch-filter-select-group">
+            {/* Country Filter */}
             <select
+              id="sch-filter-country"
               value={countryFilter}
               onChange={(e) => setCountryFilter(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+              className="sch-filter-select"
             >
-              <option value="">All Countries</option>
+              <option value="">All Destinations</option>
               {uniqueCountries.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
             </select>
-          </div>
 
-          {/* Department Filter */}
-          <div className="w-full md:w-56">
+            {/* Department Filter */}
             <select
+              id="sch-filter-department"
               value={departmentFilter}
               onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+              className="sch-filter-select"
             >
-              <option value="">All Departments</option>
+              <option value="">All Disciplines</option>
               {uniqueDepartments.map((d) => (
                 <option key={d} value={d}>
                   {d}
                 </option>
               ))}
             </select>
+
+            {/* Study Level Filter */}
+            <select
+              id="sch-filter-studylevel"
+              value={studyLevelFilter}
+              onChange={(e) => setStudyLevelFilter(e.target.value)}
+              className="sch-filter-select"
+            >
+              <option value="">All Study Levels</option>
+              <option value="UNDERGRADUATE">Undergraduate</option>
+              <option value="POSTGRADUATE">Postgraduate</option>
+            </select>
           </div>
         </div>
 
-        {/* Eligibility Status Tabs */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        {/* FUNCTIONAL ELIGIBILITY TABS */}
+        <div className="sch-tabs-nav" id="sch-eligibility-tabs">
           <button
             onClick={() => setEligibilityFilter('ALL')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'ALL'
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
+            className={`sch-tab-pill ${
+              eligibilityFilter === 'ALL' ? 'active-all' : ''
+            }`}
+            id="tab-sch-all"
           >
-            All Opportunities <span className="opacity-75">({counts.all})</span>
+            <span>All Opportunities</span>
+            <span className="sch-tab-count">{counts.all}</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('ELIGIBLE')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'ELIGIBLE'
-                ? 'bg-emerald-600 text-white shadow-sm'
-                : 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100'
-              }`}
+            className={`sch-tab-pill ${
+              eligibilityFilter === 'ELIGIBLE' ? 'active-eligible' : ''
+            }`}
+            id="tab-sch-eligible"
           >
-            <CheckCircle2 size={13} /> Eligible <span className="opacity-75">({counts.eligible})</span>
+            <CheckCircle2 size={13} />
+            <span>Eligible</span>
+            <span className="sch-tab-count">{counts.eligible}</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('POTENTIALLY_ELIGIBLE')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'POTENTIALLY_ELIGIBLE'
-                ? 'bg-amber-600 text-white shadow-sm'
-                : 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-100'
-              }`}
+            className={`sch-tab-pill ${
+              eligibilityFilter === 'POTENTIALLY_ELIGIBLE' ? 'active-review' : ''
+            }`}
+            id="tab-sch-review"
           >
-            <AlertTriangle size={13} /> Needs Review <span className="opacity-75">({counts.potentiallyEligible})</span>
+            <AlertTriangle size={13} />
+            <span>Needs Review</span>
+            <span className="sch-tab-count">{counts.potentiallyEligible}</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('NOT_ELIGIBLE')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'NOT_ELIGIBLE'
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'bg-rose-50 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 hover:bg-rose-100'
-              }`}
+            className={`sch-tab-pill ${
+              eligibilityFilter === 'NOT_ELIGIBLE' ? 'active-not-eligible' : ''
+            }`}
+            id="tab-sch-not-eligible"
           >
-            <XCircle size={13} /> Not Eligible <span className="opacity-75">({counts.notEligible})</span>
+            <XCircle size={13} />
+            <span>Not Eligible</span>
+            <span className="sch-tab-count">{counts.notEligible}</span>
           </button>
 
           <button
             onClick={() => setEligibilityFilter('SAVED')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${eligibilityFilter === 'SAVED'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'bg-indigo-50 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100'
-              }`}
+            className={`sch-tab-pill ${
+              eligibilityFilter === 'SAVED' ? 'active-saved' : ''
+            }`}
+            id="tab-sch-saved"
           >
-            <Bookmark size={13} /> Saved / Shortlisted <span className="opacity-75">({counts.saved})</span>
+            <Bookmark size={13} />
+            <span>Saved / Shortlisted</span>
+            <span className="sch-tab-count">{counts.saved}</span>
           </button>
         </div>
       </div>
 
-      {/* Error Alert */}
+      {/* 4. RESULTS COUNT & ACTIVE FILTER BAR */}
+      <div className="sch-results-bar">
+        <span className="sch-results-count">
+          Showing <b>{filteredScholarships.length}</b> verified funding{' '}
+          {filteredScholarships.length === 1 ? 'opportunity' : 'opportunities'}
+        </span>
+
+        {hasActiveFilters && (
+          <div className="sch-active-filters-chips">
+            <button
+              onClick={handleResetFilters}
+              className="sch-chip-clear"
+              id="sch-clear-filters-btn"
+            >
+              Reset all filters
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 5. ERROR STATE */}
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm flex items-center gap-3">
-          <XCircle size={18} className="shrink-0" />
-          <span>{error}</span>
+        <div className="sch-insight-box not-eligible" style={{ padding: '1rem 1.25rem' }}>
+          <XCircle size={18} className="sch-insight-icon" />
+          <div style={{ flex: 1 }}>
+            <span style={{ fontWeight: 700 }}>Service Error: </span>
+            {error}
+          </div>
+          <button
+            onClick={() => loadScholarships()}
+            className="sch-btn-refresh"
+            style={{ color: '#B91C1C', borderColor: '#FECACA', background: '#FFFFFF', padding: '0.35rem 0.85rem' }}
+          >
+            Retry
+          </button>
         </div>
       )}
 
-      {/* Loading State */}
+      {/* 6. LOADING STATE */}
       {loading ? (
-        <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-          <RefreshCw size={28} className="animate-spin text-indigo-600 mx-auto" />
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+        <div className="sch-loading-card">
+          <RefreshCw size={36} className="sch-spinner" />
+          <h3 className="sch-loading-title">
             Evaluating scholarship eligibility against verified student profile...
+          </h3>
+          <p className="sch-empty-text">
+            Comparing academic cutoffs, study destinations, eligible departments, and demographic criteria.
           </p>
         </div>
-      ) : !data || data.scholarships.length === 0 ? (
-        /* Empty State */
-        <div className="p-10 md:p-14 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl mx-auto space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto shadow-sm">
+      ) : filteredScholarships.length === 0 ? (
+        /* 7. HONEST EMPTY STATE */
+        <div className="sch-empty-card" id="sch-empty-state">
+          <div className="sch-empty-icon-wrap">
             <Award size={32} />
           </div>
-          <div className="space-y-2">
-            <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white">
-              {counts.all === 0
-                ? 'No scholarship records are currently available.'
-                : 'No scholarships match your selected filter criteria.'}
-            </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
-              {counts.all === 0
-                ? 'The official scholarship catalogue is currently empty. Authorized administrators populate official scholarship opportunities and verified eligibility rules. Check back soon or consult your assigned counsellor.'
-                : 'Try clearing the search filters or switching eligibility tabs to view other scholarship opportunities.'}
-            </p>
-          </div>
-
-          {counts.all > 0 && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setCountryFilter('');
-                setDepartmentFilter('');
-                setEligibilityFilter('ALL');
-              }}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-            >
-              Reset All Filters
+          <h3 className="sch-empty-title">
+            {counts.all === 0
+              ? 'No scholarship records are currently available.'
+              : 'No scholarships match your selected filter criteria.'}
+          </h3>
+          <p className="sch-empty-text">
+            {counts.all === 0
+              ? 'The official scholarship catalogue is currently empty. Authorized administrators populate official scholarship opportunities and verified eligibility rules. Check back soon or consult your assigned counsellor.'
+              : 'Try selecting a different eligibility tab, clearing keyword searches, or adjusting country and department filters.'}
+          </p>
+          {hasActiveFilters && (
+            <button onClick={handleResetFilters} className="sch-btn-reset">
+              Reset Filters
             </button>
           )}
         </div>
       ) : (
-        /* Scholarship Cards Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {data.scholarships.map((scholarship) => {
+        /* 8. SCHOLARSHIP CARDS GRID */
+        <div className="sch-grid" id="sch-cards-grid">
+          {filteredScholarships.map((scholarship) => {
             const eligibility = scholarship.eligibility;
+            const deadlineInfo = getDeadlineInfo(scholarship.applicationDeadline);
 
             return (
               <div
                 key={scholarship.id}
-                className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group"
+                className="sch-card"
+                id={`sch-card-${scholarship.id}`}
               >
-                <div className="space-y-3.5">
-                  {/* Top Bar: Badges & Bookmark */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-1.5">
+                <div>
+                  {/* Top Badges & Bookmark */}
+                  <div className="sch-card-top">
+                    <div className="sch-badges-cluster">
                       {eligibility && (
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${eligibility.status === 'ELIGIBLE'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                          className={`sch-status-badge ${
+                            eligibility.status === 'ELIGIBLE'
+                              ? 'eligible'
                               : eligibility.status === 'POTENTIALLY_ELIGIBLE'
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
-                            }`}
+                              ? 'review'
+                              : 'not-eligible'
+                          }`}
                         >
                           {eligibility.status === 'ELIGIBLE' ? (
                             <CheckCircle2 size={13} />
@@ -381,17 +505,26 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                           ) : (
                             <XCircle size={13} />
                           )}
-                          {eligibility.status === 'ELIGIBLE'
-                            ? 'Eligible'
-                            : eligibility.status === 'POTENTIALLY_ELIGIBLE'
+                          <span>
+                            {eligibility.status === 'ELIGIBLE'
+                              ? 'Eligible'
+                              : eligibility.status === 'POTENTIALLY_ELIGIBLE'
                               ? 'Needs Review'
                               : 'Not Eligible'}
+                          </span>
                         </span>
                       )}
 
                       {scholarship.destinationCountry && (
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300">
-                          {scholarship.destinationCountry}
+                        <span className="sch-tag destination">
+                          <MapPin size={11} />
+                          <span>{scholarship.destinationCountry}</span>
+                        </span>
+                      )}
+
+                      {scholarship.studyLevel && (
+                        <span className="sch-tag">
+                          <span>{scholarship.studyLevel}</span>
                         </span>
                       )}
                     </div>
@@ -399,94 +532,115 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                     <button
                       onClick={() => handleToggleSave(scholarship.id)}
                       disabled={savingId === scholarship.id}
-                      className={`p-2 rounded-xl transition ${scholarship.isSaved
-                          ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-300'
-                          : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
-                        }`}
-                      aria-label="Bookmark scholarship"
+                      className={`sch-btn-save ${scholarship.isSaved ? 'saved' : ''}`}
+                      title={scholarship.isSaved ? 'Remove from Saved' : 'Save / Shortlist Scholarship'}
+                      aria-label="Save scholarship"
+                      id={`sch-save-btn-${scholarship.id}`}
                     >
                       <Bookmark
                         size={17}
-                        className={scholarship.isSaved ? 'fill-amber-500 text-amber-500' : ''}
+                        className={scholarship.isSaved ? 'fill-amber-500' : ''}
                       />
                     </button>
                   </div>
 
-                  {/* Title & Provider */}
-                  <div>
-                    <h3 className="text-base md:text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition leading-snug">
+                  {/* Title & Metadata */}
+                  <div className="sch-card-body">
+                    <h3
+                      className="sch-card-title"
+                      onClick={() => setSelectedScholarship(scholarship)}
+                    >
                       {scholarship.name}
                     </h3>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400 mt-1">
-                      <span className="inline-flex items-center gap-1 font-medium">
-                        <Building size={13} className="text-slate-400" />
-                        {scholarship.provider}
+
+                    <div className="sch-card-meta">
+                      <span className="sch-card-meta-item" title="Official Provider">
+                        <Building size={13} />
+                        <b>{scholarship.provider}</b>
                       </span>
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin size={13} className="text-slate-400" />
-                        {scholarship.country}
+
+                      <span className="sch-card-meta-item">
+                        <MapPin size={13} />
+                        <span>{scholarship.country}</span>
                       </span>
+
                       {scholarship.department && (
-                        <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                        <span className="sch-card-meta-item" style={{ color: '#5B4FE9' }}>
                           <BookOpen size={13} />
-                          {scholarship.department}
+                          <span>{scholarship.department}</span>
                         </span>
                       )}
                     </div>
-                  </div>
 
-                  {/* Award Value Banner */}
-                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Award size={16} className="text-indigo-600 dark:text-indigo-400" />
-                      <div>
-                        <div className="text-xs font-bold text-slate-900 dark:text-white">
-                          {scholarship.awardAmount
-                            ? `${scholarship.awardCurrency || 'USD'} ${scholarship.awardAmount.toLocaleString()}`
-                            : scholarship.awardType || 'Award Value'}
+                    {/* Award Highlight Box */}
+                    <div className="sch-award-box">
+                      <div className="sch-award-left">
+                        <div className="sch-award-icon">
+                          <Award size={18} />
                         </div>
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">
-                          {scholarship.awardType || scholarship.awardDetails}
+                        <div>
+                          <div className="sch-award-amount">
+                            {formatAward(
+                              scholarship.awardAmount,
+                              scholarship.awardCurrency,
+                              scholarship.awardType
+                            )}
+                          </div>
+                          <div className="sch-award-type">
+                            {scholarship.awardType || scholarship.awardDetails}
+                          </div>
                         </div>
                       </div>
+
+                      {deadlineInfo && (
+                        <div className="sch-award-deadline">
+                          <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                            <Calendar size={11} style={{ display: 'inline', marginRight: 3 }} />
+                            Deadline:
+                          </span>
+                          <span className="sch-award-deadline-date">
+                            {deadlineInfo.formattedDate}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    {scholarship.applicationDeadline && (
-                      <div className="text-right text-[11px] text-slate-500 dark:text-slate-400">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">
-                          Deadline:
-                        </span>{' '}
-                        {new Date(scholarship.applicationDeadline).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
+                    {/* Eligibility Insight Explanation Callout */}
+                    {eligibility && (
+                      <div
+                        className={`sch-insight-box ${
+                          eligibility.status === 'ELIGIBLE'
+                            ? 'eligible'
+                            : eligibility.status === 'POTENTIALLY_ELIGIBLE'
+                            ? 'review'
+                            : 'not-eligible'
+                        }`}
+                      >
+                        {eligibility.status === 'ELIGIBLE' ? (
+                          <CheckCircle2 size={15} className="sch-insight-icon" />
+                        ) : eligibility.status === 'POTENTIALLY_ELIGIBLE' ? (
+                          <AlertTriangle size={15} className="sch-insight-icon" />
+                        ) : (
+                          <XCircle size={15} className="sch-insight-icon" />
+                        )}
+                        <div>
+                          <b>Eligibility Insight: </b>
+                          <span>{eligibility.summary}</span>
+                        </div>
                       </div>
                     )}
                   </div>
-
-                  {/* Personalized Explanation Box */}
-                  {eligibility && (
-                    <div
-                      className={`p-3 rounded-xl text-xs border ${eligibility.status === 'ELIGIBLE'
-                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-900 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/40'
-                          : eligibility.status === 'POTENTIALLY_ELIGIBLE'
-                            ? 'bg-amber-50/40 dark:bg-amber-950/20 text-amber-900 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/40'
-                            : 'bg-rose-50/40 dark:bg-rose-950/20 text-rose-900 dark:text-rose-300 border-rose-200/60 dark:border-rose-800/40'
-                        }`}
-                    >
-                      <span className="font-bold">Eligibility Insight:</span>{' '}
-                      {eligibility.summary}
-                    </div>
-                  )}
                 </div>
 
-                {/* Card Action Footer */}
-                <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                {/* Footer Action Buttons */}
+                <div className="sch-card-footer">
                   <button
                     onClick={() => setSelectedScholarship(scholarship)}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition"
+                    className="sch-btn-details"
+                    id={`sch-view-details-btn-${scholarship.id}`}
                   >
-                    View Details & Evidence <ChevronRight size={14} />
+                    <span>View Details & Evidence</span>
+                    <ChevronRight size={14} />
                   </button>
 
                   {scholarship.applicationUrl && (
@@ -494,9 +648,11 @@ export const ScholarshipDiscoveryView: React.FC = () => {
                       href={scholarship.applicationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
+                      className="sch-btn-portal"
+                      id={`sch-portal-link-${scholarship.id}`}
                     >
-                      Portal <ExternalLink size={12} />
+                      <span>Official Portal</span>
+                      <ExternalLink size={12} />
                     </a>
                   )}
                 </div>
@@ -506,7 +662,7 @@ export const ScholarshipDiscoveryView: React.FC = () => {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {/* 9. SCHOLARSHIP DETAIL MODAL */}
       {selectedScholarship && (
         <ScholarshipDetailModal
           scholarship={selectedScholarship}

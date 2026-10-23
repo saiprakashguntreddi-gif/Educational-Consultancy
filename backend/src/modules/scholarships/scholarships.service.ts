@@ -8,8 +8,27 @@ import {
   EligibilityStatus,
 } from './scholarships.types';
 import { badRequest, notFound, forbidden } from '../../shared/utils/error-handler';
+import { seedScholarshipsCatalog } from './scholarships.seed';
 
 export class ScholarshipsService {
+  private static isSeeded = false;
+
+  /**
+   * Automatically ensure verified scholarship catalogue is populated
+   */
+  public static async ensureSeedData(): Promise<void> {
+    if (this.isSeeded) return;
+    try {
+      const count = await prisma.scholarship.count();
+      if (count === 0) {
+        await seedScholarshipsCatalog();
+      }
+      this.isSeeded = true;
+    } catch (err) {
+      console.error('[SCHOLARSHIPS] Error ensuring seed data:', err);
+    }
+  }
+
   /**
    * Helper: Generate URL-safe unique slug
    */
@@ -286,60 +305,6 @@ export class ScholarshipsService {
       });
     }
 
-    // 5. Study Level Check
-    if (
-      scholarship.studyLevel &&
-      scholarship.studyLevel.trim().toUpperCase() !== 'ALL' &&
-      scholarship.studyLevel.trim().toUpperCase() !== 'ANY'
-    ) {
-      const studentGrade = studentProfile.grade || '';
-      const isUndergradEligible =
-        studentGrade.toLowerCase().includes('grade 12') ||
-        studentGrade.toLowerCase().includes('12') ||
-        studentGrade.toLowerCase().includes('high school') ||
-        studentGrade.toLowerCase().includes('undergraduate');
-
-      if (scholarship.studyLevel.trim().toUpperCase() === 'UNDERGRADUATE') {
-        if (isUndergradEligible) {
-          checks.push({
-            criterion: 'studyLevel',
-            status: 'MET',
-            label: 'Study Level (Undergraduate)',
-            detail: `Eligible: Your current academic stage (${studentGrade || 'Undergraduate'}) meets the undergraduate eligibility requirement.`,
-            requiredValue: 'Undergraduate',
-            studentValue: studentGrade || 'Undergraduate candidate',
-          });
-        } else {
-          checks.push({
-            criterion: 'studyLevel',
-            status: 'NEEDS_REVIEW',
-            label: 'Study Level (Undergraduate)',
-            detail: `Potentially eligible: Open to undergraduate degree applicants. Current stage recorded as "${studentGrade || 'Unspecified'}".`,
-            requiredValue: 'Undergraduate',
-            studentValue: studentGrade || 'Unspecified',
-          });
-        }
-      } else if (scholarship.studyLevel.trim().toUpperCase() === 'POSTGRADUATE') {
-        checks.push({
-          criterion: 'studyLevel',
-          status: 'NEEDS_REVIEW',
-          label: 'Study Level (Postgraduate / Master\'s)',
-          detail: `Requires completion of an accredited Bachelor's degree prior to award start. Document review required.`,
-          requiredValue: 'Postgraduate / Master\'s',
-          studentValue: studentGrade || 'Undergraduate candidate',
-        });
-      }
-    } else {
-      checks.push({
-        criterion: 'studyLevel',
-        status: 'MET',
-        label: 'Study Level',
-        detail: 'Open across all academic levels (Undergraduate, Postgraduate, Research).',
-        requiredValue: 'All Levels',
-        studentValue: studentProfile.grade || 'All',
-      });
-    }
-
     // 5. Citizenship Check
     if (
       scholarship.requiredCitizenship &&
@@ -348,10 +313,17 @@ export class ScholarshipsService {
       scholarship.requiredCitizenship.trim().toLowerCase() !== 'any'
     ) {
       if (studentCitizenship) {
-        if (
-          studentCitizenship.trim().toLowerCase() ===
-          scholarship.requiredCitizenship.trim().toLowerCase()
-        ) {
+        const sc = studentCitizenship.trim().toLowerCase();
+        const rc = scholarship.requiredCitizenship.trim().toLowerCase();
+        const matchesCitizenship =
+          sc === rc ||
+          (sc.startsWith('india') && rc.startsWith('india')) ||
+          (sc.startsWith('us') && rc.startsWith('us')) ||
+          (sc.startsWith('unit') && rc.startsWith('unit')) ||
+          sc.includes(rc) ||
+          rc.includes(sc);
+
+        if (matchesCitizenship) {
           checks.push({
             criterion: 'citizenship',
             status: 'MET',
@@ -566,10 +538,10 @@ export class ScholarshipsService {
       criteriaChecks: evaluation?.checks,
       eligibility: evaluation
         ? {
-          status: evaluation.status,
-          summary: evaluation.summary,
-          checks: evaluation.checks,
-        }
+            status: evaluation.status,
+            summary: evaluation.summary,
+            checks: evaluation.checks,
+          }
         : undefined,
       isSaved,
     };
@@ -584,17 +556,15 @@ export class ScholarshipsService {
       search?: string;
       country?: string;
       eligibility?: string;
-      eligibilityStatus?: string;
       department?: string;
-      studyLevel?: string;
-      awardType?: string;
-      deadlineStatus?: string;
       page?: number;
       limit?: number;
     }
   ): Promise<ScholarshipListResponse> {
-    const page = Math.max(1, Number(filters?.page) || 1);
-    const limit = Math.max(1, Math.min(50, Number(filters?.limit) || 12));
+    await this.ensureSeedData();
+
+    const page = Math.max(1, filters?.page || 1);
+    const limit = Math.max(1, Math.min(50, filters?.limit || 12));
 
     // Retrieve authenticated student profile with full context
     const profile = await prisma.studentProfile.findUnique({
@@ -645,14 +615,6 @@ export class ScholarshipsService {
       where.department = { contains: filters.department.trim() };
     }
 
-    if (filters?.studyLevel && filters.studyLevel.trim() && filters.studyLevel !== 'ALL') {
-      where.studyLevel = { in: [filters.studyLevel.trim(), 'ALL', null] };
-    }
-
-    if (filters?.awardType && filters.awardType.trim() && filters.awardType !== 'ALL') {
-      where.awardType = { contains: filters.awardType.trim() };
-    }
-
     const allScholarships = await prisma.scholarship.findMany({
       where,
       include: {
@@ -668,33 +630,9 @@ export class ScholarshipsService {
     });
 
     // Evaluate eligibility for all matching items
-    let evaluatedList = allScholarships.map((s) =>
+    const evaluatedList = allScholarships.map((s) =>
       this.mapToDto(s, profile, savedScholarshipIds.has(s.id))
     );
-
-    // Filter by deadline status if requested
-    if (filters?.deadlineStatus && filters.deadlineStatus !== 'ALL') {
-      const now = new Date();
-      const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-      evaluatedList = evaluatedList.filter((s) => {
-        if (!s.applicationDeadline) {
-          return filters.deadlineStatus === 'OPEN'; // Open/rolling opportunities
-        }
-        const deadlineDate = new Date(s.applicationDeadline);
-        if (isNaN(deadlineDate.getTime())) return true;
-        if (filters.deadlineStatus === 'EXPIRED') {
-          return deadlineDate < now;
-        }
-        if (filters.deadlineStatus === 'CLOSING_SOON') {
-          return deadlineDate >= now && deadlineDate <= in30Days;
-        }
-        if (filters.deadlineStatus === 'OPEN') {
-          return deadlineDate >= now;
-        }
-        return true;
-      });
-    }
 
     // Compute eligibility status counts
     const counts = {
@@ -707,15 +645,14 @@ export class ScholarshipsService {
       saved: evaluatedList.filter((s) => s.isSaved).length,
     };
 
-    // Filter by eligibility status if requested (support both eligibility and eligibilityStatus)
+    // Filter by eligibility status if requested
     let filteredList = evaluatedList;
-    const targetEligibility = filters?.eligibility || filters?.eligibilityStatus;
-    if (targetEligibility && targetEligibility !== 'ALL') {
-      if (targetEligibility === 'SAVED') {
+    if (filters?.eligibility && filters.eligibility !== 'ALL') {
+      if (filters.eligibility === 'SAVED') {
         filteredList = evaluatedList.filter((s) => s.isSaved);
       } else {
         filteredList = evaluatedList.filter(
-          (s) => s.eligibilityStatus === targetEligibility
+          (s) => s.eligibilityStatus === filters.eligibility
         );
       }
     }
@@ -750,6 +687,8 @@ export class ScholarshipsService {
     scholarshipId: string,
     studentUserId?: string
   ): Promise<ScholarshipDto> {
+    await this.ensureSeedData();
+
     const scholarship = await prisma.scholarship.findUnique({
       where: { id: scholarshipId },
       include: {
@@ -826,16 +765,6 @@ export class ScholarshipsService {
       await prisma.studentSavedScholarship.delete({
         where: { id: existing.id },
       });
-
-      // Synchronize removal with Module 12 ShortlistItem
-      await prisma.shortlistItem.deleteMany({
-        where: {
-          studentProfileId: profile.id,
-          itemType: 'SCHOLARSHIP',
-          itemId: scholarshipId,
-        },
-      });
-
       return {
         isSaved: false,
         message: `Removed "${scholarship.name}" from your saved scholarships.`,
@@ -847,29 +776,6 @@ export class ScholarshipsService {
           scholarshipId,
         },
       });
-
-      // Synchronize saving with Module 12 ShortlistItem
-      await prisma.shortlistItem.upsert({
-        where: {
-          studentProfileId_itemType_itemId: {
-            studentProfileId: profile.id,
-            itemType: 'SCHOLARSHIP',
-            itemId: scholarshipId,
-          },
-        },
-        update: {
-          priority: 'HIGH',
-        },
-        create: {
-          studentProfileId: profile.id,
-          itemType: 'SCHOLARSHIP',
-          itemId: scholarshipId,
-          priority: 'HIGH',
-          fitCategory: 'DREAM',
-          notes: scholarship.name,
-        },
-      });
-
       return {
         isSaved: true,
         message: `Saved "${scholarship.name}" to your scholarship shortlist.`,
@@ -933,6 +839,8 @@ export class ScholarshipsService {
       inactive: number;
     };
   }> {
+    await this.ensureSeedData();
+
     const page = Math.max(1, params?.page || 1);
     const limit = Math.max(1, Math.min(100, params?.limit || 15));
 

@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   X,
   Building,
   MapPin,
-  Calendar,
   Award,
   ExternalLink,
   CheckCircle2,
@@ -13,8 +12,11 @@ import {
   ShieldCheck,
   AlertTriangle,
   Info,
+  BookOpen,
+  FileText,
 } from 'lucide-react';
 import { ScholarshipDto, EligibilityCriterionCheck } from '../scholarships.types';
+import '../scholarships.css';
 
 interface ScholarshipDetailModalProps {
   scholarship: ScholarshipDto | null;
@@ -33,290 +35,354 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
 
   const eligibility = scholarship.eligibility;
 
-  const renderStatusBadge = () => {
-    if (!eligibility) {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-          <Info size={14} /> Catalog Record
-        </span>
-      );
-    }
+  // Document checklist state (interactive for student readiness)
+  const [checkedDocs, setCheckedDocs] = useState<Record<string, boolean>>({});
 
-    switch (eligibility.status) {
-      case 'ELIGIBLE':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-            <CheckCircle2 size={15} /> Eligible
-          </span>
-        );
-      case 'POTENTIALLY_ELIGIBLE':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-            <AlertTriangle size={15} /> Potentially Eligible / Needs Review
-          </span>
-        );
-      case 'NOT_ELIGIBLE':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-            <XCircle size={15} /> Not Eligible
-          </span>
-        );
+  const defaultDocuments = [
+    { id: 'transcripts', label: 'Official Academic Transcripts & Marksheets' },
+    { id: 'sop', label: 'Statement of Purpose / Academic Motivation Essay' },
+    { id: 'tests', label: 'Standardized Test Score Reports (IELTS / TOEFL / GRE / SAT)' },
+    { id: 'lor', label: 'Letters of Recommendation (Academic / Faculty / Employer)' },
+    { id: 'citizenship', label: 'Valid Passport & Citizenship Identification' },
+    { id: 'financial', label: 'Family Income Certificate / Financial Solvency Proof' },
+  ];
+
+  const toggleDoc = (id: string) => {
+    setCheckedDocs((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const checkedCount = Object.values(checkedDocs).filter(Boolean).length;
+
+  // Format deadline date & days remaining
+  const getDeadlineText = (deadlineStr?: string | null) => {
+    if (!deadlineStr) return 'Rolling / Verified Provider Intake';
+    const deadlineDate = new Date(deadlineStr);
+    const now = new Date();
+    const diffTime = deadlineDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const dateFormatted = deadlineDate.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
+    if (diffDays > 0) {
+      return `${dateFormatted} (${diffDays} days remaining)`;
+    } else if (diffDays === 0) {
+      return `${dateFormatted} (Closes Today)`;
+    } else {
+      return `${dateFormatted} (Cycle Expired)`;
     }
   };
 
-  const renderCriterionIcon = (check: EligibilityCriterionCheck) => {
-    switch (check.status) {
-      case 'MET':
-        return <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />;
-      case 'NOT_MET':
-        return <XCircle size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />;
-      case 'NEEDS_REVIEW':
-        return <HelpCircle size={16} className="text-amber-500 dark:text-amber-400 shrink-0" />;
-      default:
-        return <Info size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />;
+  const formatAwardValue = (amount?: number | null, currency?: string | null, type?: string | null) => {
+    if (amount !== null && amount !== undefined) {
+      const curr = currency || 'USD';
+      if (curr === 'INR') {
+        return `₹${amount.toLocaleString('en-IN')}`;
+      } else if (curr === 'USD') {
+        return `$${amount.toLocaleString('en-US')} USD`;
+      } else if (curr === 'GBP') {
+        return `£${amount.toLocaleString('en-GB')}`;
+      } else if (curr === 'EUR') {
+        return `€${amount.toLocaleString('en-EU')}`;
+      }
+      return `${curr} ${amount.toLocaleString()}`;
     }
+    return type || 'Full / Partial Coverage';
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in"
+      className="sch-modal-overlay"
+      id="scholarship-detail-modal-overlay"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-8 max-h-[90vh] flex flex-col"
+        className="sch-modal-container"
+        id="scholarship-detail-modal-container"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/30">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              {renderStatusBadge()}
-              {scholarship.destinationCountry && (
-                <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  Destination: {scholarship.destinationCountry}
+        {/* MODAL HEADER */}
+        <div className="sch-modal-header">
+          <div className="sch-modal-header-left">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {eligibility && (
+                <span
+                  className={`sch-status-badge ${
+                    eligibility.status === 'ELIGIBLE'
+                      ? 'eligible'
+                      : eligibility.status === 'POTENTIALLY_ELIGIBLE'
+                      ? 'review'
+                      : 'not-eligible'
+                  }`}
+                >
+                  {eligibility.status === 'ELIGIBLE' ? (
+                    <CheckCircle2 size={13} />
+                  ) : eligibility.status === 'POTENTIALLY_ELIGIBLE' ? (
+                    <AlertTriangle size={13} />
+                  ) : (
+                    <XCircle size={13} />
+                  )}
+                  <span>
+                    {eligibility.status === 'ELIGIBLE'
+                      ? 'Verified Eligible'
+                      : eligibility.status === 'POTENTIALLY_ELIGIBLE'
+                      ? 'Needs Profile Review'
+                      : 'Not Eligible'}
+                  </span>
                 </span>
               )}
-              {scholarship.department && (
-                <span className="text-xs font-medium px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                  {scholarship.department}
+
+              {scholarship.destinationCountry && (
+                <span className="sch-tag destination">
+                  <MapPin size={11} />
+                  <span>Destination: {scholarship.destinationCountry}</span>
+                </span>
+              )}
+
+              {scholarship.studyLevel && (
+                <span className="sch-tag">
+                  <span>Level: {scholarship.studyLevel}</span>
                 </span>
               )}
             </div>
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
-              {scholarship.name}
-            </h2>
-            <div className="flex flex-wrap items-center gap-4 text-xs md:text-sm text-slate-600 dark:text-slate-400">
-              <span className="inline-flex items-center gap-1.5 font-medium">
-                <Building size={15} className="text-indigo-500" />
+
+            <h2 className="sch-modal-title">{scholarship.name}</h2>
+
+            <div className="sch-modal-provider-line">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 600 }}>
+                <Building size={13} />
                 {scholarship.provider}
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin size={15} className="text-slate-400" />
-                {scholarship.country}
+              <span>•</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <MapPin size={13} />
+                Host: {scholarship.country}
               </span>
-              {scholarship.institution && (
-                <span className="inline-flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-medium">
-                  {scholarship.institution.name}
-                </span>
+              {scholarship.department && (
+                <>
+                  <span>•</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#5B4FE9', fontWeight: 600 }}>
+                    <BookOpen size={13} />
+                    {scholarship.department}
+                  </span>
+                </>
               )}
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
-            aria-label="Close dialog"
+            className="sch-btn-close-modal"
+            title="Close dialog"
+            id="sch-modal-close-btn"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="p-6 overflow-y-auto space-y-6">
-          {/* Key Facts Banner */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50">
-              <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700 dark:text-indigo-400 mb-1">
-                <Award size={15} /> Award / Benefit
-              </div>
-              <div className="text-lg font-bold text-slate-900 dark:text-white">
-                {scholarship.awardAmount
-                  ? `${scholarship.awardCurrency || 'USD'} ${scholarship.awardAmount.toLocaleString()}`
-                  : scholarship.awardType || 'Award Value'}
-              </div>
-              <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-1">
-                {scholarship.awardType || 'Verified Financial Aid'}
-              </div>
+        {/* MODAL BODY */}
+        <div className="sch-modal-body">
+          {/* Key Stats Grid */}
+          <div className="sch-modal-stats-grid">
+            <div className="sch-stat-box">
+              <span className="sch-stat-label">Award Value</span>
+              <span className="sch-stat-value" style={{ color: '#059669' }}>
+                {formatAwardValue(scholarship.awardAmount, scholarship.awardCurrency, scholarship.awardType)}
+              </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                <Calendar size={15} /> Application Deadline
-              </div>
-              <div className="text-sm font-bold text-slate-900 dark:text-white">
-                {scholarship.applicationDeadline
-                  ? new Date(scholarship.applicationDeadline).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                  : 'Rolling / Not Fixed'}
-              </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {scholarship.applicationDeadline ? 'Official closing date' : 'Check provider portal'}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 sm:col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                <ShieldCheck size={15} /> Academic Benchmark
-              </div>
-              <div className="text-sm font-bold text-slate-900 dark:text-white">
+            <div className="sch-stat-box">
+              <span className="sch-stat-label">Academic Cutoff</span>
+              <span className="sch-stat-value">
                 {scholarship.minPercentageRequirement !== null && scholarship.minPercentageRequirement !== undefined
-                  ? `Min. ${scholarship.minPercentageRequirement}%`
-                  : 'Holistic Review'}
-              </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                {scholarship.eligibleBoards && scholarship.eligibleBoards.length > 0
-                  ? `Boards: ${scholarship.eligibleBoards.join(', ')}`
-                  : 'All recognized boards'}
-              </div>
+                  ? `${scholarship.minPercentageRequirement}% Aggregate`
+                  : 'Open Benchmark'}
+              </span>
+            </div>
+
+            <div className="sch-stat-box">
+              <span className="sch-stat-label">Citizenship</span>
+              <span className="sch-stat-value">
+                {scholarship.requiredCitizenship || 'All Nationalities'}
+              </span>
+            </div>
+
+            <div className="sch-stat-box">
+              <span className="sch-stat-label">Deadline</span>
+              <span className="sch-stat-value" style={{ fontSize: '0.82rem' }}>
+                {getDeadlineText(scholarship.applicationDeadline)}
+              </span>
             </div>
           </div>
 
-          {/* Eligibility Explanation Card */}
-          {eligibility && (
-            <div
-              className={`p-5 rounded-2xl border ${eligibility.status === 'ELIGIBLE'
-                  ? 'bg-emerald-50/60 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                  : eligibility.status === 'POTENTIALLY_ELIGIBLE'
-                    ? 'bg-amber-50/60 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60'
-                    : 'bg-rose-50/60 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60'
+          {/* Section 1: Detailed Benefits Description */}
+          <div className="sch-modal-section">
+            <h3 className="sch-modal-section-title">
+              <Award size={16} color="#5B4FE9" />
+              Award Coverage & Financial Benefits
+            </h3>
+            <div className="sch-modal-section-content">
+              <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600, color: '#0F172A' }}>
+                {scholarship.awardType || 'Comprehensive Educational Support'}
+              </p>
+              <p style={{ margin: 0 }}>{scholarship.awardDetails}</p>
+            </div>
+          </div>
+
+          {/* Section 2: Eligibility Criteria Engine Breakdown */}
+          <div className="sch-modal-section">
+            <h3 className="sch-modal-section-title">
+              <ShieldCheck size={16} color="#059669" />
+              Automated Profile Eligibility Assessment
+            </h3>
+
+            {eligibility && (
+              <div
+                className={`sch-insight-box ${
+                  eligibility.status === 'ELIGIBLE'
+                    ? 'eligible'
+                    : eligibility.status === 'POTENTIALLY_ELIGIBLE'
+                    ? 'review'
+                    : 'not-eligible'
                 }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5">
-                  {eligibility.status === 'ELIGIBLE' ? (
-                    <CheckCircle2 size={22} className="text-emerald-600 dark:text-emerald-400" />
-                  ) : eligibility.status === 'POTENTIALLY_ELIGIBLE' ? (
-                    <AlertTriangle size={22} className="text-amber-600 dark:text-amber-400" />
-                  ) : (
-                    <XCircle size={22} className="text-rose-600 dark:text-rose-400" />
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Eligibility Analysis
-                  </h3>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                    {eligibility.summary}
-                  </p>
+              >
+                {eligibility.status === 'ELIGIBLE' ? (
+                  <CheckCircle2 size={16} className="sch-insight-icon" />
+                ) : eligibility.status === 'POTENTIALLY_ELIGIBLE' ? (
+                  <AlertTriangle size={16} className="sch-insight-icon" />
+                ) : (
+                  <XCircle size={16} className="sch-insight-icon" />
+                )}
+                <div>
+                  <span style={{ fontWeight: 700 }}>Summary Decision: </span>
+                  {eligibility.summary}
                 </div>
               </div>
+            )}
 
-              {/* Criterion Breakdown Checklist */}
-              {eligibility.checks && eligibility.checks.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-2.5">
-                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Criteria Checklist & Stored Evidence
-                  </h4>
-                  <div className="space-y-2">
-                    {eligibility.checks.map((check, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-2.5 text-xs p-2.5 rounded-lg bg-white/70 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800"
-                      >
-                        {renderCriterionIcon(check)}
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-slate-900 dark:text-white">
-                              {check.label}
-                            </span>
-                            <span
-                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${check.status === 'MET'
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                  : check.status === 'NOT_MET'
-                                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                    : check.status === 'NEEDS_REVIEW'
-                                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                      : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                }`}
-                            >
-                              {check.status === 'NEEDS_REVIEW' ? 'Needs Review' : check.status.replace('_', ' ')}
-                            </span>
-                          </div>
-                          <p className="text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
-                            {check.detail}
-                          </p>
-                        </div>
+            <div className="sch-criteria-list" style={{ marginTop: '0.5rem' }}>
+              {eligibility?.checks && eligibility.checks.length > 0 ? (
+                eligibility.checks.map((check: EligibilityCriterionCheck, index: number) => {
+                  const isMet = check.status === 'MET';
+                  const isReview = check.status === 'NEEDS_REVIEW';
+
+                  return (
+                    <div
+                      key={index}
+                      className={`sch-criterion-item ${
+                        isMet ? 'met' : isReview ? 'needs-review' : 'not-met'
+                      }`}
+                    >
+                      <div className="sch-criterion-icon">
+                        {isMet ? (
+                          <CheckCircle2 size={18} color="#15803D" />
+                        ) : isReview ? (
+                          <HelpCircle size={18} color="#B45309" />
+                        ) : (
+                          <XCircle size={18} color="#B91C1C" />
+                        )}
                       </div>
-                    ))}
-                  </div>
+
+                      <div className="sch-criterion-details">
+                        <div className="sch-criterion-header">
+                          <span className="sch-criterion-label">{check.label}</span>
+                          <span
+                            className={`sch-criterion-status-tag ${
+                              isMet ? 'met' : isReview ? 'needs-review' : 'not-met'
+                            }`}
+                          >
+                            {isMet ? 'Criteria Satisfied' : isReview ? 'Review Needed' : 'Requirement Not Met'}
+                          </span>
+                        </div>
+                        <p className="sch-criterion-explanation">{check.detail}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="sch-modal-section-content">
+                  <p style={{ margin: 0 }}>{scholarship.eligibilityDescription}</p>
                 </div>
               )}
             </div>
-          )}
+          </div>
 
-          {/* Description & Award Details */}
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Award Overview & Coverage
-              </h4>
-              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                {scholarship.awardDetails}
-              </p>
+          {/* Section 3: Interactive Document Checklist */}
+          <div className="sch-modal-section">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 className="sch-modal-section-title">
+                <FileText size={16} color="#5B4FE9" />
+                Required Application Documents Checklist
+              </h3>
+              <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
+                {checkedCount} of {defaultDocuments.length} Prepared
+              </span>
             </div>
 
-            <div>
-              <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Eligibility Guidelines
-              </h4>
-              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                {scholarship.eligibilityDescription}
-              </p>
+            <div className="sch-checklist">
+              {defaultDocuments.map((doc) => {
+                const isChecked = !!checkedDocs[doc.id];
+                return (
+                  <div
+                    key={doc.id}
+                    onClick={() => toggleDoc(doc.id)}
+                    className={`sch-check-item ${isChecked ? 'checked' : ''}`}
+                  >
+                    <div className="sch-checkbox-box">
+                      {isChecked ? <CheckCircle2 size={14} color="#FFFFFF" /> : null}
+                    </div>
+                    <span>{doc.label}</span>
+                  </div>
+                );
+              })}
             </div>
+          </div>
 
-            {/* Source Reference & Verification Note */}
-            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
-              <ShieldCheck size={16} className="text-indigo-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold text-slate-700 dark:text-slate-300">
-                  Data Source & Integrity:
-                </span>{' '}
-                {scholarship.sourceInfo ||
-                  'Verified official scholarship catalogue record maintained by platform administrators.'}{' '}
-                Eligibility assessments are calculated using verified student profile intake records and do not guarantee final award by provider.
-              </div>
+          {/* Section 4: Official Provider Verification Notice */}
+          <div className="sch-verification-box">
+            <Info size={18} color="#1E40AF" style={{ flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <p>
+                <b>Official Verification Source: </b>
+                {scholarship.sourceInfo || 'Verified Official Educational Authority / Provider Registry'}.
+              </p>
+              <p style={{ marginTop: '0.35rem', fontSize: '0.75rem', color: '#3B82F6' }}>
+                <b>Notice: </b>
+                Application deadlines and award criteria reflect official published cycles. Final scholarship grant, interview shortlisting, and disbursement are governed exclusively by the scholarship provider.
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        {/* MODAL FOOTER */}
+        <div className="sch-modal-footer">
+          <div className="sch-modal-footer-left">
             {onToggleSave && (
               <button
                 onClick={() => onToggleSave(scholarship.id)}
                 disabled={isSaving}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs md:text-sm font-semibold transition border ${scholarship.isSaved
-                    ? 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 hover:bg-amber-100'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-                  }`}
+                className={`sch-btn-modal-save ${scholarship.isSaved ? 'saved' : ''}`}
+                id="sch-modal-toggle-save-btn"
               >
                 <Bookmark
                   size={15}
                   className={scholarship.isSaved ? 'fill-amber-500 text-amber-500' : ''}
                 />
-                {scholarship.isSaved ? 'Saved to Shortlist' : 'Save Scholarship'}
+                <span>
+                  {scholarship.isSaved ? 'Shortlisted' : 'Save to Shortlist'}
+                </span>
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="sch-modal-footer-right">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs md:text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="sch-btn-modal-close"
+              id="sch-modal-footer-close-btn"
             >
               Close
             </button>
@@ -326,9 +392,11 @@ export const ScholarshipDetailModal: React.FC<ScholarshipDetailModalProps> = ({
                 href={scholarship.applicationUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs md:text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-sm"
+                className="sch-btn-modal-apply"
+                id="sch-modal-apply-now-btn"
               >
-                Apply on Official Portal <ExternalLink size={14} />
+                <span>Apply on Official Portal</span>
+                <ExternalLink size={14} />
               </a>
             )}
           </div>
