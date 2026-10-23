@@ -8,8 +8,27 @@ import {
   EligibilityStatus,
 } from './scholarships.types';
 import { badRequest, notFound, forbidden } from '../../shared/utils/error-handler';
+import { seedScholarshipsCatalog } from './scholarships.seed';
 
 export class ScholarshipsService {
+  private static isSeeded = false;
+
+  /**
+   * Automatically ensure verified scholarship catalogue is populated
+   */
+  public static async ensureSeedData(): Promise<void> {
+    if (this.isSeeded) return;
+    try {
+      const count = await prisma.scholarship.count();
+      if (count === 0) {
+        await seedScholarshipsCatalog();
+      }
+      this.isSeeded = true;
+    } catch (err) {
+      console.error('[SCHOLARSHIPS] Error ensuring seed data:', err);
+    }
+  }
+
   /**
    * Helper: Generate URL-safe unique slug
    */
@@ -294,10 +313,17 @@ export class ScholarshipsService {
       scholarship.requiredCitizenship.trim().toLowerCase() !== 'any'
     ) {
       if (studentCitizenship) {
-        if (
-          studentCitizenship.trim().toLowerCase() ===
-          scholarship.requiredCitizenship.trim().toLowerCase()
-        ) {
+        const sc = studentCitizenship.trim().toLowerCase();
+        const rc = scholarship.requiredCitizenship.trim().toLowerCase();
+        const matchesCitizenship =
+          sc === rc ||
+          (sc.startsWith('india') && rc.startsWith('india')) ||
+          (sc.startsWith('us') && rc.startsWith('us')) ||
+          (sc.startsWith('unit') && rc.startsWith('unit')) ||
+          sc.includes(rc) ||
+          rc.includes(sc);
+
+        if (matchesCitizenship) {
           checks.push({
             criterion: 'citizenship',
             status: 'MET',
@@ -535,6 +561,8 @@ export class ScholarshipsService {
       limit?: number;
     }
   ): Promise<ScholarshipListResponse> {
+    await this.ensureSeedData();
+
     const page = Math.max(1, filters?.page || 1);
     const limit = Math.max(1, Math.min(50, filters?.limit || 12));
 
@@ -659,6 +687,8 @@ export class ScholarshipsService {
     scholarshipId: string,
     studentUserId?: string
   ): Promise<ScholarshipDto> {
+    await this.ensureSeedData();
+
     const scholarship = await prisma.scholarship.findUnique({
       where: { id: scholarshipId },
       include: {
@@ -809,6 +839,8 @@ export class ScholarshipsService {
       inactive: number;
     };
   }> {
+    await this.ensureSeedData();
+
     const page = Math.max(1, params?.page || 1);
     const limit = Math.max(1, Math.min(100, params?.limit || 15));
 

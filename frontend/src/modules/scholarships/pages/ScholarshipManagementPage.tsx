@@ -19,6 +19,7 @@ import {
   UpdateScholarshipInput,
 } from '../scholarships.types';
 import { ScholarshipsService } from '../services/scholarships.service';
+import '../scholarships.css';
 
 interface ScholarshipManagementPageProps {
   onNavigateHome?: () => void;
