@@ -10,14 +10,18 @@ export const errorHandler = (
 ): void => {
   logger.error('Unhandled server error:', err);
 
-  const statusCode = (err as any).statusCode || 500;
-  const message = err.message || 'Internal server error';
+  const statusCode = (err as any).statusCode || (err as any).status || 500;
+  let message = err.message || 'Internal server error';
+
+  if ((err as any).type === 'entity.too.large' || err.name === 'PayloadTooLargeError') {
+    message = 'Uploaded document or request payload is too large. Maximum supported request size is 10MB.';
+  }
 
   ApiResponse.error(
     res,
-    process.env.NODE_ENV === 'development' ? err.stack || message : message,
+    process.env.NODE_ENV === 'development' && statusCode === 500 ? err.stack || message : message,
     statusCode,
-    'Internal Server Error'
+    statusCode === 413 ? 'Payload Too Large' : 'Internal Server Error'
   );
 };
 

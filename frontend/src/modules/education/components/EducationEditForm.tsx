@@ -111,12 +111,65 @@ export const EducationEditForm: React.FC<EducationEditFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Helper to handle local file upload as Data URL
+  // Helper to handle local file upload as Data URL with image compression
   const handleFileUpload = (
     file: File,
     setUrl: (url: string) => void,
     setFileName: (name: string) => void
   ) => {
+    // If uploading an image (photo scan of certificate/marksheet), compress via canvas
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDimension = 1600;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressed = canvas.toDataURL('image/jpeg', 0.85);
+            setUrl(compressed);
+            setFileName(file.name);
+            setErrorMessage(null);
+            return;
+          }
+          setUrl(e.target?.result as string);
+          setFileName(file.name);
+          setErrorMessage(null);
+        };
+        img.onerror = () => {
+          setUrl(e.target?.result as string);
+          setFileName(file.name);
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // For PDF documents: enforce 4MB max per file so combined request stays well below 10MB
+    const maxPdfBytes = 4 * 1024 * 1024;
+    if (file.size > maxPdfBytes) {
+      setErrorMessage(
+        `The selected document "${file.name}" is ${(file.size / (1024 * 1024)).toFixed(1)}MB. For PDF documents, please upload files under 4MB.`
+      );
+      return;
+    }
+    setErrorMessage(null);
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
