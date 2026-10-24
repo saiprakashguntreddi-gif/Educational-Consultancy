@@ -1,12 +1,8 @@
-export const BOARD_OPTIONS = [
-  'CBSE',
-  'ICSE',
-  'State Board',
-  'IB',
-  'Cambridge/IGCSE',
-  'NIOS',
-  'Other',
-];
+import { COMPREHENSIVE_BOARD_GROUPS, ALL_BOARD_VALUES } from '../../shared/constants/boards.constants';
+
+export { COMPREHENSIVE_BOARD_GROUPS };
+
+export const BOARD_OPTIONS = ALL_BOARD_VALUES;
 
 export const COMMON_SUBJECTS = [
   'Mathematics',

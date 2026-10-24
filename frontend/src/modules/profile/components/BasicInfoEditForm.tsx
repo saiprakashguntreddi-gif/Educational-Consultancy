@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StudentProfileRecord, StudentProfileIntakeInput, Gender } from '../profile.types';
 import { COUNTRY_OPTIONS } from '../../preferences/preferences.constants';
+import { SearchableBoardSelect } from '../../../shared/components/SearchableBoardSelect';
 
 interface BasicInfoEditFormProps {
   initialData?: StudentProfileRecord | null;
@@ -177,18 +178,11 @@ export const BasicInfoEditForm: React.FC<BasicInfoEditFormProps> = ({
       <div className="dash-form-row">
         <div className="dash-form-label-col">12th Board</div>
         <div className="dash-form-inputs-col">
-          <select
-            className="dash-select"
+          <SearchableBoardSelect
             value={board}
-            onChange={(e) => setBoard(e.target.value)}
-          >
-            <option value="CBSE">CBSE</option>
-            <option value="ICSE / ISC">ICSE / ISC</option>
-            <option value="State Board">State Board</option>
-            <option value="IB (International Baccalaureate)">IB (International Baccalaureate)</option>
-            <option value="Cambridge (CIE)">Cambridge (CIE)</option>
-            <option value="Other / Equivalent">Other / Equivalent</option>
-          </select>
+            onChange={(val) => setBoard(val)}
+            placeholder="Select or search 12th board..."
+          />
         </div>
       </div>
 

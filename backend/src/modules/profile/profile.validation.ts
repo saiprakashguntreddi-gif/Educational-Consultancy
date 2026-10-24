@@ -39,7 +39,7 @@ export const profileIntakeSchema = z.object({
     board: z
       .string()
       .min(2, 'Board / Curriculum is required')
-      .max(100, 'Board name cannot exceed 100 characters')
+      .max(150, 'Board name cannot exceed 150 characters')
       .trim(),
     citizenship: z
       .string()

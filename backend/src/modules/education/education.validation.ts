@@ -12,7 +12,7 @@ export const saveEducationSchema = z.object({
       .string({ required_error: '12th Board/Curriculum is required' })
       .trim()
       .min(2, 'Board must be at least 2 characters')
-      .max(80, 'Board must not exceed 80 characters'),
+      .max(150, 'Board must not exceed 150 characters'),
     completionYear: z.coerce
       .number({ required_error: 'Completion year is required' })
       .int('Completion year must be an integer')
@@ -47,7 +47,7 @@ export const saveEducationSchema = z.object({
     tenthBoard: z
       .string()
       .trim()
-      .max(80, '10th Board must not exceed 80 characters')
+      .max(150, '10th Board must not exceed 150 characters')
       .optional()
       .or(z.literal('')),
     tenthPassingYear: z.coerce

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StudentProfileIntakeInput, StudentProfileRecord } from '../profile.types';
 import { Save, AlertCircle, CheckCircle2, User, BookOpen, MapPin } from 'lucide-react';
+import { SearchableBoardSelect } from '../../../shared/components/SearchableBoardSelect';
 
 interface ProfileIntakeFormProps {
   initialData?: StudentProfileRecord | null;
@@ -183,19 +184,11 @@ export const ProfileIntakeForm: React.FC<ProfileIntakeFormProps> = ({
 
           <div className="form-group">
             <label className="form-label">Board / Curriculum <span className="required">*</span></label>
-            <select
-              required
-              className="form-select"
+            <SearchableBoardSelect
               value={formData.board}
-              onChange={(e) => handleChange('board', e.target.value)}
-            >
-              <option value="CBSE">CBSE (Central Board of Secondary Education)</option>
-              <option value="ICSE / ISC">ICSE / ISC (Council for the Indian School Certificate)</option>
-              <option value="State Board">State Board</option>
-              <option value="IB (International Baccalaureate)">IB (International Baccalaureate)</option>
-              <option value="Cambridge (IGCSE / A-Levels)">Cambridge (IGCSE / A-Levels)</option>
-              <option value="Other / Equivalent">Other / Equivalent</option>
-            </select>
+              onChange={(val) => handleChange('board', val)}
+              placeholder="Select or search board / curriculum..."
+            />
           </div>
 
           <div className="form-group">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StudentEducationRecord, StudentEducationInput, SubjectDetail } from '../education.types';
-import { BOARD_OPTIONS, COMMON_SUBJECTS, COMPLETION_YEAR_OPTIONS } from '../education.constants';
+import { COMMON_SUBJECTS, COMPLETION_YEAR_OPTIONS } from '../education.constants';
+import { SearchableBoardSelect } from '../../../shared/components/SearchableBoardSelect';
 import { ProgressRing } from '../../../shared/components/ProgressRing';
 import {
   X,
@@ -684,18 +685,11 @@ export const EducationEditForm: React.FC<EducationEditFormProps> = ({
             <label className="dash-view-label" style={{ fontWeight: 600 }}>
               12th Board / Curriculum <span style={{ color: '#e53935' }}>*</span>
             </label>
-            <select
-              className="dash-select"
+            <SearchableBoardSelect
               value={board}
-              onChange={(e) => setBoard(e.target.value)}
-              required
-            >
-              {BOARD_OPTIONS.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setBoard(val)}
+              placeholder="Search or select 12th board..."
+            />
           </div>
 
           {/* Passing Out Year */}
@@ -875,17 +869,11 @@ export const EducationEditForm: React.FC<EducationEditFormProps> = ({
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <label className="dash-view-label">10th Board</label>
-              <select
-                className="dash-select"
+              <SearchableBoardSelect
                 value={tenthBoard}
-                onChange={(e) => setTenthBoard(e.target.value)}
-              >
-                {BOARD_OPTIONS.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setTenthBoard(val)}
+                placeholder="Search or select 10th board (optional)..."
+              />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
