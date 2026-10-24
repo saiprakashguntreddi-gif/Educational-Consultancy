@@ -31,7 +31,19 @@ class ApiClient {
         headers,
       });
 
-      const data: ApiResponse<T> = await response.json();
+      const responseText = await response.text();
+      let data: ApiResponse<T>;
+      try {
+        data = responseText ? JSON.parse(responseText) : ({} as ApiResponse<T>);
+      } catch {
+        data = {
+          success: false,
+          message: response.status >= 500
+            ? 'Backend service is unavailable or returned an invalid response. Please ensure the backend is running.'
+            : `Request failed with status ${response.status}`,
+          timestamp: new Date().toISOString(),
+        };
+      }
 
       if (!response.ok) {
         throw new Error(
