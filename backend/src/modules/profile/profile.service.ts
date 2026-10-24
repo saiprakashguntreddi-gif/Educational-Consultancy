@@ -194,6 +194,8 @@ export class ProfileService {
       verifiedAt: raw.verifiedAt,
       verifiedBy: raw.verifiedBy,
       verificationNotes: raw.verificationNotes,
+      isEnrolled: Boolean(raw.isEnrolled),
+      enrolledAt: raw.enrolledAt ? new Date(raw.enrolledAt) : null,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     };

@@ -232,6 +232,15 @@ export class AppointmentsService {
   ): Promise<AppointmentDto> {
     const profile = await this.getStudentProfile(userId);
 
+    // Business Requirement: Student must be verified by admin before booking appointments
+    if (profile.verificationStatus !== 'VERIFIED') {
+      const err: any = new Error(
+        'Appointment booking is restricted until your student profile and educational certificates are verified by an administrator. Please submit My Profile, Preferences, and Education details with required documents for verification.'
+      );
+      err.statusCode = 403;
+      throw err;
+    }
+
     // Business Requirement: If student has an assigned counsellor, book ONLY with that counsellor
     if (profile.assignedCounsellorId && input.counsellorId !== profile.assignedCounsellorId) {
       const err: any = new Error(

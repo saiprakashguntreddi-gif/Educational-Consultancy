@@ -17,8 +17,13 @@ import {
   Mail,
   Phone,
   MapPin,
+  ExternalLink,
+  ShieldCheck,
+  Award,
 } from 'lucide-react';
 import { CounsellorClientService, ActionPlanItem, StudentCounsellorNote } from '../services/counsellor.service';
+import { ProfileService } from '../../profile/services/profile.service';
+import { AppointmentsService } from '../../appointments/services/appointments.service';
 
 interface Student360ModalProps {
   profileId: string;
@@ -45,6 +50,52 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
+  const handleVerifyStudent = async (status: 'VERIFIED' | 'REJECTED') => {
+    let notes: string | undefined = undefined;
+    if (status === 'REJECTED') {
+      const reason = window.prompt('Please enter the reason for rejection or missing certificates:');
+      if (reason === null) return;
+      notes = reason;
+    }
+    setIsVerifying(true);
+    try {
+      const res = await ProfileService.verifyProfile(profileId, status, notes);
+      if (res.success) {
+        await loadData();
+        if (onRefresh) onRefresh();
+      } else {
+        alert(res.message || 'Verification update failed');
+      }
+    } catch (err: any) {
+      alert(`Verification failed: ${err.message}`);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleEnrollStudent = async () => {
+    if (!window.confirm('Confirm official consultancy enrolment for this verified student? This will unlock all advanced discovery and planning modules.')) return;
+    setIsEnrolling(true);
+    try {
+      const res = await AppointmentsService.enrollStudent({
+        studentProfileId: profileId,
+        agreementSigned: true,
+      });
+      if (res.success) {
+        await loadData();
+        if (onRefresh) onRefresh();
+      } else {
+        alert(res.message || 'Enrollment failed');
+      }
+    } catch (err: any) {
+      alert(`Enrollment failed: ${err.message}`);
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -238,7 +289,119 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {data && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {data.verificationStatus !== 'VERIFIED' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyStudent('VERIFIED')}
+                    disabled={isVerifying}
+                    style={{
+                      backgroundColor: '#16A34A',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      boxShadow: '0 2px 4px rgba(22, 163, 74, 0.2)',
+                    }}
+                  >
+                    <Check size={14} />
+                    <span>{isVerifying ? 'Verifying...' : 'Approve & Verify Student'}</span>
+                  </button>
+                ) : (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      backgroundColor: '#DCFCE7',
+                      color: '#15803D',
+                      border: '1px solid #BBF7D0',
+                      borderRadius: '8px',
+                      padding: '0.4rem 0.75rem',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <ShieldCheck size={14} />
+                    <span>Verified by Admin</span>
+                  </div>
+                )}
+
+                {data.verificationStatus === 'VERIFIED' && (
+                  data.isEnrolled ? (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        backgroundColor: '#EFF6FF',
+                        color: '#1D4ED8',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '8px',
+                        padding: '0.4rem 0.75rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Award size={14} />
+                      <span>Officially Enrolled</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleEnrollStudent}
+                      disabled={isEnrolling}
+                      style={{
+                        backgroundColor: '#4338CA',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.45rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        boxShadow: '0 2px 4px rgba(67, 56, 202, 0.2)',
+                      }}
+                    >
+                      <Award size={14} />
+                      <span>{isEnrolling ? 'Enrolling...' : 'Confirm Enrolment'}</span>
+                    </button>
+                  )
+                )}
+
+                {data.verificationStatus !== 'REJECTED' && (
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyStudent('REJECTED')}
+                    disabled={isVerifying}
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      color: '#DC2626',
+                      border: '1px solid #FECACA',
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.75rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Reject Docs
+                  </button>
+                )}
+              </div>
+            )}
+
             {data && (
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Profile Completion</div>
@@ -417,51 +580,316 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
               {activeTab === 'academics' && (
                 <div>
                   {data.education ? (
-                    <div
-                      style={{
-                        background: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '12px',
-                        padding: '1.5rem',
-                      }}
-                    >
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem' }}>
-                        Senior Secondary (12th Grade) Record
-                      </h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div><strong style={{ color: '#64748B' }}>School Name:</strong><div>{data.education.schoolName}</div></div>
-                        <div><strong style={{ color: '#64748B' }}>Board:</strong><div>{data.education.board}</div></div>
-                        <div><strong style={{ color: '#64748B' }}>Completion Year:</strong><div>{data.education.completionYear}</div></div>
-                        <div><strong style={{ color: '#64748B' }}>Percentage / Aggregate:</strong><div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34D399' }}>{data.education.percentage}%</div></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      {/* Target Category & Stream Header */}
+                      <div
+                        style={{
+                          background: '#EFF6FF',
+                          border: '1.5px solid #BFDBFE',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '1rem',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase' }}>
+                            What Student Wants To Study
+                          </div>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1E3A8A' }}>
+                            {data.education.studyCategory === 'POSTGRADUATE'
+                              ? "Postgraduate Degree (Master's Stream)"
+                              : "Undergraduate Degree (Bachelor's Stream)"} &bull;{' '}
+                            <span style={{ color: '#2563EB' }}>{data.education.targetStream || 'General Stream'}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleVerifyStudent('VERIFIED')}
+                            disabled={isVerifying || data.verificationStatus === 'VERIFIED'}
+                            style={{
+                              backgroundColor: '#16A34A',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '0.4rem 0.85rem',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              cursor: data.verificationStatus === 'VERIFIED' ? 'default' : 'pointer',
+                              opacity: data.verificationStatus === 'VERIFIED' ? 0.7 : 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                            }}
+                          >
+                            <ShieldCheck size={14} />
+                            <span>{data.verificationStatus === 'VERIFIED' ? 'Record Verified' : 'Verify Certificates'}</span>
+                          </button>
+                        </div>
                       </div>
 
-                      {data.education.subjectDetails && (
-                        <div>
-                          <strong style={{ color: '#64748B', display: 'block', marginBottom: '0.5rem' }}>Subject Breakdown:</strong>
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {(() => {
-                              try {
-                                const subs = JSON.parse(data.education.subjectDetails);
-                                return Array.isArray(subs)
-                                  ? subs.map((s: any, idx: number) => (
-                                      <span
-                                        key={idx}
-                                        style={{
-                                          padding: '0.3rem 0.7rem',
-                                          background: 'rgba(37, 99, 235, 0.1)',
-                                          border: '1px solid rgba(37, 99, 235, 0.3)',
-                                          borderRadius: '6px',
-                                          fontSize: '0.8rem',
-                                        }}
-                                      >
-                                        {s.subject}: <strong>{s.score}</strong>
-                                      </span>
-                                    ))
-                                  : null;
-                              } catch {
-                                return <span>{data.education.subjectDetails}</span>;
-                              }
-                            })()}
+                      {/* Submitted Verification Documents Section (Critical for Admin) */}
+                      <div
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1.5px solid #E2E8F0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                        }}
+                      >
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.85rem' }}>
+                          Submitted Academic Verification Certificates
+                        </h4>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                          {/* 10th Document */}
+                          <div
+                            style={{
+                              padding: '0.85rem 1rem',
+                              borderRadius: '8px',
+                              backgroundColor: data.education.tenthDocumentUrl ? '#F0FDF4' : '#FFF1F2',
+                              border: data.education.tenthDocumentUrl ? '1px solid #BBF7D0' : '1px solid #FECDD3',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
+                                10th Marksheet
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  color: data.education.tenthDocumentUrl ? '#15803D' : '#BE123C',
+                                }}
+                              >
+                                {data.education.tenthDocumentUrl ? '✓ ATTACHED' : 'MISSING'}
+                              </span>
+                            </div>
+                            {data.education.tenthDocumentUrl ? (
+                              <a
+                                href={data.education.tenthDocumentUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  marginTop: '0.5rem',
+                                  fontSize: '0.78rem',
+                                  color: '#2563EB',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                <span>Inspect 10th Certificate</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            ) : (
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.35rem' }}>
+                                Not uploaded by student
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 12th Document */}
+                          <div
+                            style={{
+                              padding: '0.85rem 1rem',
+                              borderRadius: '8px',
+                              backgroundColor: data.education.twelfthDocumentUrl ? '#F0FDF4' : '#FFF1F2',
+                              border: data.education.twelfthDocumentUrl ? '1px solid #BBF7D0' : '1px solid #FECDD3',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
+                                12th Marksheet
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  color: data.education.twelfthDocumentUrl ? '#15803D' : '#BE123C',
+                                }}
+                              >
+                                {data.education.twelfthDocumentUrl ? '✓ ATTACHED' : 'MISSING'}
+                              </span>
+                            </div>
+                            {data.education.twelfthDocumentUrl ? (
+                              <a
+                                href={data.education.twelfthDocumentUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  marginTop: '0.5rem',
+                                  fontSize: '0.78rem',
+                                  color: '#2563EB',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                <span>Inspect 12th Certificate</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            ) : (
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.35rem' }}>
+                                Not uploaded by student
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Undergrad Document (for PG) */}
+                          {data.education.studyCategory === 'POSTGRADUATE' && (
+                            <div
+                              style={{
+                                padding: '0.85rem 1rem',
+                                borderRadius: '8px',
+                                backgroundColor: data.education.undergradDocumentUrl ? '#F0FDF4' : '#FFF1F2',
+                                border: data.education.undergradDocumentUrl ? '1px solid #BBF7D0' : '1px solid #FECDD3',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
+                                  Graduation Certificate
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    color: data.education.undergradDocumentUrl ? '#15803D' : '#BE123C',
+                                  }}
+                                >
+                                  {data.education.undergradDocumentUrl ? '✓ ATTACHED' : 'MISSING'}
+                                </span>
+                              </div>
+                              {data.education.undergradDocumentUrl ? (
+                                <a
+                                  href={data.education.undergradDocumentUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem',
+                                    marginTop: '0.5rem',
+                                    fontSize: '0.78rem',
+                                    color: '#2563EB',
+                                    fontWeight: 600,
+                                    textDecoration: 'none',
+                                  }}
+                                >
+                                  <span>Inspect Degree Certificate</span>
+                                  <ExternalLink size={12} />
+                                </a>
+                              ) : (
+                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.35rem' }}>
+                                  Not uploaded by student
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Undergrad Details (if PG) */}
+                      {data.education.studyCategory === 'POSTGRADUATE' && data.education.undergradDegree && (
+                        <div
+                          style={{
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '12px',
+                            padding: '1.25rem',
+                          }}
+                        >
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E3A8A', margin: '0 0 0.85rem' }}>
+                            Undergraduate / Bachelor's Record
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
+                            <div><strong style={{ color: '#64748B' }}>Degree:</strong><div>{data.education.undergradDegree}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>College/University:</strong><div>{data.education.undergradCollege || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Passing Year:</strong><div>{data.education.undergradPassingYear || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Score / CGPA:</strong><div style={{ fontWeight: 700, color: '#2563EB' }}>{data.education.undergradPercentage ? `${data.education.undergradPercentage}%` : 'N/A'}</div></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Senior Secondary (12th Grade) Details */}
+                      <div
+                        style={{
+                          background: '#F8FAFC',
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                        }}
+                      >
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.85rem' }}>
+                          Senior Secondary (12th Grade) Details
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                          <div><strong style={{ color: '#64748B' }}>School Name:</strong><div>{data.education.schoolName}</div></div>
+                          <div><strong style={{ color: '#64748B' }}>Board:</strong><div>{data.education.board}</div></div>
+                          <div><strong style={{ color: '#64748B' }}>Completion Year:</strong><div>{data.education.completionYear}</div></div>
+                          <div><strong style={{ color: '#64748B' }}>Percentage:</strong><div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16A34A' }}>{data.education.percentage}%</div></div>
+                        </div>
+
+                        {data.education.subjectDetails && (
+                          <div>
+                            <strong style={{ color: '#64748B', display: 'block', marginBottom: '0.4rem', fontSize: '0.82rem' }}>Subject Breakdown:</strong>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {(() => {
+                                try {
+                                  const subs = JSON.parse(data.education.subjectDetails);
+                                  return Array.isArray(subs)
+                                    ? subs.map((s: any, idx: number) => (
+                                        <span
+                                          key={idx}
+                                          style={{
+                                            padding: '0.25rem 0.65rem',
+                                            background: '#EFF6FF',
+                                            border: '1px solid #BFDBFE',
+                                            borderRadius: '6px',
+                                            fontSize: '0.78rem',
+                                            color: '#1E40AF',
+                                          }}
+                                        >
+                                          {s.subject}: <strong>{s.score}</strong>
+                                        </span>
+                                      ))
+                                    : null;
+                                } catch {
+                                  return <span>{data.education.subjectDetails}</span>;
+                                }
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 10th Summary Details if present */}
+                      {data.education.tenthSchoolName && (
+                        <div
+                          style={{
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '12px',
+                            padding: '1.25rem',
+                          }}
+                        >
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.85rem' }}>
+                            Secondary School (10th Grade) Details
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
+                            <div><strong style={{ color: '#64748B' }}>School:</strong><div>{data.education.tenthSchoolName}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Board:</strong><div>{data.education.tenthBoard || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Year:</strong><div>{data.education.tenthPassingYear || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Aggregate:</strong><div>{data.education.tenthPercentage ? `${data.education.tenthPercentage}%` : 'N/A'}</div></div>
                           </div>
                         </div>
                       )}

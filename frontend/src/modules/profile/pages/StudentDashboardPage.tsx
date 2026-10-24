@@ -51,7 +51,288 @@ import {
   ExternalLink,
   UserCheck,
   CalendarCheck,
+  Lock,
 } from 'lucide-react';
+
+interface EnrolmentLockedViewProps {
+  moduleName: string;
+  moduleDescription: string;
+  verificationStatus?: string;
+  hasProfile: boolean;
+  hasPreferences: boolean;
+  hasEducation: boolean;
+  onNavigateToProfile: () => void;
+  onNavigateToPreferences: () => void;
+  onNavigateToEducation: () => void;
+  onNavigateToAppointments: () => void;
+  onBackToDashboard: () => void;
+}
+
+const EnrolmentLockedView: React.FC<EnrolmentLockedViewProps> = ({
+  moduleName,
+  moduleDescription,
+  verificationStatus = 'PENDING',
+  hasProfile,
+  hasPreferences,
+  hasEducation,
+  onNavigateToProfile,
+  onNavigateToPreferences,
+  onNavigateToEducation,
+  onNavigateToAppointments,
+  onBackToDashboard,
+}) => {
+  const isVerified = verificationStatus === 'VERIFIED';
+
+  return (
+    <div>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <button
+          onClick={onBackToDashboard}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            background: 'none',
+            border: 'none',
+            color: '#5B4FE9',
+            fontSize: '0.88rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Dashboard</span>
+        </button>
+      </div>
+
+      <div
+        style={{
+          background: '#FFFFFF',
+          borderRadius: '16px',
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.06)',
+          overflow: 'hidden',
+          maxWidth: '840px',
+          margin: '0 auto',
+        }}
+      >
+        {/* Top Hero Banner */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+            padding: '2.25rem 2rem',
+            color: '#FFFFFF',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: 'rgba(245, 158, 11, 0.15)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              color: '#FBBF24',
+              borderRadius: '9999px',
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              marginBottom: '1rem',
+            }}
+          >
+            <Lock size={12} />
+            <span>OFFICIAL ENROLMENT REQUIRED</span>
+          </div>
+
+          <h2 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 0.5rem', color: '#F8FAFC' }}>
+            {moduleName} is Locked
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.92rem', color: '#94A3B8', lineHeight: 1.5, maxWidth: '650px' }}>
+            {moduleDescription}
+          </p>
+        </div>
+
+        {/* Workflow Sequence Steps */}
+        <div style={{ padding: '2rem' }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.5rem' }}>
+            Admissions & Enrolment Sequence
+          </h3>
+          <p style={{ fontSize: '0.84rem', color: '#64748B', margin: '0 0 1.5rem', lineHeight: 1.45 }}>
+            To ensure the highest admissions success, our university planning modules unlock strictly following profile intake, certificate verification, and your counsellor consultation.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            {/* Step 1: Profile */}
+            <div
+              style={{
+                border: hasProfile ? '1px solid #BBF7D0' : '1px solid #E2E8F0',
+                background: hasProfile ? '#F0FDF4' : '#F8FAFC',
+                borderRadius: '12px',
+                padding: '1rem',
+                cursor: hasProfile ? 'default' : 'pointer',
+              }}
+              onClick={!hasProfile ? onNavigateToProfile : undefined}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748B' }}>STEP 1</span>
+                {hasProfile ? (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>Done</span>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#DC2626', background: '#FEE2E2', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>Required</span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.2rem' }}>
+                My Profile
+              </div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.35 }}>
+                Personal intake and current schooling details.
+              </p>
+            </div>
+
+            {/* Step 2: Preferences */}
+            <div
+              style={{
+                border: hasPreferences ? '1px solid #BBF7D0' : '1px solid #E2E8F0',
+                background: hasPreferences ? '#F0FDF4' : '#F8FAFC',
+                borderRadius: '12px',
+                padding: '1rem',
+                cursor: hasPreferences ? 'default' : 'pointer',
+              }}
+              onClick={!hasPreferences ? onNavigateToPreferences : undefined}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748B' }}>STEP 2</span>
+                {hasPreferences ? (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>Done</span>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#DC2626', background: '#FEE2E2', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>Required</span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.2rem' }}>
+                Preferences
+              </div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.35 }}>
+                Target study countries and academic departments.
+              </p>
+            </div>
+
+            {/* Step 3: Education & Docs */}
+            <div
+              style={{
+                border: hasEducation ? '1px solid #BBF7D0' : '1px solid #E2E8F0',
+                background: hasEducation ? '#F0FDF4' : '#F8FAFC',
+                borderRadius: '12px',
+                padding: '1rem',
+                cursor: 'pointer',
+              }}
+              onClick={onNavigateToEducation}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748B' }}>STEP 3</span>
+                {hasEducation ? (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>Submitted</span>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#DC2626', background: '#FEE2E2', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>Upload Docs</span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.2rem' }}>
+                Education & Docs
+              </div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.35 }}>
+                UG: 10th & 12th marksheets. PG: 10th, 12th & Degree certificate.
+              </p>
+            </div>
+
+            {/* Step 4: Admin Verification & Consultation */}
+            <div
+              style={{
+                border: isVerified ? '1px solid #BBF7D0' : '1px solid #FED7AA',
+                background: isVerified ? '#F0FDF4' : '#FFFBEB',
+                borderRadius: '12px',
+                padding: '1rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748B' }}>STEP 4</span>
+                {isVerified ? (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>Verified</span>
+                ) : (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#B45309', background: '#FEF3C7', padding: '0.1rem 0.45rem', borderRadius: '8px' }}>{verificationStatus}</span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.2rem' }}>
+                Admin Review
+              </div>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B', lineHeight: 1.35 }}>
+                Admin verifies documents to unlock appointment scheduling.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Box */}
+          <div
+            style={{
+              background: '#F8FAFC',
+              border: '1px dashed #CBD5E1',
+              borderRadius: '12px',
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A' }}>
+                {!isVerified ? 'Document verification required' : 'Ready for Counsellor Consultation'}
+              </div>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: '#64748B' }}>
+                {!isVerified
+                  ? 'Submit your 10th/12th/Graduation certificates in Education Details for admin review.'
+                  : 'Your academic profile is verified! Schedule an appointment with your counsellor to confirm enrolment and unlock this module.'}
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {!isVerified ? (
+                <button
+                  className="cmd-btn-primary"
+                  onClick={onNavigateToEducation}
+                  style={{
+                    padding: '0.65rem 1.15rem',
+                    borderRadius: '8px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <GraduationCap size={16} />
+                  <span>Open Education Details</span>
+                </button>
+              ) : (
+                <button
+                  className="cmd-btn-primary"
+                  onClick={onNavigateToAppointments}
+                  style={{
+                    padding: '0.65rem 1.15rem',
+                    borderRadius: '8px',
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    background: '#2563EB',
+                  }}
+                >
+                  <Calendar size={16} />
+                  <span>Schedule Consultation</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface StudentDashboardPageProps {
   initialSection?: 'dashboard' | 'basic' | 'preferences' | 'education' | 'entrance' | 'personal' | 'colleges' | 'recommendations' | 'scholarships' | 'fees' | 'assessments' | 'appointments' | 'shortlist';
@@ -286,8 +567,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
     }
     if (!education) {
       return {
-        title: 'Add education details',
-        description: 'Record your high school grades and subject scores so counsellors can match university eligibility.',
+        title: 'Submit education details & certificates',
+        description: 'Select your study category (UG/PG), stream, and upload your required academic marksheets/certificates for verification.',
         buttonText: 'Add Education Details →',
         action: () => {
           setActiveMenu('education');
@@ -295,11 +576,42 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         },
       };
     }
+    if (verificationStatus === 'REJECTED') {
+      return {
+        title: 'Academic documents require revision',
+        description: 'Your uploaded documents were reviewed and require updates. Please re-upload your valid certificates.',
+        buttonText: 'Update Education Docs →',
+        action: () => {
+          setActiveMenu('education');
+          setIsEditingEducation(true);
+        },
+      };
+    }
+    if (verificationStatus !== 'VERIFIED') {
+      return {
+        title: 'Documents under admin review',
+        description: 'Your profile, preferences, and certificates have been submitted. Appointment booking will unlock immediately once approved by administration.',
+        buttonText: 'View Education Details →',
+        action: () => {
+          setActiveMenu('education');
+        },
+      };
+    }
+    if (!profile?.isEnrolled) {
+      return {
+        title: 'Profile verified! Book counsellor consultation',
+        description: 'Your documents have been verified by administration. Book your 1-on-1 appointment with your counsellor to confirm enrolment.',
+        buttonText: 'Book Appointment →',
+        action: () => {
+          setActiveMenu('appointments');
+        },
+      };
+    }
     return {
-      title: 'Consult with education advisor',
-      description: 'Your academic profile and preferences are up to date. Review guidance recommendations with our counsellors.',
-      buttonText: 'Explore Guidance →',
-      action: () => setActiveModal('guidance'),
+      title: 'Officially Enrolled — Explore Discovery Suite',
+      description: 'Your enrolment is confirmed! All college discovery, 3-tier fit recommendations, fee calculators, and shortlists are fully accessible.',
+      buttonText: 'Explore Colleges →',
+      action: () => setActiveMenu('colleges'),
     };
   };
 
@@ -447,6 +759,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <FileText size={17} />
             </span>
             <span>Entrance Exams</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -457,6 +774,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <IdCard size={17} />
             </span>
             <span>Personal Information</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -467,6 +789,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Compass size={17} />
             </span>
             <span>College Discovery</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -478,6 +805,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Sparkles size={17} />
             </span>
             <span>Three-Tier Fit</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -488,6 +820,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Award size={17} />
             </span>
             <span>Assessments</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -498,6 +835,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Bookmark size={17} />
             </span>
             <span>Shortlist</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -508,6 +850,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Coins size={17} />
             </span>
             <span>Scholarships</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -519,6 +866,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Calculator size={17} />
             </span>
             <span>Fee Calculator</span>
+            {!profile?.isEnrolled && (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(100, 116, 139, 0.2)', color: '#94A3B8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Locked
+              </span>
+            )}
           </button>
 
           <button
@@ -529,6 +881,15 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               <Calendar size={17} />
             </span>
             <span>Appointments</span>
+            {verificationStatus !== 'VERIFIED' ? (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(234, 88, 12, 0.15)', color: '#F97316', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                <Lock size={10} /> Verify First
+              </span>
+            ) : (
+              <span className="cmd-nav-item-badge" style={{ background: 'rgba(22, 163, 74, 0.2)', color: '#4ADE80' }}>
+                Open
+              </span>
+            )}
           </button>
         </nav>
 
@@ -1653,193 +2014,305 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               VIEW 5: MODULE 4 — ENTRANCE EXAMS
              ========================================================== */}
           {activeMenu === 'entrance' && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <button
-                  id="entrance-back-to-dash-btn"
-                  onClick={() => setActiveMenu('dashboard')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: '#5B4FE9',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Back to Dashboard</span>
-                </button>
-              </div>
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="Entrance Exams"
+                moduleDescription="Practice mock tests, exam scheduling, and percentile predictors are reserved for enrolled students."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <button
+                    id="entrance-back-to-dash-btn"
+                    onClick={() => setActiveMenu('dashboard')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'none',
+                      border: 'none',
+                      color: '#5B4FE9',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back to Dashboard</span>
+                  </button>
+                </div>
 
-              <EntranceExamsView onBackToDashboard={() => setActiveMenu('dashboard')} />
-            </div>
+                <EntranceExamsView onBackToDashboard={() => setActiveMenu('dashboard')} />
+              </div>
+            )
           )}
 
           {/* ==========================================================
               VIEW 6: MODULE 5 — PERSONAL INFORMATION
              ========================================================== */}
           {activeMenu === 'personal' && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <button
-                  id="personal-back-to-dash-btn"
-                  onClick={() => setActiveMenu('dashboard')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: '#5B4FE9',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Back to Dashboard</span>
-                </button>
-              </div>
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="Personal Information"
+                moduleDescription="Extended personal records, passport details, and parent/guardian documentation are managed upon official enrolment."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <button
+                    id="personal-back-to-dash-btn"
+                    onClick={() => setActiveMenu('dashboard')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'none',
+                      border: 'none',
+                      color: '#5B4FE9',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back to Dashboard</span>
+                  </button>
+                </div>
 
-              <PersonalInformationView onBackToDashboard={() => setActiveMenu('dashboard')} />
-            </div>
+                <PersonalInformationView onBackToDashboard={() => setActiveMenu('dashboard')} />
+              </div>
+            )
           )}
 
           {/* ==========================================================
               VIEW 7: MODULE 6 — COLLEGE AND COURSE DISCOVERY
              ========================================================== */}
           {activeMenu === 'colleges' && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <button
-                  id="colleges-back-to-dash-btn"
-                  onClick={() => setActiveMenu('dashboard')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: '#5B4FE9',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Back to Dashboard</span>
-                </button>
-              </div>
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="College Discovery"
+                moduleDescription="Direct institutional search, program cutoffs, and international campus matching require active student enrolment."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <button
+                    id="colleges-back-to-dash-btn"
+                    onClick={() => setActiveMenu('dashboard')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'none',
+                      border: 'none',
+                      color: '#5B4FE9',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back to Dashboard</span>
+                  </button>
+                </div>
 
-              <CollegeDiscoveryView onBackToDashboard={() => setActiveMenu('dashboard')} />
-            </div>
+                <CollegeDiscoveryView onBackToDashboard={() => setActiveMenu('dashboard')} />
+              </div>
+            )
           )}
 
           {/* ==========================================================
               VIEW 8: MODULE 7 — THREE-TIER FIT & RECOMMENDATION ENGINE
              ========================================================== */}
           {activeMenu === 'recommendations' && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <button
-                  id="recommendations-back-to-dash-btn"
-                  onClick={() => setActiveMenu('dashboard')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: '#5B4FE9',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Back to Dashboard</span>
-                </button>
-              </div>
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="Three-Tier Fit Recommendations"
+                moduleDescription="Ambitious, Target, and Safe university tier algorithms unlock once your counsellor confirms your official enrolment."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <button
+                    id="recommendations-back-to-dash-btn"
+                    onClick={() => setActiveMenu('dashboard')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'none',
+                      border: 'none',
+                      color: '#5B4FE9',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back to Dashboard</span>
+                  </button>
+                </div>
 
-              <ThreeTierFitView onNavigateSection={(sec) => handleNavSelection(sec)} />
-            </div>
+                <ThreeTierFitView onNavigateSection={(sec) => handleNavSelection(sec)} />
+              </div>
+            )
           )}
 
           {/* ==========================================================
               VIEW 9: MODULE 8 — SCHOLARSHIP DISCOVERY & ELIGIBILITY
              ========================================================== */}
           {activeMenu === 'scholarships' && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <button
-                  id="scholarships-back-to-dash-btn"
-                  onClick={() => setActiveMenu('dashboard')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: '#5B4FE9',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Back to Dashboard</span>
-                </button>
-              </div>
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="Scholarship Discovery"
+                moduleDescription="Institutional grants, government fellowships, and merit aid applications unlock after consultancy enrolment."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <button
+                    id="scholarships-back-to-dash-btn"
+                    onClick={() => setActiveMenu('dashboard')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'none',
+                      border: 'none',
+                      color: '#5B4FE9',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back to Dashboard</span>
+                  </button>
+                </div>
 
-              <ScholarshipDiscoveryView />
-            </div>
+                <ScholarshipDiscoveryView />
+              </div>
+            )
           )}
 
           {/* ==========================================================
               VIEW 10: MODULE 9 — FEE CALCULATOR & COUNTRY COMPARISON
              ========================================================== */}
           {activeMenu === 'fees' && (
-            <div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <button
-                  id="fees-back-to-dash-btn"
-                  onClick={() => setActiveMenu('dashboard')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: 'none',
-                    border: 'none',
-                    color: '#5B4FE9',
-                    fontSize: '0.88rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Back to Dashboard</span>
-                </button>
-              </div>
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="Fee Calculator & Country Comparison"
+                moduleDescription="Multi-country cost of living, visa insurance, and tuition comparison modules unlock upon official student enrolment."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <div>
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <button
+                    id="fees-back-to-dash-btn"
+                    onClick={() => setActiveMenu('dashboard')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: 'none',
+                      border: 'none',
+                      color: '#5B4FE9',
+                      fontSize: '0.88rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Back to Dashboard</span>
+                  </button>
+                </div>
 
-              <FeeComparisonDashboard onBackToDashboard={() => setActiveMenu('dashboard')} />
-            </div>
+                <FeeComparisonDashboard onBackToDashboard={() => setActiveMenu('dashboard')} />
+              </div>
+            )
           )}
 
           {/* ==========================================================
               VIEW 11: MODULE 11 — EIGHT-PATHWAY ASSESSMENT SUITE
              ========================================================== */}
           {activeMenu === 'assessments' && (
-            <EightPathwayAssessmentSuite onBackToDashboard={() => setActiveMenu('dashboard')} />
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="Eight-Pathway Assessment Suite"
+                moduleDescription="Comprehensive psychometric, aptitude, and career alignment assessments unlock following counsellor consultation and enrolment."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <EightPathwayAssessmentSuite onBackToDashboard={() => setActiveMenu('dashboard')} />
+            )
           )}
 
           {/* ==========================================================
@@ -1849,15 +2322,39 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
             <AppointmentsDashboard
               initialTab="book"
               onNavigateTab={(tab) => setActiveMenu(tab)}
+              verificationStatus={profile?.verificationStatus}
+              onNavigateToEducation={() => {
+                setActiveMenu('education');
+                setIsEditingEducation(true);
+              }}
+              onEnrolled={() => loadData()}
             />
           )}
 
           {activeMenu === 'shortlist' && (
-            <AppointmentsDashboard
-              initialTab="shortlist"
-              isShortlistOnly={true}
-              onNavigateTab={(tab) => setActiveMenu(tab)}
-            />
+            !profile?.isEnrolled ? (
+              <EnrolmentLockedView
+                moduleName="University Shortlist"
+                moduleDescription="Official application shortlists and counsellor review queues unlock once your enrolment is finalized."
+                verificationStatus={profile?.verificationStatus}
+                hasProfile={Boolean(profile)}
+                hasPreferences={Boolean(preferences)}
+                hasEducation={Boolean(education)}
+                onNavigateToProfile={() => { setActiveMenu('basic'); setIsEditingBasic(true); }}
+                onNavigateToPreferences={() => { setActiveMenu('preferences'); setIsEditingPreferences(true); }}
+                onNavigateToEducation={() => { setActiveMenu('education'); setIsEditingEducation(true); }}
+                onNavigateToAppointments={() => setActiveMenu('appointments')}
+                onBackToDashboard={() => setActiveMenu('dashboard')}
+              />
+            ) : (
+              <AppointmentsDashboard
+                initialTab="shortlist"
+                isShortlistOnly={true}
+                onNavigateTab={(tab) => setActiveMenu(tab)}
+                verificationStatus={profile?.verificationStatus}
+                onEnrolled={() => loadData()}
+              />
+            )
           )}
         </main>
       </div>

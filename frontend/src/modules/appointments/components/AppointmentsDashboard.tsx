@@ -36,6 +36,8 @@ import {
   GraduationCap,
   BookOpen,
   Award,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface AppointmentsDashboardProps {
@@ -43,6 +45,9 @@ interface AppointmentsDashboardProps {
   preselectedCollegeId?: string;
   onNavigateTab?: (tab: string) => void;
   isShortlistOnly?: boolean;
+  verificationStatus?: string;
+  onNavigateToEducation?: () => void;
+  onEnrolled?: () => void;
 }
 
 export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
@@ -50,6 +55,9 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
   preselectedCollegeId,
   onNavigateTab,
   isShortlistOnly = false,
+  verificationStatus,
+  onNavigateToEducation,
+  onEnrolled,
 }) => {
   const { user } = useAuth();
 
@@ -159,6 +167,9 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
         const statusRes = await AppointmentsService.getEnrollmentStatus().catch(() => null);
         if (statusRes?.success && statusRes.data) {
           setEnrollmentStatus(statusRes.data);
+        }
+        if (onEnrolled) {
+          onEnrolled();
         }
       } else {
         alert(res.message || 'Enrollment could not be processed.');
@@ -298,6 +309,15 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
   const handleBookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback(null);
+
+    // Student Verification Check
+    if (user?.role === 'STUDENT' && verificationStatus && verificationStatus !== 'VERIFIED') {
+      setFeedback({
+        type: 'error',
+        message: 'Appointment booking is locked until your student profile and educational certificates are verified by an administrator.',
+      });
+      return;
+    }
 
     // 1. Validation: date must not be in past
     const selectedDateObj = new Date(scheduledDate + 'T00:00:00');
@@ -639,6 +659,69 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
         <div className="app-booking-layout">
           {/* LEFT: BOOKING FORM */}
           <div className="app-card">
+            {/* Student Verification Gate Banner */}
+            {user?.role === 'STUDENT' && verificationStatus && verificationStatus !== 'VERIFIED' && (
+              <div
+                style={{
+                  padding: '1.25rem 1.35rem',
+                  backgroundColor: '#fffbeb',
+                  border: '1.5px solid #f59e0b',
+                  borderRadius: '10px',
+                  marginBottom: '1.25rem',
+                  boxShadow: '0 2px 6px rgba(245, 158, 11, 0.08)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <ShieldAlert size={22} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#92400e' }}>
+                        Appointment Booking Locked &mdash; Admin Verification Required
+                      </h4>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          backgroundColor: '#fef3c7',
+                          color: '#b45309',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '10px',
+                          border: '1px solid #fcd34d',
+                        }}
+                      >
+                        STATUS: {verificationStatus}
+                      </span>
+                    </div>
+                    <p style={{ margin: '0.35rem 0 0.75rem', fontSize: '0.82rem', color: '#78350f', lineHeight: 1.45 }}>
+                      As per official admission protocol, your educational certificates (10th, 12th, and Graduate certificates based on your target study category) must be authenticated by an Admissions Administrator before you can schedule a counseling consultation.
+                    </p>
+                    {onNavigateToEducation && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToEducation}
+                        style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: '#ffffff',
+                          backgroundColor: '#d97706',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '0.4rem 0.8rem',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                        }}
+                      >
+                        <span>View / Upload Education Documents</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Consultancy Enrollment & Policy Agreement Banner (PDF Requirement) */}
             {enrollmentStatus?.isEnrolled ? (
               <div
@@ -1104,15 +1187,36 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
               <button
                 type="submit"
                 className="app-btn-submit"
-                disabled={submittingBooking || (user?.role === 'STUDENT' && !meta?.assignedCounsellor)}
+                disabled={
+                  submittingBooking ||
+                  (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ||
+                  (user?.role === 'STUDENT' && verificationStatus !== undefined && verificationStatus !== 'VERIFIED')
+                }
                 style={{
-                  cursor: (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ? 'not-allowed' : 'pointer',
-                  opacity: (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ? 0.6 : 1,
+                  cursor:
+                    (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ||
+                    (user?.role === 'STUDENT' && verificationStatus !== undefined && verificationStatus !== 'VERIFIED')
+                      ? 'not-allowed'
+                      : 'pointer',
+                  opacity:
+                    (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ||
+                    (user?.role === 'STUDENT' && verificationStatus !== undefined && verificationStatus !== 'VERIFIED')
+                      ? 0.6
+                      : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
                 }}
               >
                 {submittingBooking ? (
                   <span>Reserving Appointment Slot...</span>
-                ) : (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ? (
+                ) : user?.role === 'STUDENT' && verificationStatus !== undefined && verificationStatus !== 'VERIFIED' ? (
+                  <>
+                    <Lock size={16} />
+                    <span>Admin Verification Required to Schedule</span>
+                  </>
+                ) : user?.role === 'STUDENT' && !meta?.assignedCounsellor ? (
                   <span>Awaiting Counsellor Assignment</span>
                 ) : (
                   <>

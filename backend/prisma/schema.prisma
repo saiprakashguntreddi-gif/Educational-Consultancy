@@ -158,10 +158,26 @@ model StudentEducation {
   tenthPassingYear   Int?            // 10th Passing Year
   tenthPercentage    Float?          // 10th Percentage or score
 
+  // Category and Target Study Stream (UG vs PG what student wants to study)
+  studyCategory      String?         @default("UNDERGRADUATE") // "UNDERGRADUATE" | "POSTGRADUATE"
+  targetStream       String?         // e.g. "Engineering & Technology", "Computer Science", etc.
+
+  // Document Certificates (10th, 12th required for UG; 10th, 12th, and Undergrad required for PG)
+  twelfthDocumentUrl String?         // 12th class certificate / marksheet URL or data
+  tenthDocumentUrl   String?         // 10th class certificate / marksheet URL or data
+
+  // Postgraduate Applicant Details & Degree Certificate
+  undergradDegree    String?         // Undergrad Degree title (e.g. B.Tech Computer Science)
+  undergradCollege   String?         // Undergrad College / University name
+  undergradPassingYear Int?          // Graduation Year
+  undergradPercentage Float?         // Graduation Percentage or CGPA
+  undergradDocumentUrl String?       // Graduation Degree Certificate / Marksheet URL or data
+
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   @@index([studentProfileId])
+  @@index([studyCategory])
   @@index([board])
   @@index([completionYear])
 }

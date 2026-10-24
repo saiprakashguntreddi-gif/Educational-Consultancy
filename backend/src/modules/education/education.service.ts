@@ -29,6 +29,15 @@ export class EducationService {
       tenthBoard: record.tenthBoard || null,
       tenthPassingYear: record.tenthPassingYear || null,
       tenthPercentage: record.tenthPercentage || null,
+      studyCategory: record.studyCategory || 'UNDERGRADUATE',
+      targetStream: record.targetStream || null,
+      twelfthDocumentUrl: record.twelfthDocumentUrl || null,
+      tenthDocumentUrl: record.tenthDocumentUrl || null,
+      undergradDegree: record.undergradDegree || null,
+      undergradCollege: record.undergradCollege || null,
+      undergradPassingYear: record.undergradPassingYear || null,
+      undergradPercentage: record.undergradPercentage || null,
+      undergradDocumentUrl: record.undergradDocumentUrl || null,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
     };
@@ -58,7 +67,7 @@ export class EducationService {
     const serializedSubjects = JSON.stringify(input.subjectDetails || []);
 
     // 2. Upsert education details record
-    const record = await prisma.studentEducation.upsert({
+    const record = await (prisma.studentEducation as any).upsert({
       where: { studentProfileId: profile.id },
       create: {
         studentProfileId: profile.id,
@@ -71,6 +80,15 @@ export class EducationService {
         tenthBoard: input.tenthBoard?.trim() || null,
         tenthPassingYear: input.tenthPassingYear || null,
         tenthPercentage: input.tenthPercentage || null,
+        studyCategory: input.studyCategory || 'UNDERGRADUATE',
+        targetStream: input.targetStream?.trim() || null,
+        twelfthDocumentUrl: input.twelfthDocumentUrl?.trim() || null,
+        tenthDocumentUrl: input.tenthDocumentUrl?.trim() || null,
+        undergradDegree: input.undergradDegree?.trim() || null,
+        undergradCollege: input.undergradCollege?.trim() || null,
+        undergradPassingYear: input.undergradPassingYear || null,
+        undergradPercentage: input.undergradPercentage || null,
+        undergradDocumentUrl: input.undergradDocumentUrl?.trim() || null,
       },
       update: {
         schoolName: input.schoolName,
@@ -82,6 +100,15 @@ export class EducationService {
         tenthBoard: input.tenthBoard?.trim() || null,
         tenthPassingYear: input.tenthPassingYear || null,
         tenthPercentage: input.tenthPercentage || null,
+        studyCategory: input.studyCategory || 'UNDERGRADUATE',
+        targetStream: input.targetStream?.trim() || null,
+        twelfthDocumentUrl: input.twelfthDocumentUrl?.trim() || null,
+        tenthDocumentUrl: input.tenthDocumentUrl?.trim() || null,
+        undergradDegree: input.undergradDegree?.trim() || null,
+        undergradCollege: input.undergradCollege?.trim() || null,
+        undergradPassingYear: input.undergradPassingYear || null,
+        undergradPercentage: input.undergradPercentage || null,
+        undergradDocumentUrl: input.undergradDocumentUrl?.trim() || null,
       },
     });
 
