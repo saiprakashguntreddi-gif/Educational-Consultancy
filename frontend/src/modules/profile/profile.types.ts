@@ -28,6 +28,8 @@ export interface StudentProfileRecord extends StudentProfileIntakeInput {
   verifiedAt: string | null;
   verifiedBy: string | null;
   verificationNotes: string | null;
+  isEnrolled?: boolean;
+  enrolledAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

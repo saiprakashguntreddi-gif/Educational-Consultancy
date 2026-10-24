@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../../shared/context/AuthContext';
+import { useAuth, User } from '../../../shared/context/AuthContext';
 import { LogIn, AlertCircle } from 'lucide-react';
 
 interface LoginPageProps {
-  onSuccess: () => void;
+  onSuccess: (loggedInUser?: User) => void;
   onNavigateToRegister: () => void;
 }
 
@@ -20,8 +20,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onNavigateToReg
     setIsSubmitting(true);
 
     try {
-      await login(email, password);
-      onSuccess();
+      const loggedInUser = await login(email, password);
+      onSuccess(loggedInUser);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {

@@ -37,7 +37,7 @@ export const saveEducationSchema = z.object({
       )
       .min(1, 'At least one subject detail must be specified'),
 
-    // 10th / Secondary School (Optional)
+    // 10th / Secondary School
     tenthSchoolName: z
       .string()
       .trim()
@@ -63,6 +63,21 @@ export const saveEducationSchema = z.object({
       .max(100, 'Percentage cannot exceed 100')
       .optional()
       .nullable(),
+
+    // Study Category & Target Stream (UG vs PG)
+    studyCategory: z.enum(['UNDERGRADUATE', 'POSTGRADUATE']).optional().default('UNDERGRADUATE'),
+    targetStream: z.string().trim().max(120).optional().nullable().or(z.literal('')),
+
+    // Document URLs (10th, 12th for UG; 10th, 12th, Undergrad for PG)
+    twelfthDocumentUrl: z.string().trim().optional().nullable().or(z.literal('')),
+    tenthDocumentUrl: z.string().trim().optional().nullable().or(z.literal('')),
+
+    // Postgraduate Undergrad Fields
+    undergradDegree: z.string().trim().max(150).optional().nullable().or(z.literal('')),
+    undergradCollege: z.string().trim().max(150).optional().nullable().or(z.literal('')),
+    undergradPassingYear: z.coerce.number().int().min(1980).max(2035).optional().nullable(),
+    undergradPercentage: z.coerce.number().min(0).max(100).optional().nullable(),
+    undergradDocumentUrl: z.string().trim().optional().nullable().or(z.literal('')),
   }),
 });
 

@@ -7,11 +7,6 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  Building2,
-  Layers,
-  Award,
-  Users,
-  CheckSquare,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -80,6 +75,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   const handleSignOut = () => {
     setMobileMenuOpen(false);
     logout();
+    onNavigate('home');
   };
 
   return (
@@ -174,82 +170,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 </button>
               )}
 
-              {/* Staff Quick Action Button */}
+              {/* Staff Direct Dashboard Navigation Button */}
               {(user.role === 'COUNSELLOR' || user.role === 'ADMIN') && (
-                <>
-                  <button
-                    onClick={() => onNavigate(user.role === 'ADMIN' ? 'admin-dashboard' : 'counsellor-dashboard')}
-                    className="btn-nav-module"
-                    id="nav-suite-btn"
-                    title={user.role === 'ADMIN' ? 'Platform Administration Console' : 'Counsellor Workstation'}
-                  >
-                    <ShieldCheck size={15} color="#A78BFA" />
-                    <span>{user.role === 'ADMIN' ? 'Admin Suite' : 'Counsellor Suite'}</span>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('manage-students')}
-                    className="btn-nav-module"
-                    id="nav-manage-students-btn"
-                    title="Manage Students Roster"
-                  >
-                    <Users size={15} color="#A78BFA" />
-                    <span>Manage Students</span>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('counsellor-queue')}
-                    className="btn-nav-module"
-                    id="nav-counsellor-queue-btn"
-                    title="Student Profile Verification Queue"
-                  >
-                    <CheckSquare size={15} color="#A78BFA" />
-                    <span>Verification</span>
-                  </button>
-                </>
-              )}
-
-              {/* Admin College Management Buttons */}
-              {user.role === 'ADMIN' && (
-                <>
-                  <button
-                    onClick={() => onNavigate('college-tier-management')}
-                    className="btn-nav-module"
-                    id="nav-college-tiers-btn"
-                    title="College Tier Management (Safe / Best-Fit / Aspirational)"
-                  >
-                    <Layers size={15} color="#A78BFA" />
-                    <span>College Tiers</span>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('college-management')}
-                    className="btn-nav-module"
-                    id="nav-college-mgmt-btn"
-                    title="College & Course Management"
-                  >
-                    <Building2 size={15} color="#A78BFA" />
-                    <span>College Management</span>
-                  </button>
-                  <button
-                    onClick={() => onNavigate('scholarship-management')}
-                    className="btn-nav-module"
-                    id="nav-scholarships-mgmt-btn"
-                    title="Scholarship Catalogue Management"
-                  >
-                    <Award size={15} color="#A78BFA" />
-                    <span>Scholarships</span>
-                  </button>
-                </>
-              )}
-
-              {/* Counsellor College Catalogue Button */}
-              {user.role === 'COUNSELLOR' && (
                 <button
-                  onClick={() => onNavigate('colleges')}
+                  onClick={() => onNavigate(user.role === 'ADMIN' ? 'admin-dashboard' : 'counsellor-dashboard')}
                   className="btn-nav-module"
-                  id="nav-counsellor-colleges-btn"
-                  title="College & Course Catalogue"
+                  id="nav-suite-btn"
+                  title={user.role === 'ADMIN' ? 'Platform Administration Console' : 'Counsellor Workstation'}
                 >
-                  <Building2 size={15} color="#A78BFA" />
-                  <span>Colleges</span>
+                  <ShieldCheck size={15} color="#A78BFA" />
+                  <span>{user.role === 'ADMIN' ? 'Admin Dashboard' : 'Counsellor Workspace'}</span>
                 </button>
               )}
 
@@ -354,71 +284,13 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               )}
 
               {(user.role === 'COUNSELLOR' || user.role === 'ADMIN') && (
-                <>
-                  <button
-                    onClick={() => handleNavClick(user.role === 'ADMIN' ? 'admin-dashboard' : 'counsellor-dashboard')}
-                    className="btn-primary-indigo"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-suite-btn"
-                  >
-                    <ShieldCheck size={16} /> {user.role === 'ADMIN' ? 'Admin Suite' : 'Counsellor Suite'}
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('manage-students')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-manage-students-btn"
-                  >
-                    <Users size={16} /> Manage Students
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('counsellor-queue')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-counsellor-queue-btn"
-                  >
-                    <CheckSquare size={16} /> Verification Queue
-                  </button>
-                </>
-              )}
-
-              {user.role === 'ADMIN' && (
-                <>
-                  <button
-                    onClick={() => handleNavClick('college-tier-management')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-college-tiers-btn"
-                  >
-                    <Layers size={16} /> College Tiers
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('college-management')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-college-mgmt-btn"
-                  >
-                    <Building2 size={16} /> College Management
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('scholarship-management')}
-                    className="btn-secondary-outline"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    id="mobile-nav-scholarships-mgmt-btn"
-                  >
-                    <Award size={16} /> Scholarships
-                  </button>
-                </>
-              )}
-
-              {user.role === 'COUNSELLOR' && (
                 <button
-                  onClick={() => handleNavClick('colleges')}
-                  className="btn-secondary-outline"
+                  onClick={() => handleNavClick(user.role === 'ADMIN' ? 'admin-dashboard' : 'counsellor-dashboard')}
+                  className="btn-primary-indigo"
                   style={{ width: '100%', justifyContent: 'center' }}
-                  id="mobile-nav-colleges-btn"
+                  id="mobile-nav-suite-btn"
                 >
-                  <Building2 size={16} /> College Catalogue
+                  <ShieldCheck size={16} /> {user.role === 'ADMIN' ? 'Admin Dashboard' : 'Counsellor Workspace'}
                 </button>
               )}
 

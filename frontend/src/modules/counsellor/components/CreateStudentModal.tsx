@@ -57,13 +57,32 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '0.55rem 0.8rem',
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #CBD5E1',
+    borderRadius: '6px',
+    color: '#0F172A',
+    fontSize: '0.85rem',
+    outline: 'none',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    color: '#475569',
+    marginBottom: '0.35rem',
+  };
+
   return (
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(5, 10, 25, 0.85)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        backdropFilter: 'blur(4px)',
         zIndex: 1100,
         display: 'flex',
         alignItems: 'center',
@@ -74,33 +93,46 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
     >
       <div
         style={{
-          backgroundColor: '#0F172A',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          borderRadius: '16px',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: '14px',
           width: '100%',
           maxWidth: '680px',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          boxShadow: '0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05)',
           overflow: 'hidden',
-          color: '#F8FAFC',
+          color: '#0F172A',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <div
           style={{
             padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid #F1F5F9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%)',
+            backgroundColor: '#FFFFFF',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <UserPlus size={20} color="#A78BFA" />
-            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                backgroundColor: '#EFF6FF',
+                color: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <UserPlus size={18} />
+            </div>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
               Create Student Account (Staff Onboarding)
             </h2>
           </div>
@@ -109,8 +141,10 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94A3B8',
+              color: '#64748B',
               cursor: 'pointer',
+              padding: '4px',
+              borderRadius: '6px',
             }}
           >
             <X size={20} />
@@ -121,11 +155,11 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
           {error && (
             <div
               style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
                 padding: '0.75rem 1rem',
                 borderRadius: '8px',
-                color: '#FCA5A5',
+                color: '#B91C1C',
                 marginBottom: '1.25rem',
                 fontSize: '0.85rem',
                 display: 'flex',
@@ -140,30 +174,18 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Account Email *
-              </label>
+              <label style={labelStyle}>Account Email *</label>
               <input
                 type="email"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="student@example.com"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Initial Password * (min 8 chars)
-              </label>
+              <label style={labelStyle}>Initial Password * (min 8 chars)</label>
               <input
                 type="password"
                 required
@@ -171,219 +193,149 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••••••"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Full Legal Name *
-              </label>
+              <label style={labelStyle}>Full Legal Name *</label>
               <input
                 type="text"
                 required
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                 placeholder="e.g. Maya Sharma"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Phone Number *
-              </label>
+              <label style={labelStyle}>Phone Number *</label>
               <input
                 type="text"
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+91 98765 43210"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Grade / Class *
-              </label>
+              <label style={labelStyle}>Grade / Class *</label>
               <input
                 type="text"
                 required
                 value={formData.grade}
                 onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                placeholder="Grade 12"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                placeholder="e.g. Grade 12"
+                style={inputStyle}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Board *
-              </label>
+              <label style={labelStyle}>Gender *</label>
               <select
-                value={formData.board}
-                onChange={(e) => setFormData({ ...formData, board: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                style={inputStyle}
               >
-                <option value="CBSE">CBSE</option>
-                <option value="ICSE">ICSE / ISC</option>
-                <option value="IB">IB Diploma</option>
-                <option value="Cambridge">Cambridge A-Levels</option>
-                <option value="State Board">State Board</option>
-                <option value="Other">Other Curriculum</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="NON_BINARY">Non-Binary</option>
+                <option value="OTHER">Other</option>
+                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Passing-Out Year *
-              </label>
+              <label style={labelStyle}>Board / Curriculum *</label>
+              <select
+                value={formData.board}
+                onChange={(e) => setFormData({ ...formData, board: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="CBSE">CBSE</option>
+                <option value="ICSE">ICSE</option>
+                <option value="IB">IB</option>
+                <option value="Cambridge">Cambridge</option>
+                <option value="State Board">State Board</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div>
+              <label style={labelStyle}>Citizenship *</label>
+              <input
+                type="text"
+                required
+                value={formData.citizenship}
+                onChange={(e) => setFormData({ ...formData, citizenship: e.target.value })}
+                placeholder="e.g. Indian"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Passing Out Year *</label>
               <input
                 type="number"
+                required
                 min={2020}
                 max={2035}
-                required
                 value={formData.passingOutYear}
-                onChange={(e) => setFormData({ ...formData, passingOutYear: parseInt(e.target.value, 10) || 2026 })}
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                onChange={(e) => setFormData({ ...formData, passingOutYear: Number(e.target.value) })}
+                style={inputStyle}
               />
             </div>
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-              Street Address *
-            </label>
+            <label style={labelStyle}>Street Address *</label>
             <input
               type="text"
               required
               value={formData.address.street}
               onChange={(e) => setFormData({ ...formData, address: { ...formData.address, street: e.target.value } })}
-              placeholder="e.g. 123 University Avenue"
-              style={{
-                width: '100%',
-                padding: '0.55rem 0.8rem',
-                background: '#0B1535',
-                border: '1px solid rgba(255, 255, 255, 0.12)',
-                borderRadius: '6px',
-                color: '#FFFFFF',
-                fontSize: '0.85rem',
-              }}
+              placeholder="e.g. 104 Silicon Valley Heights"
+              style={inputStyle}
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                City *
-              </label>
+              <label style={labelStyle}>City *</label>
               <input
                 type="text"
                 required
                 value={formData.address.city}
                 onChange={(e) => setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })}
                 placeholder="City"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                State *
-              </label>
+              <label style={labelStyle}>State *</label>
               <input
                 type="text"
                 required
                 value={formData.address.state}
                 onChange={(e) => setFormData({ ...formData, address: { ...formData.address, state: e.target.value } })}
                 placeholder="State"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', color: '#94A3B8', marginBottom: '0.35rem' }}>
-                Postal Code *
-              </label>
+              <label style={labelStyle}>Postal Code *</label>
               <input
                 type="text"
                 required
                 value={formData.address.postalCode}
                 onChange={(e) => setFormData({ ...formData, address: { ...formData.address, postalCode: e.target.value } })}
                 placeholder="PIN / Zip"
-                style={{
-                  width: '100%',
-                  padding: '0.55rem 0.8rem',
-                  background: '#0B1535',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '6px',
-                  color: '#FFFFFF',
-                  fontSize: '0.85rem',
-                }}
+                style={inputStyle}
               />
             </div>
           </div>
@@ -391,7 +343,7 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
           <div
             style={{
               paddingTop: '1rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              borderTop: '1px solid #F1F5F9',
               display: 'flex',
               justifyContent: 'flex-end',
               gap: '0.75rem',
@@ -402,10 +354,10 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
               onClick={onClose}
               style={{
                 padding: '0.6rem 1.25rem',
-                background: 'rgba(255, 255, 255, 0.08)',
-                border: 'none',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E2E8F0',
                 borderRadius: '8px',
-                color: '#CBD5E1',
+                color: '#475569',
                 fontSize: '0.85rem',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -418,12 +370,12 @@ export const CreateStudentModal: React.FC<CreateStudentModalProps> = ({ onClose,
               disabled={isSubmitting}
               style={{
                 padding: '0.6rem 1.5rem',
-                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                backgroundColor: '#2563EB',
                 border: 'none',
                 borderRadius: '8px',
                 color: '#FFFFFF',
                 fontSize: '0.85rem',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',

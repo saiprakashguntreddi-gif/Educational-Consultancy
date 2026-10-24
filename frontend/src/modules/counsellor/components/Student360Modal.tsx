@@ -17,8 +17,13 @@ import {
   Mail,
   Phone,
   MapPin,
+  ExternalLink,
+  ShieldCheck,
+  Award,
 } from 'lucide-react';
 import { CounsellorClientService, ActionPlanItem, StudentCounsellorNote } from '../services/counsellor.service';
+import { ProfileService } from '../../profile/services/profile.service';
+import { AppointmentsService } from '../../appointments/services/appointments.service';
 
 interface Student360ModalProps {
   profileId: string;
@@ -45,6 +50,52 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
+  const handleVerifyStudent = async (status: 'VERIFIED' | 'REJECTED') => {
+    let notes: string | undefined = undefined;
+    if (status === 'REJECTED') {
+      const reason = window.prompt('Please enter the reason for rejection or missing certificates:');
+      if (reason === null) return;
+      notes = reason;
+    }
+    setIsVerifying(true);
+    try {
+      const res = await ProfileService.verifyProfile(profileId, status, notes);
+      if (res.success) {
+        await loadData();
+        if (onRefresh) onRefresh();
+      } else {
+        alert(res.message || 'Verification update failed');
+      }
+    } catch (err: any) {
+      alert(`Verification failed: ${err.message}`);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleEnrollStudent = async () => {
+    if (!window.confirm('Confirm official consultancy enrolment for this verified student? This will unlock all advanced discovery and planning modules.')) return;
+    setIsEnrolling(true);
+    try {
+      const res = await AppointmentsService.enrollStudent({
+        studentProfileId: profileId,
+        agreementSigned: true,
+      });
+      if (res.success) {
+        await loadData();
+        if (onRefresh) onRefresh();
+      } else {
+        alert(res.message || 'Enrollment failed');
+      }
+    } catch (err: any) {
+      alert(`Enrollment failed: ${err.message}`);
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -140,8 +191,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(5, 10, 25, 0.85)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
+        backdropFilter: 'blur(4px)',
         zIndex: 1100,
         display: 'flex',
         alignItems: 'center',
@@ -152,17 +203,17 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
     >
       <div
         style={{
-          backgroundColor: '#0F172A',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
+          backgroundColor: '#FFFFFF',
+          border: '1px solid #E2E8F0',
           borderRadius: '16px',
           width: '100%',
           maxWidth: '1060px',
           maxHeight: '90vh',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          boxShadow: '0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05)',
           overflow: 'hidden',
-          color: '#F8FAFC',
+          color: '#0F172A',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -170,11 +221,11 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
         <div
           style={{
             padding: '1.25rem 1.75rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            borderBottom: '1px solid #F1F5F9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.7) 100%)',
+            backgroundColor: '#FFFFFF',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -183,7 +234,9 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                 width: 44,
                 height: 44,
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                backgroundColor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                color: '#2563EB',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -195,7 +248,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0, color: '#0F172A' }}>
                   {data?.fullName || 'Student Dossier'}
                 </h2>
                 {data && (
@@ -207,33 +260,152 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                       borderRadius: '9999px',
                       backgroundColor:
                         data.verificationStatus === 'VERIFIED'
-                          ? 'rgba(16, 185, 129, 0.2)'
+                          ? '#F0FDF4'
                           : data.verificationStatus === 'REJECTED'
-                          ? 'rgba(239, 68, 68, 0.2)'
-                          : 'rgba(245, 158, 11, 0.2)',
+                          ? '#FEF2F2'
+                          : '#FFFBEB',
                       color:
                         data.verificationStatus === 'VERIFIED'
-                          ? '#34D399'
+                          ? '#15803D'
                           : data.verificationStatus === 'REJECTED'
-                          ? '#F87171'
-                          : '#FBBF24',
+                          ? '#B91C1C'
+                          : '#B45309',
+                      border: `1px solid ${
+                        data.verificationStatus === 'VERIFIED'
+                          ? '#BBF7D0'
+                          : data.verificationStatus === 'REJECTED'
+                          ? '#FECACA'
+                          : '#FDE68A'
+                      }`,
                     }}
                   >
                     ● {data.verificationStatus}
                   </span>
                 )}
               </div>
-              <p style={{ margin: '2px 0 0', fontSize: '0.825rem', color: '#94A3B8' }}>
+              <p style={{ margin: '2px 0 0', fontSize: '0.825rem', color: '#64748B' }}>
                 {data?.user?.email} • {data?.grade || 'Grade Not Set'} • {data?.board || 'Board Not Set'} • Passing: {data?.passingOutYear || 'N/A'}
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            {data && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {data.verificationStatus !== 'VERIFIED' ? (
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyStudent('VERIFIED')}
+                    disabled={isVerifying}
+                    style={{
+                      backgroundColor: '#16A34A',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      boxShadow: '0 2px 4px rgba(22, 163, 74, 0.2)',
+                    }}
+                  >
+                    <Check size={14} />
+                    <span>{isVerifying ? 'Verifying...' : 'Approve & Verify Student'}</span>
+                  </button>
+                ) : (
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      backgroundColor: '#DCFCE7',
+                      color: '#15803D',
+                      border: '1px solid #BBF7D0',
+                      borderRadius: '8px',
+                      padding: '0.4rem 0.75rem',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    <ShieldCheck size={14} />
+                    <span>Verified by Admin</span>
+                  </div>
+                )}
+
+                {data.verificationStatus === 'VERIFIED' && (
+                  data.isEnrolled ? (
+                    <div
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        backgroundColor: '#EFF6FF',
+                        color: '#1D4ED8',
+                        border: '1px solid #BFDBFE',
+                        borderRadius: '8px',
+                        padding: '0.4rem 0.75rem',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Award size={14} />
+                      <span>Officially Enrolled</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleEnrollStudent}
+                      disabled={isEnrolling}
+                      style={{
+                        backgroundColor: '#4338CA',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '8px',
+                        padding: '0.45rem 0.85rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        boxShadow: '0 2px 4px rgba(67, 56, 202, 0.2)',
+                      }}
+                    >
+                      <Award size={14} />
+                      <span>{isEnrolling ? 'Enrolling...' : 'Confirm Enrolment'}</span>
+                    </button>
+                  )
+                )}
+
+                {data.verificationStatus !== 'REJECTED' && (
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyStudent('REJECTED')}
+                    disabled={isVerifying}
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      color: '#DC2626',
+                      border: '1px solid #FECACA',
+                      borderRadius: '8px',
+                      padding: '0.45rem 0.75rem',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Reject Docs
+                  </button>
+                )}
+              </div>
+            )}
+
             {data && (
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Profile Completion</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#A78BFA' }}>
+                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>Profile Completion</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#2563EB' }}>
                   {data.completionScore}%
                 </div>
               </div>
@@ -241,9 +413,9 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
             <button
               onClick={onClose}
               style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: '#CBD5E1',
+                background: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                color: '#64748B',
                 borderRadius: '8px',
                 padding: '0.45rem',
                 cursor: 'pointer',
@@ -263,8 +435,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
             display: 'flex',
             gap: '0.25rem',
             padding: '0.5rem 1.5rem',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            borderBottom: '1px solid #E2E8F0',
+            backgroundColor: '#F8FAFC',
             overflowX: 'auto',
           }}
         >
@@ -290,17 +462,18 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                   gap: '0.4rem',
                   padding: '0.55rem 0.9rem',
                   fontSize: '0.825rem',
-                  fontWeight: isActive ? 700 : 500,
-                  color: isActive ? '#FFFFFF' : '#94A3B8',
-                  background: isActive ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-                  border: isActive ? '1px solid rgba(167, 139, 250, 0.4)' : '1px solid transparent',
+                  fontWeight: isActive ? 600 : 500,
+                  color: isActive ? '#2563EB' : '#64748B',
+                  background: isActive ? '#FFFFFF' : 'transparent',
+                  border: isActive ? '1px solid #E2E8F0' : '1px solid transparent',
                   borderRadius: '8px',
+                  boxShadow: isActive ? '0 1px 2px rgba(15, 23, 42, 0.05)' : 'none',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   transition: 'all 0.15s ease',
                 }}
               >
-                <Icon size={15} color={isActive ? '#A78BFA' : '#94A3B8'} />
+                <Icon size={15} color={isActive ? '#2563EB' : '#64748B'} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -317,7 +490,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
           }}
         >
           {isLoading && (
-            <div style={{ textAlign: 'center', padding: '4rem 0', color: '#94A3B8' }}>
+            <div style={{ textAlign: 'center', padding: '4rem 0', color: '#64748B' }}>
               <Clock size={32} style={{ animation: 'spin 1.5s linear infinite' }} />
               <p style={{ marginTop: '0.75rem' }}>Loading holistic student record...</p>
             </div>
@@ -348,54 +521,54 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   <div
                     style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
                       borderRadius: '12px',
                       padding: '1.25rem',
                     }}
                   >
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '1rem', color: '#C7D2FE' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '1rem', color: '#0F172A' }}>
                       Core Profile Details (Module 1)
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.875rem' }}>
-                      <div><strong style={{ color: '#94A3B8' }}>Full Name:</strong> {data.fullName}</div>
-                      <div><strong style={{ color: '#94A3B8' }}>Gender:</strong> {data.gender}</div>
-                      <div><strong style={{ color: '#94A3B8' }}>Class / Grade:</strong> {data.grade}</div>
-                      <div><strong style={{ color: '#94A3B8' }}>Board / Curriculum:</strong> {data.board}</div>
-                      <div><strong style={{ color: '#94A3B8' }}>Citizenship:</strong> {data.citizenship}</div>
-                      <div><strong style={{ color: '#94A3B8' }}>Passing Out Year:</strong> {data.passingOutYear}</div>
-                      <div><strong style={{ color: '#94A3B8' }}>Assigned Counsellor:</strong> {data.assignedCounsellor ? data.assignedCounsellor.email : 'Unassigned'}</div>
+                      <div><strong style={{ color: '#64748B' }}>Full Name:</strong> {data.fullName}</div>
+                      <div><strong style={{ color: '#64748B' }}>Gender:</strong> {data.gender}</div>
+                      <div><strong style={{ color: '#64748B' }}>Class / Grade:</strong> {data.grade}</div>
+                      <div><strong style={{ color: '#64748B' }}>Board / Curriculum:</strong> {data.board}</div>
+                      <div><strong style={{ color: '#64748B' }}>Citizenship:</strong> {data.citizenship}</div>
+                      <div><strong style={{ color: '#64748B' }}>Passing Out Year:</strong> {data.passingOutYear}</div>
+                      <div><strong style={{ color: '#64748B' }}>Assigned Counsellor:</strong> {data.assignedCounsellor ? data.assignedCounsellor.email : 'Unassigned'}</div>
                     </div>
                   </div>
 
                   <div
                     style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
                       borderRadius: '12px',
                       padding: '1.25rem',
                     }}
                   >
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '1rem', color: '#C7D2FE' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '1rem', color: '#0F172A' }}>
                       Contact & Address Information
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.875rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Mail size={15} color="#94A3B8" /> {data.contactEmail}
+                        <Mail size={15} color="#64748B" /> {data.contactEmail}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Phone size={15} color="#94A3B8" /> {data.phone}
+                        <Phone size={15} color="#64748B" /> {data.phone}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.4rem' }}>
-                        <MapPin size={15} color="#94A3B8" style={{ marginTop: 3 }} />
+                        <MapPin size={15} color="#64748B" style={{ marginTop: 3 }} />
                         <span>
                           {data.addressStreet}, {data.addressCity}, {data.addressState} {data.addressPostalCode}, {data.addressCountry}
                         </span>
                       </div>
                       {data.personalInfo && (
-                        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                          <div><strong style={{ color: '#94A3B8' }}>Guardian:</strong> {data.personalInfo.guardianName || 'N/A'} ({data.personalInfo.guardianRelationship || 'Parent'})</div>
-                          <div><strong style={{ color: '#94A3B8' }}>Guardian Phone:</strong> {data.personalInfo.guardianPhone || 'N/A'}</div>
+                        <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #E2E8F0' }}>
+                          <div><strong style={{ color: '#64748B' }}>Guardian:</strong> {data.personalInfo.guardianName || 'N/A'} ({data.personalInfo.guardianRelationship || 'Parent'})</div>
+                          <div><strong style={{ color: '#64748B' }}>Guardian Phone:</strong> {data.personalInfo.guardianPhone || 'N/A'}</div>
                         </div>
                       )}
                     </div>
@@ -407,57 +580,322 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
               {activeTab === 'academics' && (
                 <div>
                   {data.education ? (
-                    <div
-                      style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.06)',
-                        borderRadius: '12px',
-                        padding: '1.5rem',
-                      }}
-                    >
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '1rem' }}>
-                        Senior Secondary (12th Grade) Record
-                      </h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                        <div><strong style={{ color: '#94A3B8' }}>School Name:</strong><div>{data.education.schoolName}</div></div>
-                        <div><strong style={{ color: '#94A3B8' }}>Board:</strong><div>{data.education.board}</div></div>
-                        <div><strong style={{ color: '#94A3B8' }}>Completion Year:</strong><div>{data.education.completionYear}</div></div>
-                        <div><strong style={{ color: '#94A3B8' }}>Percentage / Aggregate:</strong><div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#34D399' }}>{data.education.percentage}%</div></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      {/* Target Category & Stream Header */}
+                      <div
+                        style={{
+                          background: '#EFF6FF',
+                          border: '1.5px solid #BFDBFE',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          flexWrap: 'wrap',
+                          gap: '1rem',
+                        }}
+                      >
+                        <div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#2563EB', textTransform: 'uppercase' }}>
+                            What Student Wants To Study
+                          </div>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1E3A8A' }}>
+                            {data.education.studyCategory === 'POSTGRADUATE'
+                              ? "Postgraduate Degree (Master's Stream)"
+                              : "Undergraduate Degree (Bachelor's Stream)"} &bull;{' '}
+                            <span style={{ color: '#2563EB' }}>{data.education.targetStream || 'General Stream'}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleVerifyStudent('VERIFIED')}
+                            disabled={isVerifying || data.verificationStatus === 'VERIFIED'}
+                            style={{
+                              backgroundColor: '#16A34A',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '0.4rem 0.85rem',
+                              fontSize: '0.8rem',
+                              fontWeight: 700,
+                              cursor: data.verificationStatus === 'VERIFIED' ? 'default' : 'pointer',
+                              opacity: data.verificationStatus === 'VERIFIED' ? 0.7 : 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                            }}
+                          >
+                            <ShieldCheck size={14} />
+                            <span>{data.verificationStatus === 'VERIFIED' ? 'Record Verified' : 'Verify Certificates'}</span>
+                          </button>
+                        </div>
                       </div>
 
-                      {data.education.subjectDetails && (
-                        <div>
-                          <strong style={{ color: '#94A3B8', display: 'block', marginBottom: '0.5rem' }}>Subject Breakdown:</strong>
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {(() => {
-                              try {
-                                const subs = JSON.parse(data.education.subjectDetails);
-                                return Array.isArray(subs)
-                                  ? subs.map((s: any, idx: number) => (
-                                      <span
-                                        key={idx}
-                                        style={{
-                                          padding: '0.3rem 0.7rem',
-                                          background: 'rgba(99, 102, 241, 0.15)',
-                                          border: '1px solid rgba(99, 102, 241, 0.3)',
-                                          borderRadius: '6px',
-                                          fontSize: '0.8rem',
-                                        }}
-                                      >
-                                        {s.subject}: <strong>{s.score}</strong>
-                                      </span>
-                                    ))
-                                  : null;
-                              } catch {
-                                return <span>{data.education.subjectDetails}</span>;
-                              }
-                            })()}
+                      {/* Submitted Verification Documents Section (Critical for Admin) */}
+                      <div
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1.5px solid #E2E8F0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                        }}
+                      >
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.85rem' }}>
+                          Submitted Academic Verification Certificates
+                        </h4>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                          {/* 10th Document */}
+                          <div
+                            style={{
+                              padding: '0.85rem 1rem',
+                              borderRadius: '8px',
+                              backgroundColor: data.education.tenthDocumentUrl ? '#F0FDF4' : '#FFF1F2',
+                              border: data.education.tenthDocumentUrl ? '1px solid #BBF7D0' : '1px solid #FECDD3',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
+                                10th Marksheet
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  color: data.education.tenthDocumentUrl ? '#15803D' : '#BE123C',
+                                }}
+                              >
+                                {data.education.tenthDocumentUrl ? '✓ ATTACHED' : 'MISSING'}
+                              </span>
+                            </div>
+                            {data.education.tenthDocumentUrl ? (
+                              <a
+                                href={data.education.tenthDocumentUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  marginTop: '0.5rem',
+                                  fontSize: '0.78rem',
+                                  color: '#2563EB',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                <span>Inspect 10th Certificate</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            ) : (
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.35rem' }}>
+                                Not uploaded by student
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 12th Document */}
+                          <div
+                            style={{
+                              padding: '0.85rem 1rem',
+                              borderRadius: '8px',
+                              backgroundColor: data.education.twelfthDocumentUrl ? '#F0FDF4' : '#FFF1F2',
+                              border: data.education.twelfthDocumentUrl ? '1px solid #BBF7D0' : '1px solid #FECDD3',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
+                                12th Marksheet
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  color: data.education.twelfthDocumentUrl ? '#15803D' : '#BE123C',
+                                }}
+                              >
+                                {data.education.twelfthDocumentUrl ? '✓ ATTACHED' : 'MISSING'}
+                              </span>
+                            </div>
+                            {data.education.twelfthDocumentUrl ? (
+                              <a
+                                href={data.education.twelfthDocumentUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  marginTop: '0.5rem',
+                                  fontSize: '0.78rem',
+                                  color: '#2563EB',
+                                  fontWeight: 600,
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                <span>Inspect 12th Certificate</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            ) : (
+                              <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.35rem' }}>
+                                Not uploaded by student
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Undergrad Document (for PG) */}
+                          {data.education.studyCategory === 'POSTGRADUATE' && (
+                            <div
+                              style={{
+                                padding: '0.85rem 1rem',
+                                borderRadius: '8px',
+                                backgroundColor: data.education.undergradDocumentUrl ? '#F0FDF4' : '#FFF1F2',
+                                border: data.education.undergradDocumentUrl ? '1px solid #BBF7D0' : '1px solid #FECDD3',
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
+                                  Graduation Certificate
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    fontWeight: 700,
+                                    color: data.education.undergradDocumentUrl ? '#15803D' : '#BE123C',
+                                  }}
+                                >
+                                  {data.education.undergradDocumentUrl ? '✓ ATTACHED' : 'MISSING'}
+                                </span>
+                              </div>
+                              {data.education.undergradDocumentUrl ? (
+                                <a
+                                  href={data.education.undergradDocumentUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem',
+                                    marginTop: '0.5rem',
+                                    fontSize: '0.78rem',
+                                    color: '#2563EB',
+                                    fontWeight: 600,
+                                    textDecoration: 'none',
+                                  }}
+                                >
+                                  <span>Inspect Degree Certificate</span>
+                                  <ExternalLink size={12} />
+                                </a>
+                              ) : (
+                                <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.35rem' }}>
+                                  Not uploaded by student
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Undergrad Details (if PG) */}
+                      {data.education.studyCategory === 'POSTGRADUATE' && data.education.undergradDegree && (
+                        <div
+                          style={{
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '12px',
+                            padding: '1.25rem',
+                          }}
+                        >
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1E3A8A', margin: '0 0 0.85rem' }}>
+                            Undergraduate / Bachelor's Record
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
+                            <div><strong style={{ color: '#64748B' }}>Degree:</strong><div>{data.education.undergradDegree}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>College/University:</strong><div>{data.education.undergradCollege || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Passing Year:</strong><div>{data.education.undergradPassingYear || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Score / CGPA:</strong><div style={{ fontWeight: 700, color: '#2563EB' }}>{data.education.undergradPercentage ? `${data.education.undergradPercentage}%` : 'N/A'}</div></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Senior Secondary (12th Grade) Details */}
+                      <div
+                        style={{
+                          background: '#F8FAFC',
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '12px',
+                          padding: '1.25rem',
+                        }}
+                      >
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.85rem' }}>
+                          Senior Secondary (12th Grade) Details
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1rem', fontSize: '0.875rem' }}>
+                          <div><strong style={{ color: '#64748B' }}>School Name:</strong><div>{data.education.schoolName}</div></div>
+                          <div><strong style={{ color: '#64748B' }}>Board:</strong><div>{data.education.board}</div></div>
+                          <div><strong style={{ color: '#64748B' }}>Completion Year:</strong><div>{data.education.completionYear}</div></div>
+                          <div><strong style={{ color: '#64748B' }}>Percentage:</strong><div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16A34A' }}>{data.education.percentage}%</div></div>
+                        </div>
+
+                        {data.education.subjectDetails && (
+                          <div>
+                            <strong style={{ color: '#64748B', display: 'block', marginBottom: '0.4rem', fontSize: '0.82rem' }}>Subject Breakdown:</strong>
+                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {(() => {
+                                try {
+                                  const subs = JSON.parse(data.education.subjectDetails);
+                                  return Array.isArray(subs)
+                                    ? subs.map((s: any, idx: number) => (
+                                        <span
+                                          key={idx}
+                                          style={{
+                                            padding: '0.25rem 0.65rem',
+                                            background: '#EFF6FF',
+                                            border: '1px solid #BFDBFE',
+                                            borderRadius: '6px',
+                                            fontSize: '0.78rem',
+                                            color: '#1E40AF',
+                                          }}
+                                        >
+                                          {s.subject}: <strong>{s.score}</strong>
+                                        </span>
+                                      ))
+                                    : null;
+                                } catch {
+                                  return <span>{data.education.subjectDetails}</span>;
+                                }
+                              })()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 10th Summary Details if present */}
+                      {data.education.tenthSchoolName && (
+                        <div
+                          style={{
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
+                            borderRadius: '12px',
+                            padding: '1.25rem',
+                          }}
+                        >
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0F172A', margin: '0 0 0.85rem' }}>
+                            Secondary School (10th Grade) Details
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
+                            <div><strong style={{ color: '#64748B' }}>School:</strong><div>{data.education.tenthSchoolName}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Board:</strong><div>{data.education.tenthBoard || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Year:</strong><div>{data.education.tenthPassingYear || 'N/A'}</div></div>
+                            <div><strong style={{ color: '#64748B' }}>Aggregate:</strong><div>{data.education.tenthPercentage ? `${data.education.tenthPercentage}%` : 'N/A'}</div></div>
                           </div>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#94A3B8' }}>
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
                       <GraduationCap size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
                       <p>No academic records submitted yet for this student.</p>
                     </div>
@@ -471,36 +909,36 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                   {data.preference ? (
                     <div
                       style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.06)',
+                        background: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
                         borderRadius: '12px',
                         padding: '1.5rem',
                       }}
                     >
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '1rem' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginBottom: '1rem' }}>
                         Higher Education Preferences (Module 2)
                       </h3>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
                         <div>
-                          <strong style={{ color: '#94A3B8' }}>Primary Study Destination:</strong>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF', marginTop: '0.2rem' }}>
+                          <strong style={{ color: '#64748B' }}>Primary Study Destination:</strong>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginTop: '0.2rem' }}>
                             {data.preference.primaryCountry || 'Not Specified'}
                           </div>
                         </div>
                         <div>
-                          <strong style={{ color: '#94A3B8' }}>Target Department:</strong>
-                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF', marginTop: '0.2rem' }}>
+                          <strong style={{ color: '#64748B' }}>Target Department:</strong>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0F172A', marginTop: '0.2rem' }}>
                             {data.preference.department}
                           </div>
                         </div>
                         <div>
-                          <strong style={{ color: '#94A3B8' }}>Specialization / Sub-Department:</strong>
-                          <div style={{ fontSize: '1rem', color: '#A78BFA', marginTop: '0.2rem' }}>
+                          <strong style={{ color: '#64748B' }}>Specialization / Sub-Department:</strong>
+                          <div style={{ fontSize: '1rem', color: '#2563EB', marginTop: '0.2rem' }}>
                             {data.preference.subDepartment}
                           </div>
                         </div>
                         <div>
-                          <strong style={{ color: '#94A3B8' }}>Priority Countries Considered:</strong>
+                          <strong style={{ color: '#64748B' }}>Priority Countries Considered:</strong>
                           <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                             {(() => {
                               try {
@@ -511,7 +949,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                                         key={idx}
                                         style={{
                                           padding: '0.25rem 0.6rem',
-                                          background: 'rgba(255, 255, 255, 0.08)',
+                                          background: '#E2E8F0',
                                           borderRadius: '6px',
                                           fontSize: '0.8rem',
                                         }}
@@ -529,7 +967,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                       </div>
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#94A3B8' }}>
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
                       <Compass size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
                       <p>No study preferences recorded yet.</p>
                     </div>
@@ -540,8 +978,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
               {/* TAB 4: Exams & Mocks */}
               {activeTab === 'exams' && (
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
-                    Target Entrance Exam Plans (Module 4 & 10)
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
+                    Target Entrance Exam Plans (Module 4)
                   </h3>
                   {data.examPlans && data.examPlans.length > 0 ? (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -549,29 +987,29 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                         <div
                           key={ep.id}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
                             borderRadius: '10px',
                             padding: '1rem',
                           }}
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{ep.exam?.code || 'EXAM'}</span>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.2)', color: '#A78BFA' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(37, 99, 235, 0.1)', color: '#2563EB' }}>
                               {ep.status}
                             </span>
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.4rem' }}>
+                          <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.4rem' }}>
                             Target: {ep.targetDate || 'TBD'} • Goal Score: {ep.targetScore || 'N/A'}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '1.5rem' }}>No exam plans scheduled.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.875rem', marginBottom: '1.5rem' }}>No exam plans scheduled.</p>
                   )}
 
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
                     Mock Diagnostic Attempts
                   </h3>
                   {data.mockAttempts && data.mockAttempts.length > 0 ? (
@@ -583,27 +1021,27 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            background: 'rgba(255, 255, 255, 0.02)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
                             padding: '0.75rem 1rem',
                             borderRadius: '8px',
                           }}
                         >
                           <div>
                             <div style={{ fontWeight: 600 }}>{ma.mockTest?.title || 'Practice Test'}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
                               Time spent: {Math.round(ma.timeSpentSeconds / 60)} min • Taken on {new Date(ma.createdAt).toLocaleDateString()}
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontWeight: 800, color: '#34D399', fontSize: '1.1rem' }}>{ma.percentage}%</div>
-                            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{ma.score} / {ma.totalMarks} marks</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{ma.score} / {ma.totalMarks} marks</div>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p style={{ color: '#94A3B8', fontSize: '0.875rem' }}>No timed mock tests attempted yet.</p>
+                    <p style={{ color: '#64748B', fontSize: '0.875rem' }}>No timed mock tests attempted yet.</p>
                   )}
                 </div>
               )}
@@ -617,8 +1055,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                         <div
                           key={batch.id}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
                             borderRadius: '12px',
                             padding: '1.25rem',
                             marginBottom: '1rem',
@@ -627,11 +1065,11 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                             <div>
                               <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Three-Tier Recommendation Batch</span>
-                              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
                                 Status: <strong>{batch.status}</strong> • Generated on {new Date(batch.generatedAt).toLocaleDateString()}
                               </div>
                             </div>
-                            <span style={{ fontSize: '0.75rem', color: '#A78BFA' }}>{batch.items?.length || 0} colleges recommended</span>
+                            <span style={{ fontSize: '0.75rem', color: '#2563EB' }}>{batch.items?.length || 0} colleges recommended</span>
                           </div>
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -643,18 +1081,18 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   padding: '0.65rem 0.9rem',
-                                  background: 'rgba(255, 255, 255, 0.02)',
+                                  background: '#F8FAFC',
                                   borderRadius: '8px',
-                                  border: '1px solid rgba(255, 255, 255, 0.04)',
+                                  border: '1px solid #F8FAFC',
                                 }}
                               >
                                 <div>
                                   <span style={{ fontWeight: 600 }}>{item.institution?.name}</span>
-                                  <span style={{ fontSize: '0.8rem', color: '#94A3B8', marginLeft: '0.5rem' }}>
+                                  <span style={{ fontSize: '0.8rem', color: '#64748B', marginLeft: '0.5rem' }}>
                                     ({item.institution?.country})
                                   </span>
                                   {item.reasonSummary && (
-                                    <div style={{ fontSize: '0.75rem', color: '#CBD5E1', marginTop: '0.15rem' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: '0.15rem' }}>
                                       Rationale: {item.reasonSummary}
                                     </div>
                                   )}
@@ -670,19 +1108,19 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                                         item.tier === 'SAFE'
                                           ? 'rgba(16, 185, 129, 0.2)'
                                           : item.tier === 'BEST_FIT'
-                                          ? 'rgba(99, 102, 241, 0.2)'
+                                          ? 'rgba(37, 99, 235, 0.1)'
                                           : 'rgba(245, 158, 11, 0.2)',
                                       color:
                                         item.tier === 'SAFE'
                                           ? '#34D399'
                                           : item.tier === 'BEST_FIT'
-                                          ? '#A78BFA'
+                                          ? '#2563EB'
                                           : '#FBBF24',
                                     }}
                                   >
                                     {item.tier}
                                   </span>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#A78BFA' }}>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#2563EB' }}>
                                     Fit: {Math.round(item.fitScore)}%
                                   </span>
                                 </div>
@@ -693,7 +1131,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                       ))}
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#94A3B8' }}>
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
                       <Sparkles size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
                       <p>No 3-tier recommendation batches generated yet for this student.</p>
                     </div>
@@ -705,7 +1143,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
               {activeTab === 'shortlist' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   <div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
                       Bookmarked Shortlist Portfolio (Module 12)
                     </h3>
                     {data.shortlistItems && data.shortlistItems.length > 0 ? (
@@ -714,8 +1152,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           <div
                             key={sl.id}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.03)',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              background: '#F8FAFC',
+                              border: '1px solid #E2E8F0',
                               padding: '0.65rem 0.9rem',
                               borderRadius: '8px',
                               display: 'flex',
@@ -725,21 +1163,21 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           >
                             <div>
                               <div style={{ fontWeight: 600 }}>{sl.itemType}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>ID: {sl.itemId.slice(0, 8)}...</div>
+                              <div style={{ fontSize: '0.75rem', color: '#64748B' }}>ID: {sl.itemId.slice(0, 8)}...</div>
                             </div>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(99, 102, 241, 0.2)', color: '#A78BFA' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(37, 99, 235, 0.1)', color: '#2563EB' }}>
                               {sl.priority}
                             </span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>No bookmarked items in shortlist.</p>
+                      <p style={{ color: '#64748B', fontSize: '0.85rem' }}>No bookmarked items in shortlist.</p>
                     )}
                   </div>
 
                   <div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
                       Saved Scholarships (Module 8)
                     </h3>
                     {data.savedScholarships && data.savedScholarships.length > 0 ? (
@@ -748,21 +1186,21 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           <div
                             key={ss.id}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.03)',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              background: '#F8FAFC',
+                              border: '1px solid #E2E8F0',
                               padding: '0.65rem 0.9rem',
                               borderRadius: '8px',
                             }}
                           >
                             <div style={{ fontWeight: 600 }}>{ss.scholarship?.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                            <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
                               Provider: {ss.scholarship?.provider} • Value: {ss.scholarship?.awardCurrency} {ss.scholarship?.awardAmount?.toLocaleString()}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>No scholarships saved by student.</p>
+                      <p style={{ color: '#64748B', fontSize: '0.85rem' }}>No scholarships saved by student.</p>
                     )}
                   </div>
                 </div>
@@ -771,7 +1209,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
               {/* TAB 7: Appointments */}
               {activeTab === 'appointments' && (
                 <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
                     Scheduled Guidance Appointments (Module 12)
                   </h3>
                   {data.appointments && data.appointments.length > 0 ? (
@@ -780,8 +1218,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                         <div
                           key={apt.id}
                           style={{
-                            background: 'rgba(255, 255, 255, 0.03)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            background: '#F8FAFC',
+                            border: '1px solid #E2E8F0',
                             padding: '1rem',
                             borderRadius: '10px',
                           }}
@@ -789,10 +1227,10 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div>
                               <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{apt.title}</div>
-                              <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginTop: '0.2rem' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.2rem' }}>
                                 📅 {new Date(apt.scheduledAt).toLocaleString()} ({apt.durationMinutes} mins) • Counsellor: {apt.counsellor?.email}
                               </div>
-                              <p style={{ fontSize: '0.825rem', color: '#CBD5E1', margin: '0.4rem 0' }}>
+                              <p style={{ fontSize: '0.825rem', color: '#475569', margin: '0.4rem 0' }}>
                                 {apt.description}
                               </p>
                             </div>
@@ -805,8 +1243,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                                 background:
                                   apt.status === 'COMPLETED'
                                     ? 'rgba(16, 185, 129, 0.2)'
-                                    : 'rgba(99, 102, 241, 0.2)',
-                                color: apt.status === 'COMPLETED' ? '#34D399' : '#A78BFA',
+                                    : 'rgba(37, 99, 235, 0.1)',
+                                color: apt.status === 'COMPLETED' ? '#34D399' : '#2563EB',
                               }}
                             >
                               {apt.status}
@@ -814,8 +1252,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           </div>
 
                           {apt.followUpActions && (
-                            <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '6px', fontSize: '0.8rem' }}>
-                              <strong style={{ color: '#C7D2FE' }}>Follow-up Actions:</strong> {apt.followUpActions}
+                            <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: '#F8FAFC', borderRadius: '6px', fontSize: '0.8rem' }}>
+                              <strong style={{ color: '#0F172A' }}>Follow-up Actions:</strong> {apt.followUpActions}
                             </div>
                           )}
 
@@ -828,7 +1266,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                       ))}
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: '#94A3B8' }}>
+                    <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
                       <Calendar size={40} style={{ opacity: 0.5, marginBottom: '0.5rem' }} />
                       <p>No appointments recorded for this student.</p>
                     </div>
@@ -841,7 +1279,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                   {/* Action Plans Column */}
                   <div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
                       Student Action Plan Milestones (Module 13)
                     </h3>
 
@@ -849,8 +1287,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                     <form
                       onSubmit={handleCreatePlan}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
                         borderRadius: '10px',
                         padding: '1rem',
                         marginBottom: '1rem',
@@ -865,10 +1303,10 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                         style={{
                           width: '100%',
                           padding: '0.5rem 0.75rem',
-                          background: '#0B1535',
-                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          background: '#FFFFFF',
+                          border: '1px solid #475569',
                           borderRadius: '6px',
-                          color: '#FFFFFF',
+                          color: '#0F172A',
                           fontSize: '0.85rem',
                           marginBottom: '0.5rem',
                         }}
@@ -880,10 +1318,10 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           style={{
                             flex: 1,
                             padding: '0.45rem',
-                            background: '#0B1535',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            background: '#FFFFFF',
+                            border: '1px solid #475569',
                             borderRadius: '6px',
-                            color: '#FFFFFF',
+                            color: '#0F172A',
                             fontSize: '0.8rem',
                           }}
                         >
@@ -899,10 +1337,10 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           onChange={(e) => setNewPlanPriority(e.target.value)}
                           style={{
                             padding: '0.45rem',
-                            background: '#0B1535',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            background: '#FFFFFF',
+                            border: '1px solid #475569',
                             borderRadius: '6px',
-                            color: '#FFFFFF',
+                            color: '#0F172A',
                             fontSize: '0.8rem',
                           }}
                         >
@@ -916,10 +1354,10 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           onChange={(e) => setNewPlanDate(e.target.value)}
                           style={{
                             padding: '0.45rem',
-                            background: '#0B1535',
-                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                            background: '#FFFFFF',
+                            border: '1px solid #475569',
                             borderRadius: '6px',
-                            color: '#FFFFFF',
+                            color: '#0F172A',
                             fontSize: '0.8rem',
                           }}
                         />
@@ -928,10 +1366,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           disabled={isSubmittingPlan}
                           style={{
                             padding: '0.45rem 0.9rem',
-                            background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-                            border: 'none',
-                            borderRadius: '6px',
-                            color: '#FFFFFF',
+                            background: '#2563EB', border: 'none', borderRadius: '6px', color: '#FFFFFF',
                             fontWeight: 700,
                             fontSize: '0.8rem',
                             cursor: 'pointer',
@@ -952,8 +1387,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           <div
                             key={item.id}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.02)',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              background: '#F8FAFC',
+                              border: '1px solid #E2E8F0',
                               padding: '0.75rem',
                               borderRadius: '8px',
                               display: 'flex',
@@ -970,7 +1405,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                                   borderRadius: '6px',
                                   border: item.status === 'COMPLETED' ? 'none' : '1px solid rgba(255, 255, 255, 0.3)',
                                   background: item.status === 'COMPLETED' ? '#10B981' : 'transparent',
-                                  color: '#FFFFFF',
+                                  color: '#0F172A',
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
@@ -985,7 +1420,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                                     fontSize: '0.875rem',
                                     fontWeight: 600,
                                     textDecoration: item.status === 'COMPLETED' ? 'line-through' : 'none',
-                                    color: item.status === 'COMPLETED' ? '#94A3B8' : '#F8FAFC',
+                                    color: item.status === 'COMPLETED' ? '#64748B' : '#F8FAFC',
                                   }}
                                 >
                                   {item.title}
@@ -1012,14 +1447,14 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           </div>
                         ))
                       ) : (
-                        <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>No action plan milestones set yet.</p>
+                        <p style={{ color: '#64748B', fontSize: '0.85rem' }}>No action plan milestones set yet.</p>
                       )}
                     </div>
                   </div>
 
                   {/* Counsellor Notes Column */}
                   <div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#C7D2FE', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.75rem' }}>
                       Counsellor Advisory Notes (Confidential)
                     </h3>
 
@@ -1027,8 +1462,8 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                     <form
                       onSubmit={handleCreateNote}
                       style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        background: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
                         borderRadius: '10px',
                         padding: '1rem',
                         marginBottom: '1rem',
@@ -1042,10 +1477,10 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                         style={{
                           width: '100%',
                           padding: '0.5rem 0.75rem',
-                          background: '#0B1535',
-                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          background: '#FFFFFF',
+                          border: '1px solid #475569',
                           borderRadius: '6px',
-                          color: '#FFFFFF',
+                          color: '#0F172A',
                           fontSize: '0.85rem',
                           marginBottom: '0.5rem',
                         }}
@@ -1059,10 +1494,10 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                         style={{
                           width: '100%',
                           padding: '0.5rem 0.75rem',
-                          background: '#0B1535',
-                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          background: '#FFFFFF',
+                          border: '1px solid #475569',
                           borderRadius: '6px',
-                          color: '#FFFFFF',
+                          color: '#0F172A',
                           fontSize: '0.85rem',
                           marginBottom: '0.5rem',
                           resize: 'vertical',
@@ -1074,10 +1509,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                         style={{
                           width: '100%',
                           padding: '0.5rem',
-                          background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-                          border: 'none',
-                          borderRadius: '6px',
-                          color: '#FFFFFF',
+                          background: '#2563EB', border: 'none', borderRadius: '6px', color: '#FFFFFF',
                           fontWeight: 700,
                           fontSize: '0.8rem',
                           cursor: 'pointer',
@@ -1094,21 +1526,21 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           <div
                             key={n.id}
                             style={{
-                              background: 'rgba(255, 255, 255, 0.02)',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              background: '#F8FAFC',
+                              border: '1px solid #E2E8F0',
                               padding: '0.75rem 1rem',
                               borderRadius: '8px',
                             }}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#C7D2FE' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A' }}>
                                 {n.title || 'Advisory Note'}
                               </span>
                               <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
                                 {new Date(n.createdAt).toLocaleDateString()}
                               </span>
                             </div>
-                            <p style={{ fontSize: '0.825rem', color: '#CBD5E1', margin: 0, whiteSpace: 'pre-wrap' }}>
+                            <p style={{ fontSize: '0.825rem', color: '#475569', margin: 0, whiteSpace: 'pre-wrap' }}>
                               {n.content}
                             </p>
                             <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.35rem' }}>
@@ -1117,7 +1549,7 @@ export const Student360Modal: React.FC<Student360ModalProps> = ({ profileId, onC
                           </div>
                         ))
                       ) : (
-                        <p style={{ color: '#94A3B8', fontSize: '0.85rem' }}>No counsellor notes recorded yet.</p>
+                        <p style={{ color: '#64748B', fontSize: '0.85rem' }}>No counsellor notes recorded yet.</p>
                       )}
                     </div>
                   </div>

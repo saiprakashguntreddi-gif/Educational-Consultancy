@@ -38,6 +38,7 @@ export interface CounsellorDashboardData {
     id: string;
     email: string;
     role: string;
+    profile?: any;
   };
   metrics: {
     assignedStudents: number;
@@ -45,7 +46,25 @@ export interface CounsellorDashboardData {
     upcomingAppointmentsCount: number;
     activeActionPlans: number;
     unassignedPoolCount: number;
+    activeApplications?: number;
+    todayAppointmentsCount?: number;
+    pendingRequestsCount?: number;
+    pendingFollowUpsCount?: number;
   };
+  todaySchedule?: any[];
+  studentsRequiringAttention?: any[];
+  recentSessions?: any[];
+  recentStudents?: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    grade: string;
+    verificationStatus: string;
+    countryPreference: string;
+    department: string;
+    pendingActions: number;
+  }[];
   upcomingAppointments: any[];
   recentNotes: any[];
 }

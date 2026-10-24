@@ -24,6 +24,11 @@ model User {
   assignedStudents StudentProfile[] @relation("AssignedCounsellor")
   authoredActionPlans ActionPlanItem[] @relation("CounsellorActionPlans")
   authoredNotes    StudentCounsellorNote[] @relation("CounsellorNotes")
+  counsellorProfile CounsellorProfile?
+  counsellorAssignments CounsellorAssignmentHistory[] @relation("CounsellorAssignmentHistory")
+  createdAssignments CounsellorAssignmentHistory[] @relation("AssignmentsMade")
+  counsellorSlots  CounsellorAvailabilitySlot[] @relation("CounsellorSlots")
+  counsellorEnrollments StudentEnrollment[] @relation("CounsellorEnrollments")
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -96,6 +101,12 @@ model StudentProfile {
   assignedCounsellor    User?           @relation("AssignedCounsellor", fields: [assignedCounsellorId], references: [id], onDelete: SetNull)
   actionPlans           ActionPlanItem[]
   counsellorNotes       StudentCounsellorNote[]
+  counsellorAssignments CounsellorAssignmentHistory[]
+  enrollment            StudentEnrollment?
+  isEnrolled            Boolean         @default(false)
+  enrolledAt            DateTime?
+  policyAgreed          Boolean         @default(false)
+  policyAgreedAt        DateTime?
 
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
@@ -147,10 +158,26 @@ model StudentEducation {
   tenthPassingYear   Int?            // 10th Passing Year
   tenthPercentage    Float?          // 10th Percentage or score
 
+  // Category and Target Study Stream (UG vs PG what student wants to study)
+  studyCategory      String?         @default("UNDERGRADUATE") // "UNDERGRADUATE" | "POSTGRADUATE"
+  targetStream       String?         // e.g. "Engineering & Technology", "Computer Science", etc.
+
+  // Document Certificates (10th, 12th required for UG; 10th, 12th, and Undergrad required for PG)
+  twelfthDocumentUrl String?         // 12th class certificate / marksheet URL or data
+  tenthDocumentUrl   String?         // 10th class certificate / marksheet URL or data
+
+  // Postgraduate Applicant Details & Degree Certificate
+  undergradDegree    String?         // Undergrad Degree title (e.g. B.Tech Computer Science)
+  undergradCollege   String?         // Undergrad College / University name
+  undergradPassingYear Int?          // Graduation Year
+  undergradPercentage Float?         // Graduation Percentage or CGPA
+  undergradDocumentUrl String?       // Graduation Degree Certificate / Marksheet URL or data
+
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
   @@index([studentProfileId])
+  @@index([studyCategory])
   @@index([board])
   @@index([completionYear])
 }
@@ -760,6 +787,23 @@ model Appointment {
   completedAt            DateTime?
   cancelledAt            DateTime?
   cancellationReason     String?
+  actualStartTime        DateTime?
+  actualEndTime          DateTime?
+  sessionOutcome         String?        // Summary of outcome
+  recommendations        String?        // Counsellor recommendations
+  followUpRequired       Boolean        @default(false)
+  nextAction             String?        // Action item needed for follow-up
+  studentInterest        String?        // "INTERESTED", "NOT_INTERESTED", "UNDECIDED"
+  targetStream           String?        // Target stream, e.g. "Engineering & Technology", "Business"
+  targetDepartments      String?        // Target departments, e.g. "Computer Science"
+  targetColleges         String?        // Target colleges report
+  targetCity             String?        // Preferred city/region
+  studyScope             String?        @default("INTERNATIONAL") // "INTERNATIONAL" | "DOMESTIC"
+  detailedInterestReport String?        // Comprehensive report sent to admin
+  reminderSentAt         DateTime?
+  reminderSentVia        String?        // "WHATSAPP", "SMS"
+  isRecorded             Boolean        @default(true)
+  recordingUrl           String?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 
@@ -815,4 +859,98 @@ model StudentCounsellorNote {
   @@index([studentProfileId])
   @@index([counsellorId])
 }
+
+// ==========================================
+// MODULE 15: COUNSELLOR PROFILE & ASSIGNMENT AUDIT
+// ==========================================
+
+model CounsellorProfile {
+  id                   String    @id @default(uuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName             String
+  phone                String?
+  qualification        String?
+  experienceYears      Int       @default(0)
+  specialization       String?
+  skills               String    @default("[]") // JSON array of string skills
+  languages            String    @default("[]") // JSON array of languages
+  countriesOfExpertise String    @default("[]") // JSON array of countries
+  courseExpertise      String    @default("[]") // JSON array of courses
+  bio                  String?
+  availability         String?   @default("Mon-Fri, 9:00 AM - 5:00 PM")
+  capacity             Int       @default(30)
+  verificationStatus   String    @default("PENDING") // PENDING, VERIFIED, ACTIVE, INACTIVE, SUSPENDED
+  verifiedAt           DateTime?
+  verifiedBy           String?   // Admin User ID who verified
+  enrollmentPoints     Int       @default(0) // Confirmed student enrollments for consultancy
+  availableSlots       String    @default("[]") // JSON array of configured available date/time slots
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([verificationStatus])
+}
+
+model CounsellorAssignmentHistory {
+  id               String          @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  counsellorId     String
+  counsellor       User            @relation("CounsellorAssignmentHistory", fields: [counsellorId], references: [id], onDelete: Cascade)
+  assignedById     String?         // Admin User ID
+  assignedBy       User?           @relation("AssignmentsMade", fields: [assignedById], references: [id], onDelete: SetNull)
+  assignedAt       DateTime        @default(now())
+  unassignedAt     DateTime?
+  status           String          @default("ACTIVE") // ACTIVE, REASSIGNED, UNASSIGNED
+  reason           String?
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([studentProfileId])
+  @@index([counsellorId])
+  @@index([status])
+}
+
+model CounsellorAvailabilitySlot {
+  id           String    @id @default(uuid())
+  counsellorId String
+  counsellor   User      @relation("CounsellorSlots", fields: [counsellorId], references: [id], onDelete: Cascade)
+  date         String    // YYYY-MM-DD
+  timeSlot     String    // e.g. "10:00 AM", "11:30 AM", "02:00 PM", "04:00 PM"
+  isAvailable  Boolean   @default(true)
+  isBooked     Boolean   @default(false)
+  bookedById   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([counsellorId, date, timeSlot])
+  @@index([counsellorId])
+  @@index([date])
+  @@index([isBooked])
+}
+
+model StudentEnrollment {
+  id               String         @id @default(uuid())
+  studentProfileId String         @unique
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  counsellorId     String
+  counsellor       User           @relation("CounsellorEnrollments", fields: [counsellorId], references: [id], onDelete: Cascade)
+  status           String         @default("CONFIRMED") // "PENDING", "CONFIRMED", "IN_PROCESS", "COMPLETED"
+  pointsAwarded    Int            @default(1)
+  agreementSigned  Boolean        @default(true)
+  targetCollege    String?
+  targetStream     String?
+  notes            String?
+  enrolledAt       DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([counsellorId])
+  @@index([status])
+  @@index([enrolledAt])
+}
+
 

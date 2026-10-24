@@ -38,3 +38,72 @@ export const toggleShortlistSchema = z.object({
     notes: z.string().max(500).optional(),
   }),
 });
+
+export const updateAppointmentStatusSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    status: z.enum(['CONFIRMED', 'RESCHEDULED', 'CANCELLED']),
+    reason: z.string().max(500).optional(),
+    scheduledDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+      .optional(),
+    timeSlot: z.string().optional(),
+    meetingLocation: z.string().optional(),
+  }),
+});
+
+export const recordSessionOutcomeSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    actualStartTime: z.string().optional(),
+    actualEndTime: z.string().optional(),
+    durationMinutes: z.number().int().min(1).optional(),
+    sessionOutcome: z.string().min(2, 'Session topic/outcome summary required'),
+    recommendations: z.string().optional(),
+    followUpRequired: z.boolean().optional().default(false),
+    nextAction: z.string().optional(),
+    followUpActions: z.string().optional(),
+    privateCounsellorNotes: z.string().optional(),
+    studentInterest: z.enum(['INTERESTED', 'NOT_INTERESTED', 'UNDECIDED']).optional().default('UNDECIDED'),
+    targetStream: z.string().optional(),
+    targetDepartments: z.string().optional(),
+    targetColleges: z.string().optional(),
+    targetCity: z.string().optional(),
+    studyScope: z.enum(['DOMESTIC', 'INTERNATIONAL', 'BOTH']).optional().default('INTERNATIONAL'),
+    detailedInterestReport: z.string().optional(),
+    sendPolicyViaWhatsApp: z.boolean().optional().default(false),
+  }),
+});
+
+export const sendReminderSchema = z.object({
+  params: z.object({
+    id: z.string().min(1),
+  }),
+  body: z.object({
+    method: z.enum(['WHATSAPP', 'SMS']).default('WHATSAPP'),
+  }),
+});
+
+export const manageCounsellorSlotsSchema = z.object({
+  body: z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'),
+    timeSlots: z.array(z.string()).min(1, 'At least one time slot is required'),
+  }),
+});
+
+export const enrollStudentSchema = z.object({
+  body: z.object({
+    studentProfileId: z.string().optional(),
+    counsellorId: z.string().optional(),
+    targetCollege: z.string().optional(),
+    targetStream: z.string().optional(),
+    agreementSigned: z.boolean().default(true),
+  }),
+});
+
+

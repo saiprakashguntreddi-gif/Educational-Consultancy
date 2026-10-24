@@ -85,46 +85,48 @@ export const CounsellorQueuePage: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '2.5rem auto', padding: '0 1.5rem' }}>
-      <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', padding: '0.3rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-          <ShieldCheck size={16} /> Counsellor & Admin Gateway
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+      <div className="saas-welcome-banner">
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#DCFCE7', color: '#15803D', padding: '0.3rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+            <ShieldCheck size={16} /> Verification Gateway
+          </div>
+          <h1 className="saas-welcome-title">Student Profile Verification Queue</h1>
+          <p className="saas-welcome-sub">
+            Review submitted student intakes and authenticate verified student records for guidance and advisory.
+          </p>
         </div>
-        <h1 style={{ fontSize: '1.85rem', marginBottom: '0.4rem' }}>Student Profile Verification Queue</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.925rem' }}>
-          Review submitted Module 1 intakes and authenticate verified student records for guidance and advisory.
-        </p>
       </div>
 
       {message && (
-        <div style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.3)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', color: '#c7d2fe' }}>
+        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', color: '#1E40AF', fontSize: '0.9rem' }}>
           {message}
         </div>
       )}
 
       {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
+        <div style={{ textAlign: 'center', padding: '4rem', color: '#64748B' }}>
           Loading verification queue from database...
         </div>
       ) : profiles.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '3.5rem', textAlign: 'center' }}>
-          <Clock size={40} color="var(--text-dim)" style={{ marginBottom: '1rem' }} />
-          <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Verification Queue Is Empty</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '480px', margin: '0 auto' }}>
-            No student profile intakes are currently awaiting review. Register a student account to test the intake and verification lifecycle.
+        <div className="saas-card" style={{ padding: '3.5rem', textAlign: 'center' }}>
+          <Clock size={40} color="#CBD5E1" style={{ marginBottom: '1rem' }} />
+          <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#0F172A' }}>Verification Queue Is Empty</h3>
+          <p style={{ color: '#64748B', fontSize: '0.9rem', maxWidth: '480px', margin: '0 auto' }}>
+            No student profile intakes are currently awaiting review. All registered students have been processed.
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: selectedProfile ? '1fr 1fr' : '1fr', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: selectedProfile ? '1.1fr 0.9fr' : '1fr', gap: '1.5rem', alignItems: 'start' }}>
           {/* Table of Profiles */}
-          <div className="glass-panel" style={{ padding: '1.5rem', overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <div className="saas-card" style={{ padding: '1.25rem', overflowX: 'auto', marginBottom: 0 }}>
+            <table className="saas-table" style={{ width: '100%', fontSize: '0.875rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', color: 'var(--text-dim)' }}>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>STUDENT NAME</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>GRADE & BOARD</th>
-                  <th style={{ padding: '0.75rem 0.5rem' }}>STATUS</th>
-                  <th style={{ padding: '0.75rem 0.5rem', textAlign: 'right' }}>ACTION</th>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Grade & Board</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,23 +134,21 @@ export const CounsellorQueuePage: React.FC = () => {
                   <tr
                     key={p.id}
                     style={{
-                      borderBottom: '1px solid rgba(255,255,255,0.04)',
                       cursor: 'pointer',
-                      background: selectedProfile?.id === p.id ? 'rgba(99, 102, 241, 0.12)' : 'transparent',
+                      background: selectedProfile?.id === p.id ? '#EFF6FF' : 'transparent',
                     }}
                     onClick={() => setSelectedProfile(p)}
                   >
-                    <td style={{ padding: '0.9rem 0.5rem', fontWeight: 600 }}>{p.fullName}</td>
-                    <td style={{ padding: '0.9rem 0.5rem', color: 'var(--text-muted)' }}>{p.grade} • {p.board}</td>
-                    <td style={{ padding: '0.9rem 0.5rem' }}>
+                    <td style={{ fontWeight: 600, color: '#0F172A' }}>{p.fullName}</td>
+                    <td style={{ color: '#64748B', fontSize: '0.82rem' }}>{p.grade} • {p.board}</td>
+                    <td>
                       <span className={`badge badge-${p.verificationStatus.toLowerCase()}`}>
                         {p.verificationStatus}
                       </span>
                     </td>
-                    <td style={{ padding: '0.9rem 0.5rem', textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right' }}>
                       <button
-                        className="btn btn-secondary"
-                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                        className="saas-btn saas-btn-secondary saas-btn-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedProfile(p);
@@ -165,39 +165,39 @@ export const CounsellorQueuePage: React.FC = () => {
 
           {/* Inspection Panel */}
           {selectedProfile && (
-            <div className="glass-panel" style={{ padding: '1.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '1.2rem' }}>Record Verification</h3>
+            <div className="saas-card" style={{ padding: '1.5rem', marginBottom: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0F172A', margin: 0 }}>Record Verification</h3>
                 <button
                   onClick={() => setSelectedProfile(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
+                  style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer', fontSize: '0.85rem' }}
                 >
                   Close
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Name:</strong> {selectedProfile.fullName}</div>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Gender:</strong> {selectedProfile.gender}</div>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Citizenship:</strong> {selectedProfile.citizenship}</div>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Class / Grade:</strong> {selectedProfile.grade}</div>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Curriculum:</strong> {selectedProfile.board}</div>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Passing-out:</strong> {selectedProfile.passingOutYear}</div>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Email:</strong> {selectedProfile.contactEmail}</div>
-                <div><strong style={{ color: 'var(--text-dim)' }}>Phone:</strong> {selectedProfile.phone}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', marginBottom: '1.25rem', color: '#334155' }}>
+                <div><strong style={{ color: '#0F172A' }}>Name:</strong> {selectedProfile.fullName}</div>
+                <div><strong style={{ color: '#0F172A' }}>Gender:</strong> {selectedProfile.gender}</div>
+                <div><strong style={{ color: '#0F172A' }}>Citizenship:</strong> {selectedProfile.citizenship}</div>
+                <div><strong style={{ color: '#0F172A' }}>Class / Grade:</strong> {selectedProfile.grade}</div>
+                <div><strong style={{ color: '#0F172A' }}>Curriculum:</strong> {selectedProfile.board}</div>
+                <div><strong style={{ color: '#0F172A' }}>Passing-out:</strong> {selectedProfile.passingOutYear}</div>
+                <div><strong style={{ color: '#0F172A' }}>Email:</strong> {selectedProfile.contactEmail}</div>
+                <div><strong style={{ color: '#0F172A' }}>Phone:</strong> {selectedProfile.phone}</div>
                 <div>
-                  <strong style={{ color: 'var(--text-dim)' }}>Address:</strong> {selectedProfile.address.street}, {selectedProfile.address.city}, {selectedProfile.address.state} - {selectedProfile.address.postalCode}, {selectedProfile.address.country}
+                  <strong style={{ color: '#0F172A' }}>Address:</strong> {selectedProfile.address.street}, {selectedProfile.address.city}, {selectedProfile.address.state} - {selectedProfile.address.postalCode}, {selectedProfile.address.country}
                 </div>
               </div>
 
               {/* Module 2: Preferences Review */}
               <div
                 style={{
-                  marginBottom: '1.5rem',
+                  marginBottom: '1rem',
                   padding: '1rem',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '8px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
                 }}
               >
                 <div
@@ -205,44 +205,44 @@ export const CounsellorQueuePage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    color: '#818cf8',
+                    color: '#2563EB',
                     fontWeight: 700,
                     fontSize: '0.75rem',
                     textTransform: 'uppercase',
-                    marginBottom: '0.6rem',
+                    marginBottom: '0.5rem',
                   }}
                 >
                   <Compass size={14} /> Module 2: Preferences
                 </div>
                 {isLoadingPrefs ? (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
                     Loading student preferences...
                   </div>
                 ) : selectedPreferences ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.825rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: '#334155' }}>
                     <div>
-                      <strong style={{ color: 'var(--text-dim)' }}>Primary Destination:</strong>{' '}
-                      <span style={{ color: '#fbbf24', fontWeight: 600 }}>
+                      <strong style={{ color: '#0F172A' }}>Primary Destination:</strong>{' '}
+                      <span style={{ color: '#D97706', fontWeight: 600 }}>
                         {selectedPreferences.countriesNotFinalized
                           ? 'Not finalized'
                           : selectedPreferences.primaryCountry || 'None designated'}
                       </span>
                     </div>
                     <div>
-                      <strong style={{ color: 'var(--text-dim)' }}>Target Destinations:</strong>{' '}
+                      <strong style={{ color: '#0F172A' }}>Target Destinations:</strong>{' '}
                       {selectedPreferences.countriesNotFinalized
                         ? "I haven't finalized countries where I want to study"
                         : selectedPreferences.countries.join(', ')}
                     </div>
                     <div>
-                      <strong style={{ color: 'var(--text-dim)' }}>Department:</strong>{' '}
+                      <strong style={{ color: '#0F172A' }}>Department:</strong>{' '}
                       {selectedPreferences.coursesNotFinalized
                         ? 'Not finalized'
                         : selectedPreferences.department}
                     </div>
                     <div>
-                      <strong style={{ color: 'var(--text-dim)' }}>Specialization:</strong>{' '}
-                      <span style={{ color: '#a5b4fc', fontWeight: 500 }}>
+                      <strong style={{ color: '#0F172A' }}>Specialization:</strong>{' '}
+                      <span style={{ color: '#4F46E5', fontWeight: 500 }}>
                         {selectedPreferences.coursesNotFinalized
                           ? "I haven't finalized which courses I want to study"
                           : selectedPreferences.subDepartment}
@@ -250,7 +250,7 @@ export const CounsellorQueuePage: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748B', fontStyle: 'italic' }}>
                     No Module 2 preferences recorded for this student yet.
                   </div>
                 )}
@@ -259,11 +259,11 @@ export const CounsellorQueuePage: React.FC = () => {
               {/* Module 3: Education Details Review */}
               <div
                 style={{
-                  marginBottom: '1.5rem',
+                  marginBottom: '1rem',
                   padding: '1rem',
-                  borderRadius: 'var(--radius-md)',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '8px',
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
                 }}
               >
                 <div
@@ -271,74 +271,77 @@ export const CounsellorQueuePage: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    color: '#34d399',
+                    color: '#059669',
                     fontWeight: 700,
                     fontSize: '0.75rem',
                     textTransform: 'uppercase',
-                    marginBottom: '0.6rem',
+                    marginBottom: '0.5rem',
                   }}
                 >
                   <GraduationCap size={14} /> Module 3: Education Details
                 </div>
                 {isLoadingEdu ? (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
                     Loading student education records...
                   </div>
                 ) : selectedEducation ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.825rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', color: '#334155' }}>
                     <div>
-                      <strong style={{ color: 'var(--text-dim)' }}>12th Institution:</strong>{' '}
-                      <span style={{ color: '#e2e8f0', fontWeight: 600 }}>
+                      <strong style={{ color: '#0F172A' }}>12th Institution:</strong>{' '}
+                      <span style={{ color: '#0F172A', fontWeight: 600 }}>
                         {selectedEducation.schoolName}
                       </span>{' '}
                       ({selectedEducation.board}, {selectedEducation.completionYear})
                     </div>
                     <div>
-                      <strong style={{ color: 'var(--text-dim)' }}>12th Aggregate:</strong>{' '}
-                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>
+                      <strong style={{ color: '#0F172A' }}>12th Aggregate:</strong>{' '}
+                      <span style={{ color: '#0284C7', fontWeight: 700 }}>
                         {selectedEducation.percentage}%
                       </span>
                     </div>
                     {selectedEducation.subjectDetails && selectedEducation.subjectDetails.length > 0 && (
                       <div>
-                        <strong style={{ color: 'var(--text-dim)' }}>Subjects & Scores:</strong>{' '}
+                        <strong style={{ color: '#0F172A' }}>Subjects & Scores:</strong>{' '}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.25rem' }}>
                           {selectedEducation.subjectDetails.map((sub, idx) => (
                             <span
                               key={idx}
                               style={{
-                                background: 'rgba(255, 255, 255, 0.08)',
+                                background: '#E2E8F0',
                                 padding: '0.15rem 0.5rem',
                                 borderRadius: '4px',
                                 fontSize: '0.75rem',
+                                color: '#1E293B',
                               }}
                             >
-                              {sub.subject}: <strong style={{ color: '#6ee7b7' }}>{sub.score}%</strong>
+                              {sub.subject}: <strong style={{ color: '#059669' }}>{sub.score}%</strong>
                             </span>
                           ))}
                         </div>
                       </div>
                     )}
                     {selectedEducation.tenthSchoolName && (
-                      <div style={{ marginTop: '0.35rem', paddingTop: '0.35rem', borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
-                        <strong style={{ color: 'var(--text-dim)' }}>10th Standard:</strong>{' '}
+                      <div style={{ marginTop: '0.35rem', paddingTop: '0.35rem', borderTop: '1px dashed #CBD5E1' }}>
+                        <strong style={{ color: '#0F172A' }}>10th Standard:</strong>{' '}
                         {selectedEducation.tenthSchoolName} ({selectedEducation.tenthBoard || 'CBSE'}
                         {selectedEducation.tenthPercentage ? `, ${selectedEducation.tenthPercentage}%` : ''})
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: '0.8rem', color: '#64748B', fontStyle: 'italic' }}>
                     No Module 3 education details recorded for this student yet.
                   </div>
                 )}
               </div>
 
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Verification Notes / Justification</label>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '0.35rem' }}>
+                  Verification Notes / Justification
+                </label>
                 <textarea
-                  className="form-textarea"
-                  rows={3}
+                  className="saas-input"
+                  style={{ width: '100%', height: '70px', padding: '0.6rem 0.8rem', fontSize: '0.85rem' }}
                   placeholder="Optional verification note or reason for rejection"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -349,16 +352,16 @@ export const CounsellorQueuePage: React.FC = () => {
                 <button
                   onClick={() => handleVerify(selectedProfile.id, 'VERIFIED')}
                   disabled={isProcessing}
-                  className="btn btn-primary"
-                  style={{ flex: 1, background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+                  className="saas-btn saas-btn-primary"
+                  style={{ flex: 1, backgroundColor: '#10B981', borderColor: '#10B981' }}
                 >
                   <Check size={16} /> Authenticate Record
                 </button>
                 <button
                   onClick={() => handleVerify(selectedProfile.id, 'REJECTED')}
                   disabled={isProcessing}
-                  className="btn btn-secondary"
-                  style={{ flex: 1, color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                  className="saas-btn saas-btn-danger"
+                  style={{ flex: 1 }}
                 >
                   <X size={16} /> Reject
                 </button>
@@ -369,17 +372,17 @@ export const CounsellorQueuePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setRecommendationModalOpen(true)}
-                    className="btn btn-secondary"
+                    className="saas-btn saas-btn-secondary"
                     style={{
                       width: '100%',
-                      marginTop: '1rem',
+                      marginTop: '0.85rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      background: 'rgba(168, 85, 247, 0.12)',
-                      borderColor: 'rgba(168, 85, 247, 0.35)',
-                      color: '#c084fc',
+                      color: '#7C3AED',
+                      borderColor: '#DDD6FE',
+                      backgroundColor: '#F5F3FF',
                       fontWeight: 600,
                     }}
                     id="btn-counsellor-recommendations-modal"
@@ -390,17 +393,17 @@ export const CounsellorQueuePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setAssessmentModalOpen(true)}
-                    className="btn btn-secondary"
+                    className="saas-btn saas-btn-secondary"
                     style={{
                       width: '100%',
-                      marginTop: '0.65rem',
+                      marginTop: '0.5rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.5rem',
-                      background: 'rgba(91, 79, 233, 0.12)',
-                      borderColor: 'rgba(91, 79, 233, 0.35)',
-                      color: '#A5B4FC',
+                      color: '#2563EB',
+                      borderColor: '#BFDBFE',
+                      backgroundColor: '#EFF6FF',
                       fontWeight: 600,
                     }}
                     id="btn-counsellor-assessments-modal"

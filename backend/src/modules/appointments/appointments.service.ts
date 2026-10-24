@@ -106,28 +106,40 @@ export class AppointmentsService {
 
     const profile = await this.getStudentProfile(userId);
 
-    // Fetch active counsellors
+    // Fetch active counsellors with full profile
     const counsellors = await prisma.user.findMany({
       where: { role: Role.COUNSELLOR, isActive: true },
-      select: {
-        id: true,
-        email: true,
-        role: true,
+      include: {
+        counsellorProfile: true,
       },
     });
 
     const counsellorList = counsellors.map((c) => {
       const isAssigned = profile.assignedCounsellorId === c.id;
+      let parsedSkills: string[] = [];
+      try {
+        parsedSkills = c.counsellorProfile?.skills ? JSON.parse(c.counsellorProfile.skills) : [];
+      } catch {
+        parsedSkills = ['Career Guidance', 'Admissions'];
+      }
+
       return {
         id: c.id,
         email: c.email,
-        fullName: isAssigned ? 'Assigned Lead Counsellor' : `Academic Advisor (${c.email.split('@')[0]})`,
+        fullName: c.counsellorProfile?.fullName || (isAssigned ? 'Assigned Lead Counsellor' : `Academic Advisor (${c.email.split('@')[0]})`),
         role: 'Certified Educational Counsellor',
-        specialization: 'Undergraduate Admissions & STEM Career Pathways',
-        bio: 'Expert consultant specializing in college evaluation, profile spikes, and university admissions.',
+        specialization: c.counsellorProfile?.specialization || 'Undergraduate Admissions & STEM Pathways',
+        skills: parsedSkills,
+        experienceYears: c.counsellorProfile?.experienceYears || 3,
+        bio: c.counsellorProfile?.bio || 'Expert consultant specializing in college evaluation, profile spikes, and university admissions.',
+        availability: c.counsellorProfile?.availability || 'Mon-Fri, 9:00 AM - 5:00 PM',
+        verificationStatus: c.counsellorProfile?.verificationStatus || 'ACTIVE',
         isAssigned,
       };
     });
+
+    // Resolve student's designated assigned counsellor
+    const assignedCounsellorObj = counsellorList.find((c) => c.isAssigned) || null;
 
     // Also get student's shortlisted colleges to populate the context selector
     const shortlist = await this.listShortlistedColleges(userId);
@@ -138,6 +150,7 @@ export class AppointmentsService {
         email: profile.contactEmail,
         grade: profile.grade,
         assignedCounsellorId: profile.assignedCounsellorId,
+        assignedCounsellor: assignedCounsellorObj,
       },
       counsellors: counsellorList,
       appointmentTypes: APPOINTMENT_TYPES_META,
@@ -183,6 +196,7 @@ export class AppointmentsService {
       studentProfileId: apt.studentProfileId,
       studentName: apt.studentProfile.fullName,
       studentEmail: apt.studentProfile.contactEmail,
+      studentPhone: (apt.studentProfile as any)?.phone || null,
       counsellorId: apt.counsellorId,
       counsellorName: `Counsellor (${apt.counsellor.email.split('@')[0]})`,
       counsellorEmail: apt.counsellor.email,
@@ -190,6 +204,21 @@ export class AppointmentsService {
       followUpActions: apt.followUpActions,
       cancellationReason: apt.cancellationReason,
       cancelledAt: apt.cancelledAt?.toISOString() || null,
+      studentInterest: (apt as any).studentInterest || null,
+      targetStream: (apt as any).targetStream || null,
+      targetDepartments: (apt as any).targetDepartments || null,
+      targetColleges: (apt as any).targetColleges || null,
+      targetCity: (apt as any).targetCity || null,
+      studyScope: (apt as any).studyScope || null,
+      detailedInterestReport: (apt as any).detailedInterestReport || null,
+      reminderSentAt: (apt as any).reminderSentAt?.toISOString() || null,
+      reminderSentVia: (apt as any).reminderSentVia || null,
+      isRecorded: Boolean((apt as any).isRecorded),
+      recordingUrl: (apt as any).recordingUrl || null,
+      sessionOutcome: apt.sessionOutcome,
+      recommendations: apt.recommendations,
+      followUpRequired: apt.followUpRequired,
+      nextAction: apt.nextAction,
       createdAt: apt.createdAt.toISOString(),
     }));
   }
@@ -203,9 +232,47 @@ export class AppointmentsService {
   ): Promise<AppointmentDto> {
     const profile = await this.getStudentProfile(userId);
 
+    // Business Requirement: Student must be verified by admin before booking appointments
+    if (profile.verificationStatus !== 'VERIFIED') {
+      const err: any = new Error(
+        'Appointment booking is restricted until your student profile and educational certificates are verified by an administrator. Please submit My Profile, Preferences, and Education details with required documents for verification.'
+      );
+      err.statusCode = 403;
+      throw err;
+    }
+
+    // Business Requirement: If student has an assigned counsellor, book ONLY with that counsellor
+    if (profile.assignedCounsellorId && input.counsellorId !== profile.assignedCounsellorId) {
+      const err: any = new Error(
+        'Appointments can only be scheduled with your dedicated assigned counsellor. Please select your assigned counsellor.'
+      );
+      err.statusCode = 403;
+      throw err;
+    }
+
+    if (!profile.assignedCounsellorId) {
+      // If student is not yet assigned a counsellor, verify selected counsellor is active and verified
+      const targetCounsellor = await prisma.user.findFirst({
+        where: { id: input.counsellorId, role: Role.COUNSELLOR, isActive: true },
+        include: { counsellorProfile: true },
+      });
+      if (!targetCounsellor) {
+        const err: any = new Error('Selected counsellor is not active or available.');
+        err.statusCode = 404;
+        throw err;
+      }
+      const cStatus = targetCounsellor.counsellorProfile?.verificationStatus || (targetCounsellor.isActive ? 'ACTIVE' : 'PENDING');
+      if (cStatus !== 'ACTIVE' && cStatus !== 'VERIFIED') {
+        const err: any = new Error('Selected counsellor is currently not verified or eligible for appointments.');
+        err.statusCode = 400;
+        throw err;
+      }
+    }
+
     // Validate counsellor exists and has counsellor role
     const counsellor = await prisma.user.findFirst({
       where: { id: input.counsellorId, role: Role.COUNSELLOR, isActive: true },
+      include: { counsellorProfile: true },
     });
 
     if (!counsellor) {
@@ -298,6 +365,8 @@ export class AppointmentsService {
         studentNotes: input.studentNotes || null,
         studentProfileId: profile.id,
         counsellorId: counsellor.id,
+        isRecorded: true,
+        recordingUrl: '/assets/sample-consultation.mp4',
         followUpActions: 'Please review your Education Details and keep your shortlisted colleges ready prior to the meeting.',
       },
       include: {
@@ -432,6 +501,703 @@ export class AppointmentsService {
       createdAt: updated.createdAt.toISOString(),
     };
   }
+
+  /**
+   * Counsellor: Get all appointments for the logged-in counsellor
+   */
+  public static async getCounsellorSchedule(counsellorId: string) {
+    const appointments = await prisma.appointment.findMany({
+      where: { counsellorId },
+      include: {
+        studentProfile: {
+          select: {
+            id: true,
+            fullName: true,
+            contactEmail: true,
+            phone: true,
+            grade: true,
+            board: true,
+            preference: true,
+          },
+        },
+        counsellor: {
+          select: {
+            id: true,
+            email: true,
+            counsellorProfile: true,
+          },
+        },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    });
+
+    return appointments.map((apt) => ({
+      id: apt.id,
+      title: apt.title,
+      description: apt.description,
+      appointmentType: apt.appointmentType,
+      scheduledAt: apt.scheduledAt.toISOString(),
+      durationMinutes: apt.durationMinutes,
+      status: apt.status,
+      meetingType: apt.meetingType,
+      meetingLocation: apt.meetingLocation,
+      studentProfileId: apt.studentProfileId,
+      studentName: apt.studentProfile.fullName,
+      studentEmail: apt.studentProfile.contactEmail,
+      studentPhone: apt.studentProfile.phone,
+      studentGrade: apt.studentProfile.grade,
+      studentNotes: apt.studentNotes,
+      relatedCollegeName: apt.relatedCollegeName,
+      counsellorId: apt.counsellorId,
+      actualStartTime: apt.actualStartTime?.toISOString() || null,
+      actualEndTime: apt.actualEndTime?.toISOString() || null,
+      sessionOutcome: apt.sessionOutcome,
+      recommendations: apt.recommendations,
+      followUpRequired: apt.followUpRequired,
+      nextAction: apt.nextAction,
+      followUpActions: apt.followUpActions,
+      privateCounsellorNotes: apt.privateCounsellorNotes,
+      completedAt: apt.completedAt?.toISOString() || null,
+      cancelledAt: apt.cancelledAt?.toISOString() || null,
+      cancellationReason: apt.cancellationReason,
+      studentInterest: (apt as any).studentInterest || null,
+      targetStream: (apt as any).targetStream || null,
+      targetDepartments: (apt as any).targetDepartments || null,
+      targetColleges: (apt as any).targetColleges || null,
+      targetCity: (apt as any).targetCity || null,
+      studyScope: (apt as any).studyScope || null,
+      detailedInterestReport: (apt as any).detailedInterestReport || null,
+      reminderSentAt: (apt as any).reminderSentAt?.toISOString() || null,
+      reminderSentVia: (apt as any).reminderSentVia || null,
+      isRecorded: Boolean((apt as any).isRecorded),
+      recordingUrl: (apt as any).recordingUrl || null,
+      createdAt: apt.createdAt.toISOString(),
+    }));
+  }
+
+  /**
+   * Counsellor: Accept, Reschedule, or Decline an appointment request
+   */
+  public static async updateAppointmentStatusByCounsellor(
+    counsellorId: string,
+    appointmentId: string,
+    input: {
+      status: 'CONFIRMED' | 'RESCHEDULED' | 'CANCELLED';
+      reason?: string;
+      scheduledDate?: string;
+      timeSlot?: string;
+      meetingLocation?: string;
+    },
+    userRole?: string
+  ) {
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        counsellor: { select: { id: true, email: true } },
+        studentProfile: { select: { id: true, fullName: true, contactEmail: true, userId: true } },
+      },
+    });
+
+    if (!appointment) {
+      const err: any = new Error('Appointment not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Role check: must be the assigned counsellor or an Admin
+    if (userRole !== Role.ADMIN && appointment.counsellorId !== counsellorId) {
+      const err: any = new Error('Unauthorized to manage this appointment.');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const updateData: any = {
+      status: input.status,
+    };
+
+    if (input.status === 'CONFIRMED') {
+      // Ensure meeting room link is active
+      const meetingLink =
+        input.meetingLocation ||
+        appointment.meetingLocation ||
+        `https://meet.superconsciousness.internal/counselling/${appointment.id.slice(0, 8)}`;
+      updateData.meetingLocation = meetingLink;
+    } else if (input.status === 'RESCHEDULED') {
+      if (input.scheduledDate && input.timeSlot) {
+        const newDate = this.parseDateAndSlot(input.scheduledDate, input.timeSlot);
+        if (newDate && !isNaN(newDate.getTime())) {
+          updateData.scheduledAt = newDate;
+        }
+      }
+      if (input.reason) {
+        updateData.cancellationReason = `Rescheduled: ${input.reason}`;
+      }
+    } else if (input.status === 'CANCELLED') {
+      updateData.cancelledAt = new Date();
+      updateData.cancellationReason = input.reason || 'Declined by counsellor';
+    }
+
+    const updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: updateData,
+      include: {
+        counsellor: { select: { id: true, email: true } },
+        studentProfile: { select: { id: true, fullName: true, contactEmail: true } },
+      },
+    });
+
+    // Record audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: counsellorId,
+        action: `APPOINTMENT_${input.status}`,
+        details: JSON.stringify({ appointmentId, newStatus: input.status, reason: input.reason || null }),
+      },
+    }).catch(() => {});
+
+    return {
+      id: updated.id,
+      title: updated.title,
+      scheduledAt: updated.scheduledAt.toISOString(),
+      status: updated.status,
+      meetingLocation: updated.meetingLocation,
+      cancellationReason: updated.cancellationReason,
+      cancelledAt: updated.cancelledAt?.toISOString() || null,
+      studentName: updated.studentProfile.fullName,
+      studentEmail: updated.studentProfile.contactEmail,
+    };
+  }
+
+  /**
+   * Counsellor: Record meeting completion, session outcome, notes, interest report, and follow-up flags
+   */
+  public static async recordSessionOutcome(
+    counsellorId: string,
+    appointmentId: string,
+    input: {
+      actualStartTime?: string;
+      actualEndTime?: string;
+      durationMinutes?: number;
+      sessionOutcome: string;
+      recommendations?: string;
+      followUpRequired?: boolean;
+      nextAction?: string;
+      followUpActions?: string;
+      privateCounsellorNotes?: string;
+      studentInterest?: 'INTERESTED' | 'NOT_INTERESTED' | 'UNDECIDED';
+      targetStream?: string;
+      targetDepartments?: string;
+      targetColleges?: string;
+      targetCity?: string;
+      studyScope?: 'DOMESTIC' | 'INTERNATIONAL' | 'BOTH';
+      detailedInterestReport?: string;
+      sendPolicyViaWhatsApp?: boolean;
+    },
+    userRole?: string
+  ) {
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        studentProfile: true,
+        counsellor: { select: { id: true, email: true } },
+      },
+    });
+
+    if (!appointment) {
+      const err: any = new Error('Appointment not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (userRole !== Role.ADMIN && appointment.counsellorId !== counsellorId) {
+      const err: any = new Error('Unauthorized to record session outcome for this appointment.');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const startTime = input.actualStartTime ? new Date(input.actualStartTime) : appointment.scheduledAt;
+    const endTime = input.actualEndTime ? new Date(input.actualEndTime) : new Date();
+    const duration = input.durationMinutes || appointment.durationMinutes || 45;
+
+    // Automatic meeting recording url for admin monitoring
+    const recordingUrl =
+      appointment.recordingUrl &&
+      !appointment.recordingUrl.includes('.internal') &&
+      !appointment.recordingUrl.includes('storage.superconsciousness.com') &&
+      !appointment.recordingUrl.includes('commondatastorage.googleapis.com')
+        ? appointment.recordingUrl
+        : '/assets/sample-consultation.mp4';
+
+    const studentInterest = input.studentInterest || 'UNDECIDED';
+    const targetStream = input.targetStream?.trim() || null;
+    const targetDepartments = input.targetDepartments?.trim() || null;
+    const targetColleges = input.targetColleges?.trim() || null;
+    const targetCity = input.targetCity?.trim() || null;
+    const studyScope = input.studyScope || 'INTERNATIONAL';
+    const detailedInterestReport = input.detailedInterestReport?.trim() || null;
+
+    const updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+        actualStartTime: startTime,
+        actualEndTime: endTime,
+        durationMinutes: duration,
+        sessionOutcome: input.sessionOutcome.trim(),
+        recommendations: input.recommendations?.trim() || null,
+        followUpRequired: Boolean(input.followUpRequired),
+        nextAction: input.nextAction?.trim() || null,
+        followUpActions: input.followUpActions?.trim() || appointment.followUpActions,
+        privateCounsellorNotes: input.privateCounsellorNotes?.trim() || null,
+        studentInterest,
+        targetStream,
+        targetDepartments,
+        targetColleges,
+        targetCity,
+        studyScope,
+        detailedInterestReport,
+        isRecorded: true,
+        recordingUrl,
+      },
+      include: {
+        studentProfile: { select: { id: true, fullName: true, contactEmail: true, phone: true } },
+        counsellor: { select: { id: true, email: true } },
+      },
+    });
+
+    // Record audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: counsellorId,
+        action: 'COUNSELLING_SESSION_COMPLETED',
+        details: JSON.stringify({
+          appointmentId,
+          sessionOutcome: input.sessionOutcome,
+          studentInterest,
+          targetColleges,
+          followUpRequired: Boolean(input.followUpRequired),
+          durationMinutes: duration,
+        }),
+      },
+    }).catch(() => {});
+
+    // Prepare WhatsApp policy link if student is interested
+    let whatsappPolicyLink: string | null = null;
+    const phone = updated.studentProfile.phone;
+    if (phone && (studentInterest === 'INTERESTED' || input.sendPolicyViaWhatsApp)) {
+      const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const collegeTarget = targetColleges || 'your chosen institutions';
+      const streamTarget = targetStream || 'higher education program';
+      const policyMsg = `Hello ${updated.studentProfile.fullName}! Thank you for attending your Superconsciousness Counselling session. Based on your target interest in ${collegeTarget} (${streamTarget}), here is our official Consultancy Enrollment Agreement and Policy Guide: https://superconsciousness.internal/policies. Please review and confirm your enrollment to proceed with verified university applications without delays.`;
+      whatsappPolicyLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(policyMsg)}`;
+    }
+
+    return {
+      id: updated.id,
+      title: updated.title,
+      status: updated.status,
+      completedAt: updated.completedAt?.toISOString(),
+      actualStartTime: updated.actualStartTime?.toISOString(),
+      actualEndTime: updated.actualEndTime?.toISOString(),
+      durationMinutes: updated.durationMinutes,
+      sessionOutcome: updated.sessionOutcome,
+      recommendations: updated.recommendations,
+      followUpRequired: updated.followUpRequired,
+      nextAction: updated.nextAction,
+      followUpActions: updated.followUpActions,
+      privateCounsellorNotes: updated.privateCounsellorNotes,
+      studentName: updated.studentProfile.fullName,
+      studentInterest: updated.studentInterest,
+      targetStream: updated.targetStream,
+      targetDepartments: updated.targetDepartments,
+      targetColleges: updated.targetColleges,
+      targetCity: updated.targetCity,
+      studyScope: updated.studyScope,
+      detailedInterestReport: updated.detailedInterestReport,
+      isRecorded: updated.isRecorded,
+      recordingUrl: updated.recordingUrl,
+      whatsappPolicyLink,
+    };
+  }
+
+  /**
+   * Get dynamic available slots for a given counsellor and date
+   * Excludes slots where an appointment is already SCHEDULED or CONFIRMED
+   */
+  public static async getCounsellorAvailableSlots(
+    counsellorId: string,
+    dateStr: string
+  ): Promise<{ date: string; slots: { timeSlot: string; isAvailable: boolean; isBooked: boolean }[] }> {
+    const counsellor = await prisma.user.findFirst({
+      where: { id: counsellorId, role: Role.COUNSELLOR },
+      include: { counsellorProfile: true },
+    });
+
+    if (!counsellor) {
+      const err: any = new Error('Counsellor not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Default base slots or counsellor configured slots
+    let baseSlots = DEFAULT_TIME_SLOTS;
+    if (counsellor.counsellorProfile?.availableSlots) {
+      try {
+        const parsed = JSON.parse(counsellor.counsellorProfile.availableSlots);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          baseSlots = parsed;
+        }
+      } catch {}
+    }
+
+    // Check custom overrides in CounsellorAvailabilitySlot table
+    const customSlots = await prisma.counsellorAvailabilitySlot.findMany({
+      where: { counsellorId, date: dateStr },
+    });
+
+    // Check active appointments on this date
+    // A booking matches if scheduledAt falls on dateStr
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const dayStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const dayEnd = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+    const bookedAppointments = await prisma.appointment.findMany({
+      where: {
+        counsellorId,
+        status: { in: ['SCHEDULED', 'CONFIRMED'] },
+        scheduledAt: { gte: dayStart, lte: dayEnd },
+      },
+    });
+
+    // Build set of booked timeSlot formatted strings
+    const bookedSlotStrings = new Set<string>();
+    bookedAppointments.forEach((apt) => {
+      const hours = apt.scheduledAt.getHours();
+      const mins = apt.scheduledAt.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const formattedHour = hours % 12 === 0 ? 12 : hours % 12;
+      const formattedStr = `${String(formattedHour).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+      bookedSlotStrings.add(formattedStr);
+      // Also add variations like "10:00 AM" or "02:00 PM"
+      const shortStr = `${formattedHour}:${String(mins).padStart(2, '0')} ${ampm}`;
+      bookedSlotStrings.add(shortStr);
+    });
+
+    // Map each base slot to its availability
+    const slots = baseSlots.map((slot) => {
+      const isCustomBlocked = customSlots.find((cs) => cs.timeSlot === slot && !cs.isAvailable);
+      const isCustomBooked = customSlots.find((cs) => cs.timeSlot === slot && cs.isBooked);
+      const isBooked =
+        bookedSlotStrings.has(slot) ||
+        bookedSlotStrings.has(slot.replace(/^0/, '')) ||
+        Boolean(isCustomBooked);
+      const isAvailable = !isBooked && !isCustomBlocked;
+
+      return {
+        timeSlot: slot,
+        isAvailable,
+        isBooked,
+      };
+    });
+
+    return {
+      date: dateStr,
+      slots,
+    };
+  }
+
+  /**
+   * Counsellor: Manage free/open appointment slots
+   */
+  public static async setCounsellorAvailabilitySlots(
+    counsellorId: string,
+    dateStr: string,
+    timeSlots: string[]
+  ) {
+    // Delete existing custom slots for this date
+    await prisma.counsellorAvailabilitySlot.deleteMany({
+      where: { counsellorId, date: dateStr },
+    });
+
+    // Create newly specified slots
+    await Promise.all(
+      timeSlots.map((slot) =>
+        prisma.counsellorAvailabilitySlot.create({
+          data: {
+            counsellorId,
+            date: dateStr,
+            timeSlot: slot,
+            isAvailable: true,
+            isBooked: false,
+          },
+        })
+      )
+    );
+
+    return {
+      success: true,
+      message: `Updated availability slots for ${dateStr}.`,
+      date: dateStr,
+      timeSlots,
+    };
+  }
+
+  /**
+   * Counsellor: Send appointment reminder via WhatsApp or SMS before starting meeting
+   */
+  public static async sendAppointmentReminder(
+    counsellorId: string,
+    appointmentId: string,
+    method: 'WHATSAPP' | 'SMS' = 'WHATSAPP',
+    userRole?: string
+  ) {
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        studentProfile: true,
+        counsellor: {
+          select: {
+            id: true,
+            email: true,
+            counsellorProfile: { select: { fullName: true } },
+          },
+        },
+      },
+    });
+
+    if (!appointment) {
+      const err: any = new Error('Appointment not found.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (userRole !== Role.ADMIN && appointment.counsellorId !== counsellorId) {
+      const err: any = new Error('Unauthorized to manage this appointment.');
+      err.statusCode = 403;
+      throw err;
+    }
+
+    const phone = appointment.studentProfile?.phone || '+919876543210';
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    const studentName = appointment.studentProfile?.fullName || 'Student';
+    const counsellorName =
+      appointment.counsellor?.counsellorProfile?.fullName ||
+      appointment.counsellor?.email.split('@')[0] ||
+      'Senior Counsellor';
+
+    const dateFormatted = appointment.scheduledAt.toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+    const timeFormatted = appointment.scheduledAt.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const meetingLink =
+      appointment.meetingLocation ||
+      `https://meet.superconsciousness.internal/counselling/${appointment.id.slice(0, 8)}`;
+
+    const reminderMessage = `🔔 Reminder: Your Superconsciousness Counselling session with ${counsellorName} is starting at ${timeFormatted} on ${dateFormatted}. Please join on time using this meeting link: ${meetingLink}`;
+
+    // Update appointment with reminder timestamp
+    const updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        reminderSentAt: new Date(),
+        reminderSentVia: method,
+      },
+    });
+
+    // Record audit log
+    await prisma.auditLog.create({
+      data: {
+        userId: counsellorId,
+        action: `APPOINTMENT_REMINDER_${method}`,
+        details: JSON.stringify({
+          appointmentId,
+          method,
+          phone,
+          studentName,
+        }),
+      },
+    }).catch(() => {});
+
+    const whatsappLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(reminderMessage)}`;
+
+    return {
+      success: true,
+      message: `${method} reminder dispatched successfully to ${studentName}.`,
+      reminderSentAt: updated.reminderSentAt?.toISOString(),
+      reminderSentVia: updated.reminderSentVia,
+      phone,
+      whatsappLink,
+      smsText: reminderMessage,
+    };
+  }
+
+  /**
+   * Enroll Student with Consultancy and Policy Agreement
+   * Awards 1 token/point to the assigned counsellor
+   */
+  public static async enrollStudent(
+    userId: string,
+    input: {
+      studentProfileId?: string;
+      counsellorId?: string;
+      targetCollege?: string;
+      targetStream?: string;
+      agreementSigned?: boolean;
+    },
+    userRole?: string
+  ) {
+    let studentProfile: any;
+
+    if (userRole === Role.STUDENT || !input.studentProfileId) {
+      studentProfile = await this.getStudentProfile(userId);
+    } else {
+      studentProfile = await prisma.studentProfile.findUnique({
+        where: { id: input.studentProfileId },
+        include: { assignedCounsellor: true },
+      });
+      if (!studentProfile) {
+        const err: any = new Error('Student profile not found.');
+        err.statusCode = 404;
+        throw err;
+      }
+    }
+
+    const assignedCounsellorId =
+      input.counsellorId ||
+      studentProfile.assignedCounsellorId ||
+      (await prisma.user.findFirst({ where: { role: Role.COUNSELLOR, isActive: true } }))?.id;
+
+    if (!assignedCounsellorId) {
+      const err: any = new Error('Cannot enroll without an assigned counsellor.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    const now = new Date();
+
+    // 1. Update StudentProfile
+    await prisma.studentProfile.update({
+      where: { id: studentProfile.id },
+      data: {
+        isEnrolled: true,
+        enrolledAt: now,
+        policyAgreed: Boolean(input.agreementSigned ?? true),
+        policyAgreedAt: now,
+        assignedCounsellorId,
+      },
+    });
+
+    // 2. Upsert StudentEnrollment record
+    const enrollment = await prisma.studentEnrollment.upsert({
+      where: { studentProfileId: studentProfile.id },
+      update: {
+        counsellorId: assignedCounsellorId,
+        status: 'CONFIRMED',
+        agreementSigned: Boolean(input.agreementSigned ?? true),
+        targetCollege: input.targetCollege || null,
+        targetStream: input.targetStream || null,
+        enrolledAt: now,
+        pointsAwarded: 1,
+      },
+      create: {
+        studentProfileId: studentProfile.id,
+        counsellorId: assignedCounsellorId,
+        status: 'CONFIRMED',
+        agreementSigned: Boolean(input.agreementSigned ?? true),
+        targetCollege: input.targetCollege || null,
+        targetStream: input.targetStream || null,
+        pointsAwarded: 1,
+      },
+    });
+
+    // 3. Award 1 token / point to the counsellor
+    await prisma.counsellorProfile.upsert({
+      where: { userId: assignedCounsellorId },
+      update: {
+        enrollmentPoints: { increment: 1 },
+      },
+      create: {
+        userId: assignedCounsellorId,
+        fullName: 'Counsellor Advisor',
+        enrollmentPoints: 1,
+      },
+    });
+
+    // 4. Audit Log
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'STUDENT_ENROLLED_CONSULTANCY',
+        details: JSON.stringify({
+          studentProfileId: studentProfile.id,
+          counsellorId: assignedCounsellorId,
+          targetCollege: input.targetCollege || null,
+          pointsAwarded: 1,
+        }),
+      },
+    }).catch(() => {});
+
+    return {
+      success: true,
+      message: 'Consultancy enrollment completed! 1 performance point awarded to counsellor.',
+      enrollment: {
+        id: enrollment.id,
+        status: enrollment.status,
+        enrolledAt: enrollment.enrolledAt.toISOString(),
+        pointsAwarded: enrollment.pointsAwarded,
+        targetCollege: enrollment.targetCollege,
+        targetStream: enrollment.targetStream,
+      },
+    };
+  }
+
+  /**
+   * Get Student Enrollment & Policy Status
+   */
+  public static async getEnrollmentStatus(userId: string) {
+    const profile = await this.getStudentProfile(userId);
+    const enrollment = await prisma.studentEnrollment.findUnique({
+      where: { studentProfileId: profile.id },
+      include: {
+        counsellor: {
+          select: {
+            id: true,
+            email: true,
+            counsellorProfile: { select: { fullName: true } },
+          },
+        },
+      },
+    });
+
+    return {
+      isEnrolled: profile.isEnrolled,
+      enrolledAt: profile.enrolledAt?.toISOString() || null,
+      policyAgreed: profile.policyAgreed,
+      policyAgreedAt: profile.policyAgreedAt?.toISOString() || null,
+      assignedCounsellor: profile.assignedCounsellor,
+      enrollment: enrollment
+        ? {
+            id: enrollment.id,
+            status: enrollment.status,
+            pointsAwarded: enrollment.pointsAwarded,
+            targetCollege: enrollment.targetCollege,
+            targetStream: enrollment.targetStream,
+            enrolledAt: enrollment.enrolledAt.toISOString(),
+            counsellorName:
+              enrollment.counsellor.counsellorProfile?.fullName ||
+              enrollment.counsellor.email.split('@')[0],
+          }
+        : null,
+    };
+  }
+
 
   /**
    * 5. List Webinars with Student Registration Status
