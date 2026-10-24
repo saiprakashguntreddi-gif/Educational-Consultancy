@@ -195,12 +195,39 @@ model EntranceExam {
 
   studentPlans         StudentExamPlan[]
   mockTests            MockTest[]
+  categoryMappings     ExamCategoryMapping[]
 
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
 
   @@index([code])
   @@index([category])
+}
+
+model ExamCategory {
+  id          String                @id // e.g. "undergraduate", "engineering_technology"
+  code        String                @unique // e.g. "UNDERGRADUATE", "ENGINEERING_TECHNOLOGY"
+  name        String                // e.g. "Undergraduate Entrance Exams"
+  description String?
+  orderIndex  Int                   @default(0)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  examMappings ExamCategoryMapping[]
+}
+
+model ExamCategoryMapping {
+  id         String       @id @default(uuid())
+  categoryId String
+  category   ExamCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  examId     String
+  exam       EntranceExam @relation(fields: [examId], references: [id], onDelete: Cascade)
+  orderIndex Int          @default(0)
+  createdAt  DateTime     @default(now())
+
+  @@unique([categoryId, examId])
+  @@index([categoryId])
+  @@index([examId])
 }
 
 model StudentExamPlan {

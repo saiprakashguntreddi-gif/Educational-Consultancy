@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   ExternalLink,
@@ -9,8 +9,72 @@ import {
   Award,
   Sparkles,
   Info,
+  Layers,
+  LayoutGrid,
 } from 'lucide-react';
-import { EntranceExamRecord } from '../entrance.types';
+import { EntranceExamRecord, ExamCategoryGroup } from '../entrance.types';
+import { EntranceService } from '../services/entrance.service';
+import { ExamCategoriesDropdown } from './ExamCategoriesDropdown';
+
+// Multi-category mapping to ensure shared entrance exams belong to all applicable categories
+// Multi-category mapping ensuring each exam belongs to all genuinely applicable categories
+const EXAM_CATEGORY_MAPPING: Record<string, string[]> = {
+  SAT: ['UNDERGRADUATE', 'STUDY_ABROAD'],
+  ACT: ['UNDERGRADUATE', 'STUDY_ABROAD'],
+  JEE_MAIN: ['UNDERGRADUATE', 'ENGINEERING_TECHNOLOGY'],
+  CUET_UG: ['UNDERGRADUATE'],
+  GAOKAO: ['UNDERGRADUATE'],
+  ENEM: ['UNDERGRADUATE'],
+  BITSAT: ['UNDERGRADUATE', 'ENGINEERING_TECHNOLOGY'],
+  VITEEE: ['UNDERGRADUATE', 'ENGINEERING_TECHNOLOGY'],
+  COMEDK_UGET: ['UNDERGRADUATE', 'ENGINEERING_TECHNOLOGY'],
+  KCET: ['UNDERGRADUATE', 'ENGINEERING_TECHNOLOGY'],
+  WBJEE: ['UNDERGRADUATE', 'ENGINEERING_TECHNOLOGY'],
+  MHT_CET: ['UNDERGRADUATE', 'ENGINEERING_TECHNOLOGY'],
+  IPMAT: ['UNDERGRADUATE', 'MBA_MANAGEMENT'],
+  JEE_ADVANCED: ['ENGINEERING_TECHNOLOGY'],
+  GATE: ['ENGINEERING_TECHNOLOGY', 'POSTGRADUATE'],
+  GRE: ['POSTGRADUATE', 'MBA_MANAGEMENT', 'STUDY_ABROAD'],
+  CUET_PG: ['POSTGRADUATE'],
+  IIT_JAM: ['POSTGRADUATE'],
+  NIMCET: ['POSTGRADUATE'],
+  CEED: ['DESIGN_ARCHITECTURE', 'POSTGRADUATE'],
+  GMAT: ['MBA_MANAGEMENT', 'STUDY_ABROAD'],
+  CAT: ['MBA_MANAGEMENT'],
+  XAT: ['MBA_MANAGEMENT'],
+  MAT: ['MBA_MANAGEMENT'],
+  CMAT: ['MBA_MANAGEMENT'],
+  NMAT: ['MBA_MANAGEMENT'],
+  IELTS: ['STUDY_ABROAD', 'LANGUAGE_PROFICIENCY'],
+  TOEFL: ['STUDY_ABROAD', 'LANGUAGE_PROFICIENCY'],
+  PTE: ['STUDY_ABROAD', 'LANGUAGE_PROFICIENCY'],
+  DUOLINGO: ['STUDY_ABROAD', 'LANGUAGE_PROFICIENCY'],
+  TOEIC: ['LANGUAGE_PROFICIENCY'],
+  OET: ['LANGUAGE_PROFICIENCY'],
+  JLPT: ['LANGUAGE_PROFICIENCY'],
+  TOPIK: ['LANGUAGE_PROFICIENCY'],
+  DELE: ['LANGUAGE_PROFICIENCY'],
+  DELF: ['LANGUAGE_PROFICIENCY'],
+  GOETHE: ['LANGUAGE_PROFICIENCY'],
+  HSK: ['LANGUAGE_PROFICIENCY'],
+  NID_DAT: ['DESIGN_ARCHITECTURE', 'UNDERGRADUATE'],
+  UCEED: ['DESIGN_ARCHITECTURE', 'UNDERGRADUATE'],
+  NATA: ['DESIGN_ARCHITECTURE', 'UNDERGRADUATE'],
+  NIFT: ['DESIGN_ARCHITECTURE', 'UNDERGRADUATE'],
+  NEET: ['UNDERGRADUATE'],
+};
+
+// Filter options: Exactly the 7 main categories + All Exams
+const CATEGORY_OPTIONS = [
+  { label: 'All Exams', value: 'ALL' },
+  { label: 'Undergraduate', value: 'UNDERGRADUATE' },
+  { label: 'Engineering & Tech', value: 'ENGINEERING_TECHNOLOGY' },
+  { label: 'Postgraduate', value: 'POSTGRADUATE' },
+  { label: 'MBA & Management', value: 'MBA_MANAGEMENT' },
+  { label: 'Study Abroad', value: 'STUDY_ABROAD' },
+  { label: 'Language Proficiency', value: 'LANGUAGE_PROFICIENCY' },
+  { label: 'Design & Architecture', value: 'DESIGN_ARCHITECTURE' },
+];
 
 interface ExamDiscoveryViewProps {
   exams: EntranceExamRecord[];
@@ -18,6 +82,7 @@ interface ExamDiscoveryViewProps {
   onAddToPlan: (exam: EntranceExamRecord) => void;
   onTakeMockTest: (exam: EntranceExamRecord) => void;
   isLoading: boolean;
+  categories?: ExamCategoryGroup[];
 }
 
 export const ExamDiscoveryView: React.FC<ExamDiscoveryViewProps> = ({
@@ -26,10 +91,32 @@ export const ExamDiscoveryView: React.FC<ExamDiscoveryViewProps> = ({
   onAddToPlan,
   onTakeMockTest,
   isLoading,
+  categories: initialCategories,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedDestination, setSelectedDestination] = useState<string>('ALL');
+  const [viewMode, setViewMode] = useState<'both' | 'dropdowns' | 'grid'>('both');
+  const [categoryGroups, setCategoryGroups] = useState<ExamCategoryGroup[]>(initialCategories || []);
+
+  // Fetch category hierarchy from API
+  useEffect(() => {
+    let isMounted = true;
+    if (!initialCategories || initialCategories.length === 0) {
+      EntranceService.getCategories()
+        .then((res) => {
+          if (isMounted && res.success && Array.isArray(res.data)) {
+            setCategoryGroups(res.data);
+          }
+        })
+        .catch(() => {
+          // Handled gracefully inside dropdown
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [initialCategories]);
 
   const safeExams = Array.isArray(exams) ? exams : [];
 
@@ -58,9 +145,13 @@ export const ExamDiscoveryView: React.FC<ExamDiscoveryViewProps> = ({
         }
       }
 
-      // 2. Category
-      if (selectedCategory !== 'ALL' && exam.category !== selectedCategory) {
-        return false;
+      // 2. Category with multi-category mapping
+      if (selectedCategory !== 'ALL') {
+        const belongsTo = EXAM_CATEGORY_MAPPING[exam.code] || [exam.category];
+        const normalized = selectedCategory.toUpperCase();
+        if (!belongsTo.includes(normalized) && exam.category.toUpperCase() !== normalized) {
+          return false;
+        }
       }
 
       // 3. Destination
@@ -73,7 +164,7 @@ export const ExamDiscoveryView: React.FC<ExamDiscoveryViewProps> = ({
 
       return true;
     });
-  }, [exams, searchQuery, selectedCategory, selectedDestination]);
+  }, [safeExams, searchQuery, selectedCategory, selectedDestination]);
 
   return (
     <div id="exam-discovery-container">
@@ -186,12 +277,7 @@ export const ExamDiscoveryView: React.FC<ExamDiscoveryViewProps> = ({
               Category:
             </span>
 
-            {[
-              { label: 'All Exams', value: 'ALL' },
-              { label: 'Undergraduate', value: 'UNDERGRADUATE' },
-              { label: 'Postgraduate', value: 'POSTGRADUATE' },
-              { label: 'Language Proficiency', value: 'LANGUAGE_PROFICIENCY' },
-            ].map((cat) => (
+            {CATEGORY_OPTIONS.map((cat) => (
               <button
                 key={cat.value}
                 id={`filter-cat-${cat.value.toLowerCase()}`}
@@ -206,22 +292,197 @@ export const ExamDiscoveryView: React.FC<ExamDiscoveryViewProps> = ({
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {cat.label}
               </button>
             ))}
           </div>
+
+          {/* View Mode Toggle: Dropdown Accordion vs Cards Grid vs Both */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: '0.75rem',
+              borderTop: '1px solid #F1F5F9',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', color: '#64748B' }}>
+              <span style={{ fontWeight: 600 }}>Display Layout:</span>
+            </div>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                background: '#F1F5F9',
+                borderRadius: '8px',
+                padding: '3px',
+                gap: '2px',
+              }}
+            >
+              <button
+                type="button"
+                id="view-mode-both-btn"
+                onClick={() => setViewMode('both')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: viewMode === 'both' ? '#FFFFFF' : 'transparent',
+                  color: viewMode === 'both' ? '#4338CA' : '#64748B',
+                  boxShadow: viewMode === 'both' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Layers size={13} />
+                <span>All (Dropdowns & Cards)</span>
+              </button>
+
+              <button
+                type="button"
+                id="view-mode-dropdowns-btn"
+                onClick={() => setViewMode('dropdowns')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: viewMode === 'dropdowns' ? '#FFFFFF' : 'transparent',
+                  color: viewMode === 'dropdowns' ? '#4338CA' : '#64748B',
+                  boxShadow: viewMode === 'dropdowns' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Layers size={13} />
+                <span>Category Dropdowns Only</span>
+              </button>
+
+              <button
+                type="button"
+                id="view-mode-grid-btn"
+                onClick={() => setViewMode('grid')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '6px',
+                  border: 'none',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: viewMode === 'grid' ? '#FFFFFF' : 'transparent',
+                  color: viewMode === 'grid' ? '#4338CA' : '#64748B',
+                  boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <LayoutGrid size={13} />
+                <span>Cards Grid Only</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div
-          id="exams-loading-state"
-          style={{
-            background: '#FFFFFF',
-            border: '1px solid #E2E8F0',
+      {/* Render Main Exam Categories with Dropdown Subcategories */}
+      {(viewMode === 'both' || viewMode === 'dropdowns') && (
+        <ExamCategoriesDropdown
+          categories={categoryGroups}
+          allExams={safeExams}
+          onSelectExam={onSelectExam}
+          onAddToPlan={onAddToPlan}
+          onTakeMockTest={onTakeMockTest}
+          activeCategoryFilter={selectedCategory}
+          onCategoryFilterChange={(catId) => {
+            const match = CATEGORY_OPTIONS.find((c) => c.value.toLowerCase() === catId.toLowerCase());
+            if (match) setSelectedCategory(match.value);
+          }}
+        />
+      )}
+
+      {/* Catalog Cards Grid (Displayed when viewMode is 'both' or 'grid') */}
+      {(viewMode === 'both' || viewMode === 'grid') && (
+        <div>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '1rem',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '1.1rem',
+                fontWeight: 700,
+                color: '#0F172A',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <span>Exams Directory & Cards</span>
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span
+                id="badge-filtered-unique-exams"
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  backgroundColor: '#EEF2FF',
+                  color: '#4338CA',
+                  padding: '0.15rem 0.55rem',
+                  borderRadius: '12px',
+                  border: '1px solid #C7D2FE',
+                }}
+              >
+                {filteredExams.length} {filteredExams.length === 1 ? 'Unique Exam' : 'Unique Exams'}
+              </span>
+              {selectedCategory === 'ALL' && !searchQuery.trim() && selectedDestination === 'ALL' && (
+                <span
+                  id="badge-directory-total-listings"
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    backgroundColor: '#F8FAFC',
+                    color: '#64748B',
+                    padding: '0.15rem 0.55rem',
+                    borderRadius: '12px',
+                    border: '1px solid #E2E8F0',
+                  }}
+                >
+                  65 Category Listings across 7 Categories
+                </span>
+              )}
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div
+              id="exams-loading-state"
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #E2E8F0',
             borderRadius: '12px',
             padding: '4rem 1.5rem',
             textAlign: 'center',
@@ -595,6 +856,8 @@ export const ExamDiscoveryView: React.FC<ExamDiscoveryViewProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      )}
         </div>
       )}
     </div>

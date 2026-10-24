@@ -1,0 +1,145 @@
+export interface ExamCategoryDefinition {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  orderIndex: number;
+  examCodes: string[];
+}
+
+export const MAIN_EXAM_CATEGORIES: ExamCategoryDefinition[] = [
+  {
+    id: 'undergraduate',
+    code: 'UNDERGRADUATE',
+    name: 'Undergraduate Entrance Exams',
+    description: 'Standardized and national entrance assessments for undergraduate and bachelor degree programs.',
+    orderIndex: 1,
+    examCodes: [
+      'SAT',
+      'ACT',
+      'JEE_MAIN',
+      'CUET_UG',
+      'GAOKAO',
+      'ENEM',
+      'BITSAT',
+      'VITEEE',
+      'COMEDK_UGET',
+      'KCET',
+      'WBJEE',
+      'MHT_CET',
+      'IPMAT',
+      'NATA',
+      'UCEED',
+      'NID_DAT',
+      'NIFT',
+    ],
+  },
+  {
+    id: 'engineering_technology',
+    code: 'ENGINEERING_TECHNOLOGY',
+    name: 'Engineering & Technology Exams',
+    description: 'Competitive entrance examinations for premier engineering, technology, and applied science institutions.',
+    orderIndex: 2,
+    examCodes: [
+      'JEE_MAIN',
+      'JEE_ADVANCED',
+      'GATE',
+      'BITSAT',
+      'VITEEE',
+      'COMEDK_UGET',
+      'KCET',
+      'WBJEE',
+      'MHT_CET',
+    ],
+  },
+  {
+    id: 'postgraduate',
+    code: 'POSTGRADUATE',
+    name: 'Postgraduate Entrance Exams',
+    description: 'Graduate qualification and entrance tests for master degrees, research fellowships, and M.Sc./MCA programs.',
+    orderIndex: 3,
+    examCodes: [
+      'GRE',
+      'GATE',
+      'CUET_PG',
+      'IIT_JAM',
+      'NIMCET',
+      'CEED',
+    ],
+  },
+  {
+    id: 'mba_management',
+    code: 'MBA_MANAGEMENT',
+    name: 'MBA & Management Exams',
+    description: 'National and global business school admissions examinations for MBA, PGDM, and executive management programs.',
+    orderIndex: 4,
+    examCodes: [
+      'GMAT',
+      'CAT',
+      'XAT',
+      'MAT',
+      'CMAT',
+      'NMAT',
+      'IPMAT',
+      'GRE',
+    ],
+  },
+  {
+    id: 'study_abroad',
+    code: 'STUDY_ABROAD',
+    name: 'Study Abroad Exams',
+    description: 'Premier standardized testing credentials required for international university applications and study visas.',
+    orderIndex: 5,
+    examCodes: [
+      'SAT',
+      'ACT',
+      'GRE',
+      'GMAT',
+      'IELTS',
+      'TOEFL',
+      'PTE',
+      'DUOLINGO',
+    ],
+  },
+  {
+    id: 'language_proficiency',
+    code: 'LANGUAGE_PROFICIENCY',
+    name: 'Language Proficiency Exams',
+    description: 'Accredited international language proficiency evaluations for academic studies, work permits, and immigration.',
+    orderIndex: 6,
+    examCodes: [
+      'IELTS',
+      'TOEFL',
+      'PTE',
+      'DUOLINGO',
+      'TOEIC',
+      'OET',
+      'JLPT',
+      'TOPIK',
+      'DELE',
+      'DELF',
+      'GOETHE',
+      'HSK',
+    ],
+  },
+  {
+    id: 'design_architecture',
+    code: 'DESIGN_ARCHITECTURE',
+    name: 'Design & Architecture Exams',
+    description: 'Aptitude and creative design entrance tests for premier design, architecture, and fashion technology schools.',
+    orderIndex: 7,
+    examCodes: [
+      'NID_DAT',
+      'UCEED',
+      'CEED',
+      'NATA',
+      'NIFT',
+    ],
+  },
+];
+
+export const REMOVED_CATEGORY_IDS = [
+  'defence_military',
+  'government_public_service',
+  'hospitality_professional',
+];

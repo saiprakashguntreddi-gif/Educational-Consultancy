@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
   },
   ENTRANCE: {
     CATALOG: `${API_BASE_URL}/exams`,
+    CATEGORIES: `${API_BASE_URL}/exams/categories`,
     EXAM_BY_ID: (id: string) => `${API_BASE_URL}/exams/${id}`,
     PLAN_ME: `${API_BASE_URL}/exams/plan/me`,
     PLAN_SAVE: `${API_BASE_URL}/exams/plan`,
@@ -116,6 +117,16 @@ export const API_ENDPOINTS = {
     CALCULATE: `${API_BASE_URL}/fees/calculate`,
     COMPARE: `${API_BASE_URL}/fees/compare`,
     BUDGET_DECISION: `${API_BASE_URL}/fees/budget-decision`,
+  },
+  EXAM_INTELLIGENCE: {
+    OVERVIEW: `${API_BASE_URL}/exam-intelligence/overview`,
+    PREPARATION_PLAN: (examId: string) => `${API_BASE_URL}/exam-intelligence/preparation-plan/${examId}`,
+    MOCK_TEST_BY_ID: (testId: string) => `${API_BASE_URL}/exam-intelligence/mock-tests/${testId}`,
+    MOCK_TEST_SUBMIT: (testId: string) => `${API_BASE_URL}/exam-intelligence/mock-tests/${testId}/submit`,
+    PLAN_SAVE: `${API_BASE_URL}/exam-intelligence/plan`,
+    PLAN_ITEM: (id: string) => `${API_BASE_URL}/exam-intelligence/plan/${id}`,
+    STAFF_STUDENT_REVIEW: (profileId: string) =>
+      `${API_BASE_URL}/exam-intelligence/counsellor/student/${profileId}`,
   },
   ASSESSMENTS: {
     PATHWAYS: `${API_BASE_URL}/assessments/pathways`,

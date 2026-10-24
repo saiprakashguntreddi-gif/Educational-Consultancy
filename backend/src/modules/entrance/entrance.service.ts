@@ -10,6 +10,7 @@ import {
   QuestionResultBreakdown,
 } from './entrance.types';
 import { seedEntranceExamsCatalog } from './entrance.seed';
+import { MAIN_EXAM_CATEGORIES, ExamCategoryDefinition } from './entrance.categories';
 
 export class EntranceService {
   /**
@@ -58,13 +59,59 @@ export class EntranceService {
   }
 
   /**
-   * Ensure the exam catalog is initialized in the database.
+   * Ensure the exam catalog and 7 main categories are initialized in SQLite.
    */
   static async ensureCatalogInitialized() {
-    const count = await prisma.entranceExam.count();
-    if (count === 0) {
+    const examCount = await prisma.entranceExam.count();
+    const categoryCount = await prisma.examCategory.count();
+    const mappingCount = await prisma.examCategoryMapping.count();
+    if (examCount < 50 || categoryCount !== 7 || mappingCount < 60) {
       await seedEntranceExamsCatalog();
     }
+  }
+
+  /**
+   * Get the 7 main categories with resolved unique exams from junction table
+   */
+  static async getCategories(userId?: string) {
+    await this.ensureCatalogInitialized();
+
+    const catalog = await this.getExamsCatalog(userId);
+    const examMap = new Map<string, EntranceExamRecord>();
+    for (const exam of catalog) {
+      examMap.set(exam.id, exam);
+      examMap.set(exam.code, exam);
+    }
+
+    // Query database categories and relational junction mappings
+    const dbCategories = await prisma.examCategory.findMany({
+      orderBy: { orderIndex: 'asc' },
+      include: {
+        examMappings: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            exam: true,
+          },
+        },
+      },
+    });
+
+    return dbCategories.map((cat) => {
+      const resolvedExams = cat.examMappings
+        .map((m) => examMap.get(m.examId) || examMap.get(m.exam.code))
+        .filter((e): e is EntranceExamRecord => Boolean(e));
+
+      return {
+        id: cat.id,
+        code: cat.code,
+        name: cat.name,
+        description: cat.description || '',
+        orderIndex: cat.orderIndex,
+        examCodes: resolvedExams.map((e) => e.code),
+        exams: resolvedExams,
+        count: resolvedExams.length,
+      };
+    });
   }
 
   /**
@@ -76,8 +123,15 @@ export class EntranceService {
   ): Promise<EntranceExamRecord[]> {
     await this.ensureCatalogInitialized();
 
-    // Fetch all exams
+    // Fetch all exams with their category junction mappings
     const exams = await prisma.entranceExam.findMany({
+      include: {
+        categoryMappings: {
+          include: {
+            category: true,
+          },
+        },
+      },
       orderBy: { name: 'asc' },
     });
 
@@ -148,9 +202,18 @@ export class EntranceService {
       const isRecommended = Boolean(matchesCountry || matchesStream);
       const planStatus = planMap.get(exam.id) || null;
 
-      // Apply query filters
-      if (filters?.category && filters.category !== 'ALL' && exam.category !== filters.category) {
-        continue;
+      // Apply query filters with multi-category junction support
+      if (filters?.category && filters.category !== 'ALL') {
+        const target = filters.category.toUpperCase();
+        const matchesCategory =
+          exam.category?.toUpperCase() === target ||
+          (exam as any).categoryMappings?.some(
+            (m: any) =>
+              m.categoryId?.toUpperCase() === target ||
+              m.category?.code?.toUpperCase() === target ||
+              m.category?.id?.toUpperCase() === target
+          );
+        if (!matchesCategory) continue;
       }
 
       if (filters?.destination && filters.destination !== 'ALL') {
@@ -187,8 +250,10 @@ export class EntranceService {
   static async getExamById(examId: string, userId?: string): Promise<EntranceExamRecord> {
     await this.ensureCatalogInitialized();
 
-    const exam = await prisma.entranceExam.findUnique({
-      where: { id: examId },
+    const exam = await prisma.entranceExam.findFirst({
+      where: {
+        OR: [{ id: examId }, { code: examId }, { code: examId.toUpperCase() }],
+      },
     });
 
     if (!exam) {
@@ -739,4 +804,68 @@ export class EntranceService {
       })),
     };
   }
+
+  /**
+   * Admin: Assign an exam to multiple categories.
+   * Updating category assignments preserves the canonical exam record and updates everywhere.
+   */
+  static async updateExamCategoryAssignments(
+    examIdOrCode: string,
+    categoryIds: string[],
+    adminUserId?: string
+  ) {
+    await this.ensureCatalogInitialized();
+
+    const exam = await prisma.entranceExam.findFirst({
+      where: {
+        OR: [{ id: examIdOrCode }, { code: examIdOrCode }, { code: examIdOrCode.toUpperCase() }],
+      },
+    });
+
+    if (!exam) {
+      const err: any = new Error('Entrance exam not found in registry.');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    // Validate that category IDs exist
+    const validCategories = await prisma.examCategory.findMany({
+      where: { id: { in: categoryIds } },
+    });
+
+    // Remove existing junction mappings for this exam
+    await prisma.examCategoryMapping.deleteMany({
+      where: { examId: exam.id },
+    });
+
+    // Re-create junction mappings for selected valid categories
+    for (let i = 0; i < validCategories.length; i++) {
+      const cat = validCategories[i];
+      await prisma.examCategoryMapping.create({
+        data: {
+          categoryId: cat.id,
+          examId: exam.id,
+          orderIndex: i + 1,
+        },
+      });
+    }
+
+    // Audit log
+    if (adminUserId) {
+      await prisma.auditLog.create({
+        data: {
+          userId: adminUserId,
+          action: 'EXAM_CATEGORIES_ASSIGNED',
+          details: JSON.stringify({
+            examId: exam.id,
+            examCode: exam.code,
+            categories: validCategories.map((c) => c.id),
+          }),
+        },
+      });
+    }
+
+    return this.getExamById(exam.id, adminUserId);
+  }
 }
+

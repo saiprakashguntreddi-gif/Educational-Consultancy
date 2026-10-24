@@ -23,6 +23,19 @@ export class EntranceController {
   }
 
   /**
+   * GET /api/v1/exams/categories
+   */
+  static async getCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      const categories = await EntranceService.getCategories(userId);
+      return ApiResponse.success(res, categories, 'Main exam categories retrieved successfully');
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  /**
    * GET /api/v1/exams/:id
    */
   static async getExamById(req: Request, res: Response, next: NextFunction) {
@@ -30,6 +43,31 @@ export class EntranceController {
       const userId = req.user?.id;
       const exam = await EntranceService.getExamById(req.params.id, userId);
       return ApiResponse.success(res, exam, 'Exam details retrieved successfully');
+    } catch (err) {
+      return next(err);
+    }
+  }
+
+  /**
+   * PUT /api/v1/exams/:id/categories
+   * Admin / Counsellor: Assign exam to multiple categories
+   */
+  static async updateExamCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminUserId = req.user?.id;
+      const { categoryIds } = req.body;
+      if (!Array.isArray(categoryIds)) {
+        return res.status(400).json({
+          success: false,
+          message: 'categoryIds array must be provided.',
+        });
+      }
+      const exam = await EntranceService.updateExamCategoryAssignments(
+        req.params.id,
+        categoryIds,
+        adminUserId
+      );
+      return ApiResponse.success(res, exam, 'Exam category assignments updated successfully');
     } catch (err) {
       return next(err);
     }

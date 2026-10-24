@@ -19,17 +19,7 @@ export class ScholarshipsService {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.country) params.append('country', filters.country);
     if (filters?.department) params.append('department', filters.department);
-    if (filters?.studyLevel && filters.studyLevel !== 'ALL') {
-      params.append('studyLevel', filters.studyLevel);
-    }
-    if (filters?.awardType && filters.awardType !== 'ALL') {
-      params.append('awardType', filters.awardType);
-    }
-    if (filters?.deadlineStatus && filters.deadlineStatus !== 'ALL') {
-      params.append('deadlineStatus', filters.deadlineStatus);
-    }
     if (filters?.eligibilityStatus && filters.eligibilityStatus !== 'ALL') {
-      params.append('eligibility', filters.eligibilityStatus);
       params.append('eligibilityStatus', filters.eligibilityStatus);
     }
     if (filters?.page) params.append('page', filters.page.toString());

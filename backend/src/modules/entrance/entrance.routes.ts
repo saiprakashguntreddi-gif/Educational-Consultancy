@@ -22,6 +22,9 @@ const router = Router();
 // Catalog list with optional personalized recommendation detection
 router.get('/', optionalAuthenticateJwt, EntranceController.getCatalog);
 
+// Main exam categories hierarchy with resolved unique subcategories
+router.get('/categories', optionalAuthenticateJwt, EntranceController.getCategories);
+
 // ==========================================
 // STUDENT PERSONAL EXAM PLAN (MODULE 4)
 // ==========================================
@@ -112,6 +115,14 @@ router.get(
   optionalAuthenticateJwt,
   validateRequest(getExamByIdSchema),
   EntranceController.getExamById
+);
+
+// Admin: Assign exam to multiple categories
+router.put(
+  '/:id/categories',
+  authenticateJwt,
+  requireRoles(Role.ADMIN, Role.COUNSELLOR),
+  EntranceController.updateExamCategories
 );
 
 // List available mock tests for a specific exam

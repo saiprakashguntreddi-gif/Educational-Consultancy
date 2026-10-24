@@ -2,6 +2,7 @@ import { apiClient, ApiResponse } from '../../../shared/services/api-client';
 import { API_ENDPOINTS } from '../../../config/api.config';
 import {
   EntranceExamRecord,
+  ExamCategoryGroup,
   StudentExamPlanRecord,
   StudentExamPlanInput,
   UpdateExamPlanInput,
@@ -28,6 +29,13 @@ export class EntranceService {
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
     return apiClient.get<EntranceExamRecord[]>(`${API_ENDPOINTS.ENTRANCE.CATALOG}${queryString}`);
+  }
+
+  /**
+   * Fetch main exam categories with resolved subcategories
+   */
+  public static async getCategories(): Promise<ApiResponse<ExamCategoryGroup[]>> {
+    return apiClient.get<ExamCategoryGroup[]>(API_ENDPOINTS.ENTRANCE.CATEGORIES);
   }
 
   /**

@@ -1,4 +1,23 @@
-export type ExamCategory = 'UNDERGRADUATE' | 'POSTGRADUATE' | 'LANGUAGE_PROFICIENCY';
+export type ExamCategory =
+  | 'UNDERGRADUATE'
+  | 'ENGINEERING_TECHNOLOGY'
+  | 'POSTGRADUATE'
+  | 'MBA_MANAGEMENT'
+  | 'STUDY_ABROAD'
+  | 'LANGUAGE_PROFICIENCY'
+  | 'DESIGN_ARCHITECTURE'
+  | string;
+
+export interface ExamCategoryGroup {
+  id: string;
+  code?: string;
+  name: string;
+  description: string;
+  orderIndex?: number;
+  examCodes: string[];
+  exams: EntranceExamRecord[];
+  count?: number;
+}
 
 export type ExamPlanStatus = 'PLANNED' | 'PREPARING' | 'REGISTERED' | 'COMPLETED';
 
