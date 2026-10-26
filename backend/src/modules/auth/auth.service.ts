@@ -3,7 +3,8 @@ import { prisma } from '../../shared/database/prisma.service';
 import { hashPassword, comparePassword } from '../../shared/utils/password';
 import { config } from '../../config/env';
 import { Role } from '../../config/roles';
-import { RegisterInput, LoginInput } from './auth.validation';
+import { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput } from './auth.validation';
+import { EmailService } from '../../shared/utils/email.service';
 
 export interface AuthTokens {
   accessToken: string;
@@ -45,6 +46,24 @@ export class AuthService {
         email: input.email,
         passwordHash: hashedPassword,
         role: assignedRole,
+        studentProfile: {
+          create: {
+            fullName: input.fullName?.trim() || input.email.split('@')[0],
+            contactEmail: input.email,
+            phone: '',
+            addressStreet: '',
+            addressCity: '',
+            addressState: '',
+            addressPostalCode: '',
+            addressCountry: '',
+            gender: 'PREFER_NOT_TO_SAY',
+            citizenship: 'Pending Intake',
+            passingOutYear: new Date().getFullYear(),
+            grade: 'Pending Intake',
+            board: 'Pending Intake',
+            verificationStatus: 'PENDING',
+          },
+        },
       },
       include: {
         studentProfile: { select: { id: true } },
@@ -171,6 +190,103 @@ export class AuthService {
       accessToken,
       refreshToken,
       expiresIn: config.jwt.expiresIn,
+    };
+  }
+
+  /**
+   * Initiate password reset by generating a secure token and sending email
+   */
+  public static async forgotPassword(input: ForgotPasswordInput): Promise<{ message: string; previewLink?: string }> {
+    const user = await prisma.user.findUnique({
+      where: { email: input.email },
+    });
+
+    if (!user) {
+      return {
+        message: 'If an account exists with that email address, a password reset link has been sent.',
+      };
+    }
+
+    if (!user.isActive) {
+      throw new Error('Account is deactivated. Please contact support.');
+    }
+
+    const resetToken = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        purpose: 'PASSWORD_RESET',
+        passSig: user.passwordHash.slice(-10),
+      },
+      config.jwt.secret,
+      { expiresIn: '1h' }
+    );
+
+    const clientOrigin = config.cors.origin || 'http://localhost:3000';
+    const resetLink = `${clientOrigin}/?view=reset-password&token=${encodeURIComponent(resetToken)}`;
+
+    const emailResult = await EmailService.sendPasswordResetEmail(user.email, resetLink);
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'PASSWORD_RESET_REQUESTED',
+        details: JSON.stringify({ email: user.email }),
+      },
+    });
+
+    return {
+      message: 'A password reset link has been sent to your email address.',
+      previewLink: emailResult.previewLink,
+    };
+  }
+
+  /**
+   * Reset user password using verified reset token
+   */
+  public static async resetPassword(input: ResetPasswordInput): Promise<{ message: string }> {
+    let decoded: any;
+    try {
+      decoded = jwt.verify(input.token, config.jwt.secret);
+    } catch (err: any) {
+      throw new Error('Invalid or expired password reset link. Please request a new one.');
+    }
+
+    if (decoded.purpose !== 'PASSWORD_RESET' || !decoded.userId) {
+      throw new Error('Invalid password reset token.');
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+    });
+
+    if (!user) {
+      throw new Error('User account not found.');
+    }
+
+    if (decoded.passSig && user.passwordHash.slice(-10) !== decoded.passSig) {
+      throw new Error('This password reset link has already been used. Please request a new one.');
+    }
+
+    const newHashedPassword = await hashPassword(input.newPassword);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newHashedPassword,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'PASSWORD_RESET_COMPLETED',
+        details: JSON.stringify({ email: user.email }),
+      },
+    });
+
+    return {
+      message: 'Your password has been successfully reset. You may now log in.',
     };
   }
 }

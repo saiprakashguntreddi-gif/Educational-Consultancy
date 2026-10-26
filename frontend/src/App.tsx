@@ -5,6 +5,8 @@ import { Footer } from './shared/components/Footer';
 import { HomePage } from './modules/home/HomePage';
 import { LoginPage } from './modules/auth/pages/LoginPage';
 import { RegisterPage } from './modules/auth/pages/RegisterPage';
+import { ForgotPasswordPage } from './modules/auth/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './modules/auth/pages/ResetPasswordPage';
 import { StudentDashboardPage } from './modules/profile/pages/StudentDashboardPage';
 import { CounsellorDashboardPage } from './modules/counsellor/pages/CounsellorDashboardPage';
 import { AdminDashboardPage } from './modules/counsellor/pages/AdminDashboardPage';
@@ -19,7 +21,21 @@ import { EightPathwayAssessmentSuite } from './modules/assessments/components/Ei
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<string>('home');
+  const [resetToken, setResetToken] = useState<string>('');
   const { user } = useAuth();
+
+  // Listen for query params e.g. ?view=reset-password&token=xyz or ?view=forgot-password
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const viewParam = params.get('view');
+    const tokenParam = params.get('token');
+    if (viewParam === 'reset-password' || tokenParam) {
+      if (tokenParam) setResetToken(tokenParam);
+      setCurrentView('reset-password');
+    } else if (viewParam === 'forgot-password') {
+      setCurrentView('forgot-password');
+    }
+  }, []);
 
   // If user is logged in as staff and currently on home, direct to their dedicated dashboard
   useEffect(() => {
@@ -32,7 +48,8 @@ const AppContent: React.FC = () => {
 
   // When user logs out (user becomes null), automatically route directly to home (main page)
   useEffect(() => {
-    if (!user && currentView !== 'login' && currentView !== 'register') {
+    const publicAuthViews = ['login', 'register', 'forgot-password', 'reset-password'];
+    if (!user && !publicAuthViews.includes(currentView)) {
       setCurrentView('home');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -61,6 +78,24 @@ const AppContent: React.FC = () => {
           <LoginPage
             onSuccess={handleLoginSuccess}
             onNavigateToRegister={() => handleNavigate('register')}
+            onNavigateToForgotPassword={() => handleNavigate('forgot-password')}
+          />
+        );
+      case 'forgot-password':
+        return (
+          <ForgotPasswordPage
+            onNavigateToLogin={() => handleNavigate('login')}
+            onNavigateToReset={(token) => {
+              setResetToken(token);
+              handleNavigate('reset-password');
+            }}
+          />
+        );
+      case 'reset-password':
+        return (
+          <ResetPasswordPage
+            token={resetToken}
+            onNavigateToLogin={() => handleNavigate('login')}
           />
         );
       case 'register':
