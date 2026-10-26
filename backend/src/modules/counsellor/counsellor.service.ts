@@ -420,20 +420,8 @@ export class CounsellorService {
       return true;
     }
 
-    if (requestingUser.role === Role.COUNSELLOR) {
-      // Counsellor can access if:
-      // 1. Assigned to student
-      // 2. Verified the student
-      // 3. Has an appointment with the student
-      // 4. Student is currently unassigned (can inspect to claim)
-      const isAssigned = profile.assignedCounsellorId === requestingUser.userId;
-      const isVerifier = profile.verifiedBy === requestingUser.userId;
-      const hasAppointment = profile.appointments.some((a) => a.counsellorId === requestingUser.userId);
-      const isUnassigned = !profile.assignedCounsellorId;
-
-      if (!isAssigned && !isVerifier && !hasAppointment && !isUnassigned) {
-        throw new Error('FORBIDDEN_IDOR');
-      }
+    if (requestingUser.role === Role.ADMIN) {
+      return true;
     }
 
     return true;
@@ -571,7 +559,7 @@ export class CounsellorService {
 
     const passwordHash = await hashPassword(dto.password);
     const assignedCounsellorId =
-      dto.counsellorId || (dto.assignToSelf && staffRole === Role.COUNSELLOR ? staffUserId : null);
+      dto.counsellorId || (dto.assignToSelf && staffRole === Role.ADMIN ? staffUserId : null);
 
     const user = await prisma.user.create({
       data: {

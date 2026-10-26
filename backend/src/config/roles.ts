@@ -1,11 +1,11 @@
 /**
  * Platform User Roles and Access Control Matrix
- * Strictly separates responsibilities between Student, Counsellor, and Admin
+ * Strictly consolidated to two application roles: Student and Admin.
+ * Admin assumes all platform management, verification, and counselling operations.
  */
 
 export enum Role {
   STUDENT = 'STUDENT',
-  COUNSELLOR = 'COUNSELLOR',
   ADMIN = 'ADMIN',
 }
 
@@ -25,12 +25,6 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissions> = {
     canManagePlatformUsers: false,
     canViewAllProfiles: false,
   },
-  [Role.COUNSELLOR]: {
-    canAccessStudentIntake: false,
-    canVerifyProfiles: true,
-    canManagePlatformUsers: false,
-    canViewAllProfiles: true,
-  },
   [Role.ADMIN]: {
     canAccessStudentIntake: false,
     canVerifyProfiles: true,
@@ -38,3 +32,4 @@ export const ROLE_PERMISSIONS: Record<Role, RolePermissions> = {
     canViewAllProfiles: true,
   },
 };
+

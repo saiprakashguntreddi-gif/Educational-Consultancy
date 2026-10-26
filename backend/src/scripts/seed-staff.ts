@@ -5,22 +5,22 @@ import { Role } from '../config/roles';
 async function main() {
   const passwordHash = await hashPassword('StaffPassword123!');
 
-  const counsellor = await prisma.user.upsert({
+  const adminConsultant = await prisma.user.upsert({
     where: { email: 'counsellor@superconsciousness.internal' },
-    update: {},
+    update: { role: Role.ADMIN },
     create: {
       email: 'counsellor@superconsciousness.internal',
       passwordHash,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
       isActive: true,
       isEmailVerified: true,
     },
   });
-  console.log(`[SEED] Authorized Counsellor verified: ${counsellor.email} (Role: ${counsellor.role})`);
+  console.log(`[SEED] Authorized Staff verified: ${adminConsultant.email} (Role: ${adminConsultant.role})`);
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@superconsciousness.internal' },
-    update: {},
+    update: { passwordHash, role: Role.ADMIN },
     create: {
       email: 'admin@superconsciousness.internal',
       passwordHash,

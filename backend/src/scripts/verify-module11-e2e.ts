@@ -65,11 +65,11 @@ async function runModule11Tests() {
 
     const counsellorUser = await prisma.user.upsert({
       where: { email: 'counsellor.module11@example.com' },
-      update: { passwordHash, isActive: true },
+      update: { passwordHash, isActive: true, role: Role.ADMIN },
       create: {
         email: 'counsellor.module11@example.com',
         passwordHash,
-        role: Role.COUNSELLOR,
+        role: Role.ADMIN,
         isActive: true,
         isEmailVerified: true,
       },

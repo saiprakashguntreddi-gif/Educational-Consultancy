@@ -25,8 +25,8 @@ export const requireVerifiedStudentProfile = async (
     return;
   }
 
-  // Counsellors and Administrators are never blocked from reviewing profiles
-  if (req.user.role === Role.COUNSELLOR || req.user.role === Role.ADMIN) {
+  // Administrators are never blocked from reviewing profiles
+  if (req.user.role === Role.ADMIN) {
     next();
     return;
   }

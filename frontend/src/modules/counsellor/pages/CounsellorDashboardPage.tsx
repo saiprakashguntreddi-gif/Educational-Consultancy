@@ -237,7 +237,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
     <SaaSShell
       activeTab={activeTab}
       onSelectTab={setActiveTab}
-      role="COUNSELLOR"
+      role="ADMIN"
       onGlobalSearch={(q) => {
         setSearch(q);
         if (activeTab !== 'students' && q.trim()) {

@@ -144,7 +144,8 @@ export class AppointmentsController {
   public static async getCounsellorSchedule(req: Request, res: Response, next: NextFunction) {
     try {
       const counsellorId = getUserId(req);
-      const data = await AppointmentsService.getCounsellorSchedule(counsellorId);
+      const userRole = (req as any).user?.role;
+      const data = await AppointmentsService.getCounsellorSchedule(counsellorId, userRole);
       return ApiResponse.success(res, data, 'Counsellor appointment schedule retrieved');
     } catch (err) {
       return next(err);

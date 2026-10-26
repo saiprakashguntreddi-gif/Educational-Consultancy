@@ -15,8 +15,8 @@ import {
 
 const router = Router();
 
-// Counsellor module boundary - routes restricted strictly to COUNSELLOR and ADMIN roles
-router.use(authenticateJwt, requireRoles(Role.COUNSELLOR, Role.ADMIN));
+// Counselling operations boundary - routes restricted strictly to ADMIN role
+router.use(authenticateJwt, requireRoles(Role.ADMIN));
 
 router.get('/health', (_req: Request, res: Response) => {
   ApiResponse.success(res, { module: 'counsellor', status: 'ready' }, 'Counsellor module gateway active');

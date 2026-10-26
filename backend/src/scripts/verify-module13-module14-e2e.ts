@@ -20,7 +20,7 @@ async function runVerification() {
     create: {
       email: `counsellor.a.${ts}@example.com`,
       passwordHash,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
       isActive: true,
       isEmailVerified: true,
     },
@@ -32,7 +32,7 @@ async function runVerification() {
     create: {
       email: `counsellor.b.${ts}@example.com`,
       passwordHash,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
       isActive: true,
       isEmailVerified: true,
     },
@@ -59,7 +59,7 @@ async function runVerification() {
   console.log('--- TEST 1: Staff Direct Student Account Creation ---');
   const createdStudent = await CounsellorService.createStudentAccount(
     counsellorA.id,
-    Role.COUNSELLOR,
+    Role.ADMIN,
     {
       email: `student.onboarded.${ts}@example.com`,
       password: 'StudentPassword123!',
@@ -122,7 +122,7 @@ async function runVerification() {
   try {
     await CounsellorService.getStudent360(createdStudent.profile.id, {
       userId: counsellorB.id,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
     });
     // Note: since Aarav is assigned to A, B should NOT have access!
     throw new Error('FAILED_IDOR_VULNERABILITY: Counsellor B was allowed to access Counsellor A student!');
@@ -160,7 +160,7 @@ async function runVerification() {
   const updatedAction = await CounsellorService.updateActionPlan(
     actionItem.id,
     counsellorA.id,
-    Role.COUNSELLOR,
+    Role.ADMIN,
     { status: 'COMPLETED' }
   );
   console.log('✔ Action Plan Milestone updated to COMPLETED:', {
@@ -183,7 +183,7 @@ async function runVerification() {
 
   const notesList = await CounsellorService.getNotes(createdStudent.profile.id, {
     userId: counsellorA.id,
-    role: Role.COUNSELLOR,
+    role: Role.ADMIN,
   });
   console.log(`✔ Notes list retrieved: ${notesList.length} note(s) found`);
   if (notesList.length === 0) {
@@ -205,7 +205,7 @@ async function runVerification() {
   // Verify Counsellor B now has access
   const counsellorBAccess = await CounsellorService.getStudent360(createdStudent.profile.id, {
     userId: counsellorB.id,
-    role: Role.COUNSELLOR,
+    role: Role.ADMIN,
   });
   console.log(`✔ Counsellor B now authorized for reassigned student: ${counsellorBAccess.fullName}`);
 

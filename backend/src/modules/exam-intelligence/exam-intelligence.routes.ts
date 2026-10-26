@@ -86,14 +86,14 @@ examIntelligenceRouter.delete(
 );
 
 // ==========================================
-// 4. COUNSELLOR & ADMIN FOLLOW-UP
+// 4. ADMIN FOLLOW-UP & REVIEW
 // ==========================================
 
-// Staff review of a student's exam intelligence and mock performance
+// Admin review of a student's exam intelligence and mock performance
 examIntelligenceRouter.get(
   '/counsellor/student/:studentProfileId',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(getStudentIntelligenceSchema),
   ExamIntelligenceController.getStudentIntelligenceForStaff
 );

@@ -32,15 +32,15 @@ async function runTests() {
     { expiresIn: '1h' }
   );
 
-  // Counsellor user & JWT
+  // Admin / Consultant user & JWT
   const counsellorUser = await prisma.user.findFirst({
-    where: { role: Role.COUNSELLOR },
+    where: { role: Role.ADMIN },
   });
   if (!counsellorUser) {
-    throw new Error('No counsellor user found in database.');
+    throw new Error('No admin user found in database.');
   }
   const counsellorToken = jwt.sign(
-    { userId: counsellorUser.id, email: counsellorUser.email, role: Role.COUNSELLOR },
+    { userId: counsellorUser.id, email: counsellorUser.email, role: Role.ADMIN },
     config.jwt.secret,
     { expiresIn: '1h' }
   );

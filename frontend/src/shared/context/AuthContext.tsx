@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiClient } from '../services/api-client';
 import { API_ENDPOINTS } from '../../config/api.config';
 
-export type UserRole = 'STUDENT' | 'COUNSELLOR' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'ADMIN';
 
 export interface User {
   id: string;

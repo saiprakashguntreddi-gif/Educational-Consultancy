@@ -55,14 +55,14 @@ async function runE2ETests() {
       },
     });
 
-    // 2. Setup Counsellor User
+    // 2. Setup Admin / Staff User
     const counsellorUser = await prisma.user.upsert({
       where: { email: 'counsellor.module10@example.com' },
-      update: { passwordHash, isActive: true },
+      update: { passwordHash, isActive: true, role: Role.ADMIN },
       create: {
         email: 'counsellor.module10@example.com',
         passwordHash,
-        role: Role.COUNSELLOR,
+        role: Role.ADMIN,
         isActive: true,
         isEmailVerified: true,
       },

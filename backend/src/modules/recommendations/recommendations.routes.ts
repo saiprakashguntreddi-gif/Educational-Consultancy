@@ -59,13 +59,13 @@ router.patch(
 // Student endpoints
 router.get(
   '/my-recommendations',
-  requireRoles(Role.STUDENT, Role.ADMIN, Role.COUNSELLOR),
+  requireRoles(Role.STUDENT, Role.ADMIN),
   RecommendationsController.getMyRecommendations
 );
 
 router.post(
   '/generate',
-  requireRoles(Role.STUDENT, Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.STUDENT, Role.ADMIN),
   validateRequest(generateRecommendationsSchema),
   RecommendationsController.generateRecommendations
 );
@@ -81,23 +81,23 @@ router.get(
   RecommendationsController.getCohortAnalytics
 );
 
-// Counsellor & Admin review endpoints
+// Admin review endpoints
 router.get(
   '/student/:studentProfileId',
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   RecommendationsController.getStudentRecommendationsForStaff
 );
 
 router.put(
   '/batch/:batchId/counsellor-review',
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(counsellorReviewSchema),
   RecommendationsController.reviewBatchByCounsellor
 );
 
 router.patch(
   '/items/:id/tier-override',
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(tierOverrideSchema),
   RecommendationsController.overrideItemTier
 );

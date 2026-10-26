@@ -29,7 +29,7 @@ async function main() {
     data: {
       email: `counsellor.m7.${timestamp}@example.com`,
       passwordHash,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
       isActive: true,
       isEmailVerified: true,
     },

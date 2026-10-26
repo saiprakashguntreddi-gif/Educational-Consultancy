@@ -46,7 +46,7 @@ async function main() {
     data: {
       email: `counsellor.tier.${timestamp}@example.com`,
       passwordHash,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
       isActive: true,
       isEmailVerified: true,
     },

@@ -76,39 +76,39 @@ assessmentsRouter.get(
 );
 
 // ==========================================
-// 2. COUNSELLOR MANAGEMENT & REVIEW SUITE
+// 2. ADMIN MANAGEMENT & REVIEW SUITE
 // ==========================================
 
-// Counsellor generates an access code
+// Admin generates an access code
 assessmentsRouter.post(
   '/access-codes/generate',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(generateAccessCodeSchema),
   AssessmentsController.generateAccessCode
 );
 
-// Counsellor lists all generated access codes
+// Admin lists all generated access codes
 assessmentsRouter.get(
   '/access-codes',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   AssessmentsController.listAccessCodes
 );
 
-// Counsellor integrated review (Report alongside academics, preferences, shortlists)
+// Admin integrated review (Report alongside academics, preferences, shortlists)
 assessmentsRouter.get(
   '/counsellor/review/:studentProfileId',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   AssessmentsController.getCounsellorReview
 );
 
-// Counsellor attaches discussion points & action plan
+// Admin attaches discussion points & action plan
 assessmentsRouter.post(
   '/counsellor/reports/:reportId/action-plan',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(saveActionPlanSchema),
   AssessmentsController.saveActionPlan
 );

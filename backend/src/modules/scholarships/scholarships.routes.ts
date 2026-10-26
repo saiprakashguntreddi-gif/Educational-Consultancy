@@ -63,14 +63,14 @@ router.get(
 
 router.get(
   '/',
-  requireRoles(Role.STUDENT, Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.STUDENT, Role.ADMIN),
   validateRequest(studentListScholarshipsQuerySchema),
   ScholarshipsController.listScholarshipsForStudent
 );
 
 router.get(
   '/:id',
-  requireRoles(Role.STUDENT, Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.STUDENT, Role.ADMIN),
   validateRequest(scholarshipIdParamSchema),
   ScholarshipsController.getScholarshipDetail
 );

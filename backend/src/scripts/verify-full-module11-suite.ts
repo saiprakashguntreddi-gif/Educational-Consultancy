@@ -92,11 +92,11 @@ async function testFullSuite() {
 
   await prisma.user.upsert({
     where: { email: counsellorEmail },
-    update: { isActive: true, isEmailVerified: true },
+    update: { isActive: true, isEmailVerified: true, role: Role.ADMIN },
     create: {
       email: counsellorEmail,
       passwordHash,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
       isActive: true,
       isEmailVerified: true,
     },

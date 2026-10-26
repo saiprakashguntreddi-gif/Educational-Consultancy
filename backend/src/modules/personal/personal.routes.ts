@@ -100,14 +100,14 @@ router.delete(
 );
 
 // ==========================================
-// STAFF REVIEW ROUTE (COUNSELLOR / ADMIN)
+// ADMIN REVIEW ROUTE
 // ==========================================
 
-// Staff review student's personal info
+// Admin review of student's personal info
 router.get(
   '/profile/:studentProfileId',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(getPersonalByProfileIdSchema),
   PersonalController.getPersonalByProfileId
 );

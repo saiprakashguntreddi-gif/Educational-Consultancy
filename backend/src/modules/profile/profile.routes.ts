@@ -35,36 +35,36 @@ router.get(
 router.get(
   '/me/verified',
   authenticateJwt,
-  requireRoles(Role.STUDENT, Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.STUDENT, Role.ADMIN),
   requireVerifiedStudentProfile,
   ProfileController.getVerifiedRecord
 );
 
 // ==========================================
-// COUNSELLOR & ADMIN VERIFICATION ROUTES
+// ADMIN VERIFICATION & PROFILE REVIEW ROUTES
 // ==========================================
 
-// Counsellors/Admins view list of profiles for verification review
+// Admins view list of profiles for verification review
 router.get(
   '/review',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   ProfileController.listProfiles
 );
 
-// Counsellors/Admins view a specific student's profile record
+// Admins view a specific student's profile record
 router.get(
   '/:id',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   ProfileController.getProfileById
 );
 
-// Counsellors/Admins verify or reject student profile
+// Admins verify or reject student profile
 router.patch(
   '/:id/verify',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(verifyProfileSchema),
   ProfileController.verifyProfile
 );

@@ -93,14 +93,14 @@ router.post(
 );
 
 // ==========================================
-// COUNSELLOR & ADMIN REVIEW ROUTE
+// ADMIN REVIEW ROUTE
 // ==========================================
 
-// Staff review of a student's entrance exam plan
+// Admin review of a student's entrance exam plan
 router.get(
   '/plan/profile/:studentProfileId',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(getPlanByProfileIdSchema),
   EntranceController.getPlanByProfileId
 );
@@ -121,7 +121,7 @@ router.get(
 router.put(
   '/:id/categories',
   authenticateJwt,
-  requireRoles(Role.ADMIN, Role.COUNSELLOR),
+  requireRoles(Role.ADMIN),
   EntranceController.updateExamCategories
 );
 

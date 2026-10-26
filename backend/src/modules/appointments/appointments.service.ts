@@ -51,20 +51,19 @@ export class AppointmentsService {
         await prisma.webinar.createMany({ data: webinarsToCreate });
       }
 
-      // 2. Ensure at least one Counsellor user exists
-      const counsellorCount = await prisma.user.count({
-        where: { role: Role.COUNSELLOR },
+      // 2. Ensure at least one Administrator / Consultant user exists
+      const adminCount = await prisma.user.count({
+        where: { role: Role.ADMIN },
       });
 
-      if (counsellorCount === 0) {
-        // Find existing counsellor or create
+      if (adminCount === 0) {
         await prisma.user.upsert({
-          where: { email: 'counsellor@superconsciousness.internal' },
-          update: { role: Role.COUNSELLOR },
+          where: { email: 'admin@superconsciousness.internal' },
+          update: { role: Role.ADMIN },
           create: {
-            email: 'counsellor@superconsciousness.internal',
-            passwordHash: '$2b$10$w0...demo', // hash
-            role: Role.COUNSELLOR,
+            email: 'admin@superconsciousness.internal',
+            passwordHash: '$2b$10$w0992383848248238492834892384923849238492384',
+            role: Role.ADMIN,
             isActive: true,
             isEmailVerified: true,
           },
@@ -105,34 +104,34 @@ export class AppointmentsService {
 
     const profile = await this.getStudentProfile(userId);
 
-    // Fetch active counsellors with full profile
-    const counsellors = await prisma.user.findMany({
-      where: { role: Role.COUNSELLOR, isActive: true },
+    // Fetch active advisors and consultants (Admin role)
+    const advisors = await prisma.user.findMany({
+      where: { role: Role.ADMIN, isActive: true },
       include: {
         counsellorProfile: true,
       },
     });
 
-    const counsellorList = counsellors.map((c) => {
+    const counsellorList = advisors.map((c) => {
       const isAssigned = profile.assignedCounsellorId === c.id;
       let parsedSkills: string[] = [];
       try {
         parsedSkills = c.counsellorProfile?.skills ? JSON.parse(c.counsellorProfile.skills) : [];
       } catch {
-        parsedSkills = ['Career Guidance', 'Admissions'];
+        parsedSkills = ['Educational Guidance', 'University Admissions'];
       }
 
       return {
         id: c.id,
         email: c.email,
-        fullName: c.counsellorProfile?.fullName || (isAssigned ? 'Assigned Lead Counsellor' : `Academic Advisor (${c.email.split('@')[0]})`),
-        role: 'Certified Educational Counsellor',
+        fullName: c.counsellorProfile?.fullName || (isAssigned ? 'Designated Educational Consultant' : `Admissions Consultant (${c.email.split('@')[0]})`),
+        role: 'Certified Educational Consultant',
         specialization: c.counsellorProfile?.specialization || 'Undergraduate Admissions & STEM Pathways',
         skills: parsedSkills,
-        experienceYears: c.counsellorProfile?.experienceYears || 3,
+        experienceYears: c.counsellorProfile?.experienceYears || 5,
         bio: c.counsellorProfile?.bio || 'Expert consultant specializing in college evaluation, profile spikes, and university admissions.',
         availability: c.counsellorProfile?.availability || 'Mon-Fri, 9:00 AM - 5:00 PM',
-        verificationStatus: c.counsellorProfile?.verificationStatus || 'ACTIVE',
+        verificationStatus: 'ACTIVE',
         isAssigned,
       };
     });
@@ -241,45 +240,40 @@ export class AppointmentsService {
       throw err;
     }
 
-    // Business Requirement: If student has an assigned counsellor, book ONLY with that counsellor
-    if (profile.assignedCounsellorId && input.counsellorId !== profile.assignedCounsellorId) {
+    // Business Requirement: If student has an assigned consultant/admin, book ONLY with that consultant
+    if (profile.assignedCounsellorId && input.counsellorId && input.counsellorId !== profile.assignedCounsellorId) {
       const err: any = new Error(
-        'Appointments can only be scheduled with your dedicated assigned counsellor. Please select your assigned counsellor.'
+        'Appointments can only be scheduled with your dedicated assigned consultant. Please select your assigned consultant.'
       );
       err.statusCode = 403;
       throw err;
     }
 
-    if (!profile.assignedCounsellorId) {
-      // If student is not yet assigned a counsellor, verify selected counsellor is active and verified
-      const targetCounsellor = await prisma.user.findFirst({
-        where: { id: input.counsellorId, role: Role.COUNSELLOR, isActive: true },
+    // Resolve target advisor (Admin role)
+    const targetAdvisorId = input.counsellorId || profile.assignedCounsellorId;
+    let consultant = targetAdvisorId
+      ? await prisma.user.findFirst({
+          where: { id: targetAdvisorId, role: Role.ADMIN, isActive: true },
+          include: { counsellorProfile: true },
+        })
+      : null;
+
+    if (!consultant) {
+      // Fallback to any active administrator
+      consultant = await prisma.user.findFirst({
+        where: { role: Role.ADMIN, isActive: true },
         include: { counsellorProfile: true },
       });
-      if (!targetCounsellor) {
-        const err: any = new Error('Selected counsellor is not active or available.');
-        err.statusCode = 404;
-        throw err;
-      }
-      const cStatus = targetCounsellor.counsellorProfile?.verificationStatus || (targetCounsellor.isActive ? 'ACTIVE' : 'PENDING');
-      if (cStatus !== 'ACTIVE' && cStatus !== 'VERIFIED') {
-        const err: any = new Error('Selected counsellor is currently not verified or eligible for appointments.');
-        err.statusCode = 400;
-        throw err;
-      }
     }
 
-    // Validate counsellor exists and has counsellor role
-    const counsellor = await prisma.user.findFirst({
-      where: { id: input.counsellorId, role: Role.COUNSELLOR, isActive: true },
-      include: { counsellorProfile: true },
-    });
-
-    if (!counsellor) {
-      const err: any = new Error('Selected counsellor is not active or available.');
+    if (!consultant) {
+      const err: any = new Error('No active educational consultant is currently available for booking.');
       err.statusCode = 404;
       throw err;
     }
+
+    // Ensure input.counsellorId is bound to the verified consultant
+    input.counsellorId = consultant.id;
 
     // Parse date and time
     // input.scheduledDate = "2026-10-25", input.timeSlot = "10:00 AM" or "14:00"
@@ -364,7 +358,7 @@ export class AppointmentsService {
         relatedCollegeName: input.relatedCollegeName || null,
         studentNotes: input.studentNotes || null,
         studentProfileId: profile.id,
-        counsellorId: counsellor.id,
+        counsellorId: consultant.id,
         isRecorded: true,
         recordingUrl: '/assets/sample-consultation.mp4',
         followUpActions: 'Please review your Education Details and keep your shortlisted colleges ready prior to the meeting.',
@@ -384,7 +378,7 @@ export class AppointmentsService {
           appointmentId: appointment.id,
           type: appointment.appointmentType,
           scheduledAt: appointment.scheduledAt,
-          counsellorId: counsellor.id,
+          counsellorId: consultant.id,
         }),
       },
     }).catch(() => {});
@@ -406,8 +400,8 @@ export class AppointmentsService {
       studentName: appointment.studentProfile.fullName,
       studentEmail: appointment.studentProfile.contactEmail,
       counsellorId: appointment.counsellorId,
-      counsellorName: `Counsellor (${counsellor.email.split('@')[0]})`,
-      counsellorEmail: counsellor.email,
+      counsellorName: `Consultant (${consultant.email.split('@')[0]})`,
+      counsellorEmail: consultant.email,
       followUpActions: appointment.followUpActions,
       createdAt: appointment.createdAt.toISOString(),
     };
@@ -503,11 +497,12 @@ export class AppointmentsService {
   }
 
   /**
-   * Counsellor: Get all appointments for the logged-in counsellor
+   * Consultant/Admin: Get all appointments (Admin gets platform-wide appointments)
    */
-  public static async getCounsellorSchedule(counsellorId: string) {
+  public static async getCounsellorSchedule(counsellorId: string, userRole?: string) {
+    const whereClause = userRole === Role.ADMIN ? {} : { counsellorId };
     const appointments = await prisma.appointment.findMany({
-      where: { counsellorId },
+      where: whereClause,
       include: {
         studentProfile: {
           select: {
@@ -840,7 +835,7 @@ export class AppointmentsService {
     dateStr: string
   ): Promise<{ date: string; slots: { timeSlot: string; isAvailable: boolean; isBooked: boolean }[] }> {
     const counsellor = await prisma.user.findFirst({
-      where: { id: counsellorId, role: Role.COUNSELLOR },
+      where: { id: counsellorId, role: Role.ADMIN },
       include: { counsellorProfile: true },
     });
 
@@ -1082,7 +1077,7 @@ export class AppointmentsService {
     const assignedCounsellorId =
       input.counsellorId ||
       studentProfile.assignedCounsellorId ||
-      (await prisma.user.findFirst({ where: { role: Role.COUNSELLOR, isActive: true } }))?.id;
+      (await prisma.user.findFirst({ where: { role: Role.ADMIN, isActive: true } }))?.id;
 
     if (!assignedCounsellorId) {
       const err: any = new Error('Cannot enroll without an assigned counsellor.');

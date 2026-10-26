@@ -16,6 +16,9 @@ import {
   CheckCircle2,
   Trophy,
   TrendingUp,
+  Video,
+  Bell,
+  Settings,
 } from 'lucide-react';
 import {
   AdminClientService,
@@ -23,12 +26,15 @@ import {
   CounsellorWorkloadInfo,
 } from '../services/admin.service';
 import { CounsellorStudentSummary } from '../services/counsellor.service';
+import { AppointmentsService } from '../../appointments/services/appointments.service';
 import { Student360Modal } from '../components/Student360Modal';
 import { AssignCounsellorModal } from '../components/AssignCounsellorModal';
 import { CreateStudentModal } from '../components/CreateStudentModal';
 import { CreateCounsellorModal } from '../components/CreateCounsellorModal';
 import { ManageCounsellorSkillsModal } from '../components/ManageCounsellorSkillsModal';
 import { SessionAuditDetailsModal } from '../components/SessionAuditDetailsModal';
+import { InteractiveMeetingModal } from '../components/InteractiveMeetingModal';
+import { RecordSessionOutcomeModal } from '../components/RecordSessionOutcomeModal';
 import { SaaSShell } from '../components/saas/SaaSShell';
 import { SaaSStatCard } from '../components/saas/SaaSStatCard';
 import { StatusBadge } from '../components/saas/StatusBadge';
@@ -106,6 +112,101 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
     counsellorId?: string | null;
   } | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+
+  // Counselling Operations & Appointments State
+  const [counsellorAppointments, setCounsellorAppointments] = useState<any[]>([]);
+  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(false);
+  const [activeMeetingAppointment, setActiveMeetingAppointment] = useState<any | null>(null);
+  const [recordOutcomeAppointment, setRecordOutcomeAppointment] = useState<any | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  // Availability Timing Slots State
+  const [slotModalOpen, setSlotModalOpen] = useState(false);
+  const [slotDate, setSlotDate] = useState(new Date().toISOString().split('T')[0]);
+  const [customSlots, setCustomSlots] = useState<string[]>([
+    '09:00 AM',
+    '10:00 AM',
+    '11:00 AM',
+    '02:00 PM',
+    '03:00 PM',
+    '04:00 PM',
+    '05:00 PM',
+  ]);
+  const [savingSlots, setSavingSlots] = useState(false);
+
+  const handleSendReminder = async (appointmentId: string, method: 'WHATSAPP' | 'SMS' = 'WHATSAPP') => {
+    setActionLoadingId(appointmentId);
+    try {
+      const res = await AppointmentsService.sendAppointmentReminder(appointmentId, method);
+      if (res.success && res.data) {
+        if (res.data.whatsappLink && method === 'WHATSAPP') {
+          window.open(res.data.whatsappLink, '_blank');
+        }
+        alert(`${method} reminder logged and dispatched!`);
+        await Promise.all([loadDashboard(), loadCounsellorAppointments()]);
+      } else {
+        alert(res.message || 'Failed to dispatch reminder');
+      }
+    } catch (err: any) {
+      alert(`Reminder error: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleSaveSlots = async () => {
+    setSavingSlots(true);
+    try {
+      const res = await AppointmentsService.setCounsellorSlots(slotDate, customSlots);
+      if (res.success) {
+        alert(`Successfully updated availability timings for ${slotDate}! Bookings blocked for other hours.`);
+        setSlotModalOpen(false);
+      } else {
+        alert(res.message || 'Failed to update slots');
+      }
+    } catch (err: any) {
+      alert(`Error updating slots: ${err.message}`);
+    } finally {
+      setSavingSlots(false);
+    }
+  };
+
+  const handleUpdateAppointmentStatus = async (
+    appointmentId: string,
+    status: 'CONFIRMED' | 'CANCELLED' | 'RESCHEDULED',
+    counsellorNotes?: string
+  ) => {
+    setActionLoadingId(appointmentId);
+    try {
+      const res = await AppointmentsService.updateCounsellorAppointmentStatus(appointmentId, {
+        status,
+        reason: counsellorNotes,
+      });
+      if (res.success) {
+        await Promise.all([loadDashboard(), loadCounsellorAppointments()]);
+      } else {
+        alert(res.message || 'Action failed');
+      }
+    } catch (err: any) {
+      alert(`Error updating appointment: ${err.message}`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const loadCounsellorAppointments = async () => {
+    setIsAppointmentsLoading(true);
+    try {
+      const res = await AppointmentsService.getCounsellorSchedule();
+      if (res.success && res.data) {
+        setCounsellorAppointments(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load counsellor appointments:', err);
+    } finally {
+      setIsAppointmentsLoading(false);
+    }
+  };
 
   const loadSessionAudits = async () => {
     setSessionAuditsLoading(true);
@@ -264,6 +365,9 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
   };
 
   useEffect(() => {
+    if (activeTab === 'appointments') {
+      loadCounsellorAppointments();
+    }
     if (activeTab === 'session-audit') {
       loadSessionAudits();
     }
@@ -1089,6 +1193,202 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
       {activeTab === 'verification' && (
         <div>
           <CounsellorQueuePage />
+        </div>
+      )}
+
+      {/* =========================================================================
+          TAB: APPOINTMENTS & COUNSELLING SESSIONS
+          ========================================================================= */}
+      {activeTab === 'appointments' && (
+        <div>
+          <div className="saas-welcome-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1 className="saas-welcome-title">Counselling Appointments & Schedule</h1>
+              <p className="saas-welcome-sub">
+                Manage upcoming 1-on-1 consultations, conduct live meetings, and record session outcomes.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => {
+                  loadCounsellorAppointments();
+                  loadDashboard();
+                }}
+                disabled={isAppointmentsLoading}
+                className="saas-btn saas-btn-secondary saas-btn-sm"
+                type="button"
+              >
+                <RefreshCw size={13} className={isAppointmentsLoading ? 'animate-spin' : ''} /> Refresh
+              </button>
+              <button
+                onClick={() => setSlotModalOpen(true)}
+                className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                type="button"
+              >
+                <Settings size={13} /> Manage Slots
+              </button>
+            </div>
+          </div>
+
+          <div className="saas-card">
+            <div className="saas-table-container">
+              <table className="saas-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Student</th>
+                    <th>Appointment Type</th>
+                    <th>Duration</th>
+                    <th>Meeting Mode</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const allAppointments = [
+                      ...(counsellorAppointments || []),
+                      ...(dashboardData?.upcomingAppointments || []),
+                    ];
+                    const uniqueMap = new Map();
+                    for (const app of allAppointments) {
+                      if (app && app.id && !uniqueMap.has(app.id)) {
+                        uniqueMap.set(app.id, app);
+                      }
+                    }
+                    const appointmentsToDisplay = Array.from(uniqueMap.values()).sort(
+                      (a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+                    );
+
+                    if (appointmentsToDisplay.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                            <Calendar size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                            <p style={{ margin: 0 }}>No counselling appointments scheduled.</p>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return appointmentsToDisplay.map((app: any) => (
+                      <tr key={app.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
+                            {new Date(app.scheduledAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#2563EB', fontWeight: 500 }}>
+                            {new Date(app.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, color: '#0F172A' }}>
+                            {app.studentProfile?.fullName || app.studentName || 'Enrolled Student'}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                            {app.studentProfile?.contactEmail || app.studentEmail || '—'}
+                          </div>
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#475569' }}>
+                          {app.title || (app.appointmentType ? app.appointmentType.replace(/_/g, ' ') : 'General Consultation')}
+                        </td>
+                        <td style={{ fontSize: '0.82rem', color: '#64748B' }}>
+                          {app.durationMinutes || 45} mins
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.78rem', color: '#2563EB', backgroundColor: '#EFF6FF', padding: '0.2rem 0.5rem', borderRadius: 4 }}>
+                            {app.meetingMode || (app.meetingType ? app.meetingType.replace(/_/g, ' ') : 'Online Video')}
+                          </span>
+                        </td>
+                        <td>
+                          <StatusBadge status={app.status || 'SCHEDULED'} />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            {app.status === 'CONFIRMED' && (
+                              <>
+                                <button
+                                  onClick={() => setActiveMeetingAppointment(app)}
+                                  className="saas-btn saas-btn-primary saas-btn-sm"
+                                  type="button"
+                                >
+                                  <Video size={13} /> Launch Meeting
+                                </button>
+                                <button
+                                  onClick={() => setRecordOutcomeAppointment(app)}
+                                  className="saas-btn saas-btn-sm"
+                                  style={{ backgroundColor: '#10B981', color: '#FFFFFF', border: 'none' }}
+                                  type="button"
+                                >
+                                  <CheckCircle2 size={13} /> Record Outcome
+                                </button>
+                                <button
+                                  onClick={() => handleSendReminder(app.id, 'WHATSAPP')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  title="Send WhatsApp Reminder"
+                                  type="button"
+                                >
+                                  <Bell size={13} />
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'SCHEDULED' && (
+                              <>
+                                <button
+                                  onClick={() => setActiveMeetingAppointment(app)}
+                                  className="saas-btn saas-btn-primary saas-btn-sm"
+                                  type="button"
+                                >
+                                  <Video size={13} /> Start Meeting
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateAppointmentStatus(app.id, 'CONFIRMED')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-sm"
+                                  style={{ backgroundColor: '#16A34A', color: '#FFFFFF', border: 'none' }}
+                                  type="button"
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateAppointmentStatus(app.id, 'CANCELLED')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  style={{ color: '#DC2626' }}
+                                  type="button"
+                                >
+                                  Decline
+                                </button>
+                                <button
+                                  onClick={() => handleSendReminder(app.id, 'WHATSAPP')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  title="Send WhatsApp Reminder"
+                                  type="button"
+                                >
+                                  <Bell size={13} />
+                                </button>
+                              </>
+                            )}
+                            {app.status === 'COMPLETED' && (
+                              <button
+                                onClick={() => setRecordOutcomeAppointment(app)}
+                                className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                                type="button"
+                              >
+                                Edit Record
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2302,6 +2602,198 @@ export const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ onNaviga
                   {awarding ? 'Awarding Points...' : `Award +${pointsToAward} Point(s)`}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeMeetingAppointment && (
+        <InteractiveMeetingModal
+          appointment={activeMeetingAppointment}
+          userRole="ADMIN"
+          onClose={() => setActiveMeetingAppointment(null)}
+          onRecordOutcome={(app) => {
+            setActiveMeetingAppointment(null);
+            setRecordOutcomeAppointment(app);
+          }}
+        />
+      )}
+
+      {recordOutcomeAppointment && (
+        <RecordSessionOutcomeModal
+          appointment={recordOutcomeAppointment}
+          onClose={() => setRecordOutcomeAppointment(null)}
+          onSuccess={() => {
+            loadDashboard();
+            loadCounsellorAppointments();
+          }}
+        />
+      )}
+
+      {slotModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10001,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#F8FAFC',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: '8px',
+                    backgroundColor: '#EFF6FF',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#2563EB',
+                  }}
+                >
+                  <Settings size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0F172A' }}>
+                    Manage Availability Timings
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>
+                    Control open slots so students can only book during your free hours
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSlotModalOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '0.35rem' }}>
+                  Target Date
+                </label>
+                <input
+                  type="date"
+                  className="saas-input"
+                  style={{ width: '100%' }}
+                  value={slotDate}
+                  onChange={(e) => setSlotDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>
+                  Open Slots for Student Booking (Unselected will be blocked)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
+                  {[
+                    '09:00 AM',
+                    '10:00 AM',
+                    '11:00 AM',
+                    '12:00 PM',
+                    '02:00 PM',
+                    '03:00 PM',
+                    '04:00 PM',
+                    '05:00 PM',
+                    '06:00 PM',
+                  ].map((slot) => {
+                    const isChecked = customSlots.includes(slot);
+                    return (
+                      <label
+                        key={slot}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.55rem 0.75rem',
+                          border: isChecked ? '1px solid #2563EB' : '1px solid #CBD5E1',
+                          borderRadius: '6px',
+                          backgroundColor: isChecked ? '#EFF6FF' : '#FFFFFF',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          color: isChecked ? '#1D4ED8' : '#334155',
+                          fontWeight: isChecked ? 600 : 400,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setCustomSlots((prev) => [...prev, slot]);
+                            } else {
+                              setCustomSlots((prev) => prev.filter((s) => s !== slot));
+                            }
+                          }}
+                          style={{ accentColor: '#2563EB' }}
+                        />
+                        <span>{slot}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '1rem 1.5rem',
+                borderTop: '1px solid #E2E8F0',
+                backgroundColor: '#F8FAFC',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setSlotModalOpen(false)}
+                className="saas-btn saas-btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveSlots}
+                disabled={savingSlots || customSlots.length === 0}
+                className="saas-btn saas-btn-primary"
+              >
+                {savingSlots ? 'Saving Timings...' : 'Save & Block Other Hours'}
+              </button>
             </div>
           </div>
         </div>

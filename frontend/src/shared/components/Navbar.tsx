@@ -20,7 +20,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const isAdmin = user?.role === 'ADMIN';
-  const isStaff = user?.role === 'COUNSELLOR' || user?.role === 'ADMIN';
 
   // Listen to scroll to apply subtle shadow/border
   useEffect(() => {
@@ -79,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   };
 
   return (
-    <header className={`premium-navbar ${isScrolled ? 'is-scrolled' : ''} ${isStaff ? 'navbar-has-staff' : ''} ${isAdmin ? 'navbar-has-admin' : ''}`}>
+    <header className={`premium-navbar ${isScrolled ? 'is-scrolled' : ''} ${isAdmin ? 'navbar-has-admin' : ''}`}>
       <div className="navbar-inner">
         {/* Brand Logo / Wordmark */}
         <div
@@ -170,16 +169,16 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 </button>
               )}
 
-              {/* Staff Direct Dashboard Navigation Button */}
-              {(user.role === 'COUNSELLOR' || user.role === 'ADMIN') && (
+              {/* Admin Direct Dashboard Navigation Button */}
+              {user.role === 'ADMIN' && (
                 <button
-                  onClick={() => onNavigate(user.role === 'ADMIN' ? 'admin-dashboard' : 'counsellor-dashboard')}
+                  onClick={() => onNavigate('admin-dashboard')}
                   className="btn-nav-module"
                   id="nav-suite-btn"
-                  title={user.role === 'ADMIN' ? 'Platform Administration Console' : 'Counsellor Workstation'}
+                  title="Platform Administration Console"
                 >
                   <ShieldCheck size={15} color="#A78BFA" />
-                  <span>{user.role === 'ADMIN' ? 'Admin Dashboard' : 'Counsellor Workspace'}</span>
+                  <span>Admin Dashboard</span>
                 </button>
               )}
 
@@ -283,14 +282,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 </button>
               )}
 
-              {(user.role === 'COUNSELLOR' || user.role === 'ADMIN') && (
+              {user.role === 'ADMIN' && (
                 <button
-                  onClick={() => handleNavClick(user.role === 'ADMIN' ? 'admin-dashboard' : 'counsellor-dashboard')}
+                  onClick={() => handleNavClick('admin-dashboard')}
                   className="btn-primary-indigo"
                   style={{ width: '100%', justifyContent: 'center' }}
                   id="mobile-nav-suite-btn"
                 >
-                  <ShieldCheck size={16} /> {user.role === 'ADMIN' ? 'Admin Dashboard' : 'Counsellor Workspace'}
+                  <ShieldCheck size={16} /> Admin Dashboard
                 </button>
               )}
 

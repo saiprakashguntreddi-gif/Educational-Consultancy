@@ -31,7 +31,7 @@ export class RecommendationsController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const isStaff = req.user!.role === Role.COUNSELLOR || req.user!.role === Role.ADMIN;
+      const isStaff = req.user!.role === Role.ADMIN;
       const targetStudentProfileId = isStaff ? req.body.studentProfileId : undefined;
 
       const batch = await RecommendationsService.generateRecommendations(

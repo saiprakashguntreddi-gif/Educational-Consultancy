@@ -8,7 +8,6 @@ import { RegisterPage } from './modules/auth/pages/RegisterPage';
 import { ForgotPasswordPage } from './modules/auth/pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './modules/auth/pages/ResetPasswordPage';
 import { StudentDashboardPage } from './modules/profile/pages/StudentDashboardPage';
-import { CounsellorDashboardPage } from './modules/counsellor/pages/CounsellorDashboardPage';
 import { AdminDashboardPage } from './modules/counsellor/pages/AdminDashboardPage';
 
 import { CollegeManagementPage } from './modules/colleges/pages/CollegeManagementPage';
@@ -37,12 +36,10 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
-  // If user is logged in as staff and currently on home, direct to their dedicated dashboard
+  // If user is logged in as Admin and currently on home, direct to their dedicated dashboard
   useEffect(() => {
     if (user?.role === 'ADMIN' && currentView === 'home') {
       setCurrentView('admin-dashboard');
-    } else if (user?.role === 'COUNSELLOR' && currentView === 'home') {
-      setCurrentView('counsellor-dashboard');
     }
   }, [user]);
 
@@ -64,8 +61,6 @@ const AppContent: React.FC = () => {
     const role = loggedInUser?.role || user?.role;
     if (role === 'ADMIN') {
       handleNavigate('admin-dashboard');
-    } else if (role === 'COUNSELLOR') {
-      handleNavigate('counsellor-dashboard');
     } else {
       handleNavigate('dashboard');
     }
@@ -249,19 +244,13 @@ const AppContent: React.FC = () => {
           />
         );
       case 'counsellor-queue':
-        if (user?.role === 'ADMIN') {
-          return <AdminDashboardPage initialTab="verification" onNavigateView={handleNavigate} />;
-        }
-        return <CounsellorDashboardPage onNavigateView={handleNavigate} />;
+        return <AdminDashboardPage initialTab="verification" onNavigateView={handleNavigate} />;
       case 'counsellor-dashboard':
-        return <CounsellorDashboardPage onNavigateView={handleNavigate} />;
+        return <AdminDashboardPage initialTab="dashboard" onNavigateView={handleNavigate} />;
       case 'admin-dashboard':
         return <AdminDashboardPage initialTab="dashboard" onNavigateView={handleNavigate} />;
       case 'manage-students':
-        if (user?.role === 'ADMIN') {
-          return <AdminDashboardPage initialTab="students" onNavigateView={handleNavigate} />;
-        }
-        return <CounsellorDashboardPage onNavigateView={handleNavigate} />;
+        return <AdminDashboardPage initialTab="students" onNavigateView={handleNavigate} />;
       case 'home':
       default:
         return <HomePage onNavigate={handleNavigate} />;

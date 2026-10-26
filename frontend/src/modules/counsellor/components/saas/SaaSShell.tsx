@@ -7,7 +7,7 @@ export interface SaaSShellProps {
   children: React.ReactNode;
   activeTab: string;
   onSelectTab: (tab: string) => void;
-  role: 'ADMIN' | 'COUNSELLOR';
+  role?: 'ADMIN';
   onGlobalSearch?: (query: string) => void;
   searchPlaceholder?: string;
   onNavigateLanding?: () => void;
@@ -17,7 +17,7 @@ export const SaaSShell: React.FC<SaaSShellProps> = ({
   children,
   activeTab,
   onSelectTab,
-  role,
+  role = 'ADMIN',
   onGlobalSearch,
   searchPlaceholder,
   onNavigateLanding,

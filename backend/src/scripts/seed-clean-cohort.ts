@@ -22,14 +22,14 @@ async function main() {
   });
   console.log(`[SEED] Admin ready: ${admin.email}`);
 
-  // 2. Counsellor Account & Profile
+  // 2. Staff Consultant Account & Profile
   const counsellor = await prisma.user.upsert({
     where: { email: 'counsellor@superconsciousness.internal' },
-    update: { isActive: true, isEmailVerified: true },
+    update: { isActive: true, isEmailVerified: true, role: Role.ADMIN },
     create: {
       email: 'counsellor@superconsciousness.internal',
       passwordHash: staffPassword,
-      role: Role.COUNSELLOR,
+      role: Role.ADMIN,
       isActive: true,
       isEmailVerified: true,
     },

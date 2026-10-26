@@ -32,12 +32,7 @@ export const SaaSTopBar: React.FC<SaaSTopBarProps> = ({
     }
   };
 
-  const roleTitle =
-    user?.role === 'ADMIN'
-      ? 'Super Admin'
-      : user?.role === 'COUNSELLOR'
-      ? 'Admissions Counsellor'
-      : 'Staff';
+  const roleTitle = user?.role === 'ADMIN' ? 'Super Admin' : 'Student';
 
   const userDisplayName = user?.email?.split('@')[0] || 'User';
 

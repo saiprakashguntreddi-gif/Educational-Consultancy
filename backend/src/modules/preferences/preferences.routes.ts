@@ -41,14 +41,14 @@ router.get(
 );
 
 // ==========================================
-// COUNSELLOR & ADMIN REVIEW ROUTES
+// ADMIN REVIEW ROUTES
 // ==========================================
 
-// Counsellor/Admin views preferences for a specific student profile
+// Admin views preferences for a specific student profile
 router.get(
   '/profile/:studentProfileId',
   authenticateJwt,
-  requireRoles(Role.COUNSELLOR, Role.ADMIN),
+  requireRoles(Role.ADMIN),
   validateRequest(getPreferencesByProfileIdSchema),
   PreferencesController.getPreferencesByProfileId
 );

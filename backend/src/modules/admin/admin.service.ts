@@ -43,7 +43,7 @@ export class AdminService {
     ] = await Promise.all([
       prisma.studentProfile.count(),
       prisma.studentProfile.count({ where: { user: { isActive: true } } }),
-      prisma.user.count({ where: { role: Role.COUNSELLOR } }),
+      prisma.user.count({ where: { role: Role.ADMIN } }),
       prisma.counsellorProfile.count({ where: { verificationStatus: 'ACTIVE' } }),
       prisma.counsellorProfile.count({ where: { verificationStatus: 'PENDING' } }),
       prisma.studentProfile.count({ where: { verificationStatus: 'VERIFIED' } }),
@@ -118,7 +118,7 @@ export class AdminService {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.user.findMany({
-        where: { role: Role.COUNSELLOR },
+        where: { role: Role.ADMIN },
         select: {
           id: true,
           email: true,
@@ -465,12 +465,12 @@ export class AdminService {
 
     if (counsellorId) {
       const counsellor = await prisma.user.findFirst({
-        where: { id: counsellorId, role: Role.COUNSELLOR },
+        where: { id: counsellorId, role: Role.ADMIN },
         include: { counsellorProfile: true },
       });
 
       if (!counsellor) {
-        throw new Error('Selected user is not a valid counsellor');
+        throw new Error('Selected user is not a valid administrator or advisor');
       }
 
       // Ensure Counsellor is Verified and Active
@@ -625,7 +625,7 @@ export class AdminService {
       data: {
         email: data.email.toLowerCase().trim(),
         passwordHash,
-        role: Role.COUNSELLOR,
+        role: Role.ADMIN,
         isActive: isUserActive,
         isEmailVerified: true,
         counsellorProfile: {
@@ -710,7 +710,7 @@ export class AdminService {
     adminUserId: string
   ) {
     const counsellor = await prisma.user.findFirst({
-      where: { id: counsellorId, role: Role.COUNSELLOR },
+      where: { id: counsellorId, role: Role.ADMIN },
       include: { counsellorProfile: true },
     });
 
@@ -770,7 +770,7 @@ export class AdminService {
     notes?: string
   ) {
     const counsellor = await prisma.user.findFirst({
-      where: { id: counsellorId, role: Role.COUNSELLOR },
+      where: { id: counsellorId, role: Role.ADMIN },
       include: { counsellorProfile: true },
     });
 
@@ -865,7 +865,7 @@ export class AdminService {
    */
   public static async listCounsellors() {
     const counsellors = await prisma.user.findMany({
-      where: { role: Role.COUNSELLOR },
+      where: { role: Role.ADMIN },
       include: {
         counsellorProfile: true,
         _count: {
@@ -1088,7 +1088,7 @@ export class AdminService {
    */
   public static async getCounsellorPerformance() {
     const counsellors = await prisma.user.findMany({
-      where: { role: Role.COUNSELLOR },
+      where: { role: Role.ADMIN },
       include: {
         counsellorProfile: true,
         counsellorEnrollments: {
