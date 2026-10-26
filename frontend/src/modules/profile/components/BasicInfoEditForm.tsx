@@ -180,7 +180,7 @@ export const BasicInfoEditForm: React.FC<BasicInfoEditFormProps> = ({
         <div className="dash-form-inputs-col">
           <SearchableBoardSelect
             value={board}
-            onChange={(val) => setBoard(val)}
+            onChange={(val: string) => setBoard(val)}
             placeholder="Select or search 12th board..."
           />
         </div>

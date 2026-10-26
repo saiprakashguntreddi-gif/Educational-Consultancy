@@ -186,7 +186,7 @@ export const ProfileIntakeForm: React.FC<ProfileIntakeFormProps> = ({
             <label className="form-label">Board / Curriculum <span className="required">*</span></label>
             <SearchableBoardSelect
               value={formData.board}
-              onChange={(val) => handleChange('board', val)}
+              onChange={(val: string) => handleChange('board', val)}
               placeholder="Select or search board / curriculum..."
             />
           </div>

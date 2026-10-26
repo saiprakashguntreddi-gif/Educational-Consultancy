@@ -740,7 +740,7 @@ export const EducationEditForm: React.FC<EducationEditFormProps> = ({
             </label>
             <SearchableBoardSelect
               value={board}
-              onChange={(val) => setBoard(val)}
+              onChange={(val: string) => setBoard(val)}
               placeholder="Search or select 12th board..."
             />
           </div>
@@ -924,7 +924,7 @@ export const EducationEditForm: React.FC<EducationEditFormProps> = ({
               <label className="dash-view-label">10th Board</label>
               <SearchableBoardSelect
                 value={tenthBoard}
-                onChange={(val) => setTenthBoard(val)}
+                onChange={(val: string) => setTenthBoard(val)}
                 placeholder="Search or select 10th board (optional)..."
               />
             </div>
