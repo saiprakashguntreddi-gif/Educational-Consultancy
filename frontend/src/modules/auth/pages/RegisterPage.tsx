@@ -9,6 +9,7 @@ interface RegisterPageProps {
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onSuccess, onNavigateToLogin }) => {
   const { register } = useAuth();
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -31,7 +32,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSuccess, onNavigat
 
     setIsSubmitting(true);
     try {
-      await register(email, password);
+      await register(email, password, fullName);
       onSuccess();
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please check inputs.');
@@ -82,6 +83,18 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onSuccess, onNavigat
         )}
 
         <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Full Name <span className="required">*</span></label>
+            <input
+              type="text"
+              required
+              className="form-input"
+              placeholder="e.g. John Doe"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+          </div>
+
           <div className="form-group">
             <label className="form-label">Email Address <span className="required">*</span></label>
             <input

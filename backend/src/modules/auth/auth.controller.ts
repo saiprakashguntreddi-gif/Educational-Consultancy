@@ -41,4 +41,31 @@ export class AuthController {
       next(error);
     }
   }
+
+  public static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.forgotPassword(req.body);
+      ApiResponse.success(res, result, 'Password reset instructions dispatched');
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  public static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.resetPassword(req.body);
+      ApiResponse.success(res, result, 'Password successfully reset');
+    } catch (error: any) {
+      if (
+        error.message.includes('Invalid') ||
+        error.message.includes('expired') ||
+        error.message.includes('used') ||
+        error.message.includes('not found')
+      ) {
+        ApiResponse.error(res, error.message, 400, 'Bad Request');
+        return;
+      }
+      next(error);
+    }
+  }
 }

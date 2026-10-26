@@ -5,9 +5,14 @@ import { LogIn, AlertCircle } from 'lucide-react';
 interface LoginPageProps {
   onSuccess: (loggedInUser?: User) => void;
   onNavigateToRegister: () => void;
+  onNavigateToForgotPassword?: () => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onNavigateToRegister }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({
+  onSuccess,
+  onNavigateToRegister,
+  onNavigateToForgotPassword,
+}) => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -84,7 +89,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onNavigateToReg
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password <span className="required">*</span></label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Password <span className="required">*</span></label>
+              {onNavigateToForgotPassword && (
+                <button
+                  type="button"
+                  onClick={onNavigateToForgotPassword}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#818cf8',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    padding: 0,
+                  }}
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
             <input
               type="password"
               required

@@ -6,6 +6,8 @@ export const API_ENDPOINTS = {
     REGISTER: `${API_BASE_URL}/auth/register`,
     LOGIN: `${API_BASE_URL}/auth/login`,
     ME: `${API_BASE_URL}/auth/me`,
+    FORGOT_PASSWORD: `${API_BASE_URL}/auth/forgot-password`,
+    RESET_PASSWORD: `${API_BASE_URL}/auth/reset-password`,
   },
   PROFILE: {
     INTAKE: `${API_BASE_URL}/profile/intake`,

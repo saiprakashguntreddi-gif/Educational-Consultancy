@@ -3,7 +3,7 @@
 // Module 1: Account and Profile Intake Foundation
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
