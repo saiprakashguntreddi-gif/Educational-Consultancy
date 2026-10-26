@@ -349,8 +349,6 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   const [preferences, setPreferences] = useState<StudentPreferenceRecord | null>(null);
   const [education, setEducation] = useState<StudentEducationRecord | null>(null);
   const [assignedCounsellor, setAssignedCounsellor] = useState<CounsellorSummary | null>(null);
-
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEditingBasic, setIsEditingBasic] = useState<boolean>(false);
   const [isEditingPreferences, setIsEditingPreferences] = useState<boolean>(
     initialSection === 'preferences'
@@ -393,10 +391,9 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const loadData = async () => {
-    setIsLoading(true);
     setFeedback(null);
     try {
-      // Fetch Profile, Preferences, and Education concurrently in parallel
+      // Fetch Profile, Preferences, and Education concurrently in parallel without blocking UI
       const [profRes, prefRes, eduRes] = await Promise.all([
         ProfileService.getMyProfile().catch(() => null),
         PreferencesService.getMyPreferences().catch(() => null),
@@ -405,26 +402,17 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
 
       if (profRes && profRes.success && profRes.data) {
         setProfile(profRes.data);
-      } else {
-        setProfile(null);
       }
 
       if (prefRes && prefRes.success && prefRes.data) {
         setPreferences(prefRes.data);
-      } else {
-        setPreferences(null);
       }
 
       if (eduRes && eduRes.success && eduRes.data) {
         setEducation(eduRes.data);
-      } else {
-        setEducation(null);
       }
 
-      // Immediately unblock the dashboard for instantaneous rendering
-      setIsLoading(false);
-
-      // Fetch Counsellor/Appointments metadata in background without blocking screen
+      // Fetch Counsellor/Appointments metadata in background
       AppointmentsService.getMeta().then((metaRes) => {
         if (metaRes && metaRes.success && metaRes.data) {
           const assigned = metaRes.data.assignedCounsellor ||
@@ -436,7 +424,6 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       }).catch(() => {});
     } catch {
       // Student record not initialized yet
-      setIsLoading(false);
     }
   };
 
@@ -650,19 +637,6 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         return 'Dashboard';
     }
   };
-
-  if (isLoading) {
-    return (
-      <div style={{ textAlign: 'center', padding: '8rem 1rem', background: '#F7F8FC', minHeight: '100vh', color: '#667085' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid #E2E8F0', borderTopColor: '#5B4FE9', borderRadius: '50%', margin: '0 auto 1.25rem', animation: 'spin 0.8s linear infinite' }} />
-        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#172033', marginBottom: '0.4rem' }}>
-          Loading Student Command Center...
-        </div>
-        <p style={{ fontSize: '0.86rem', color: '#667085' }}>Synchronizing authenticated student records and progress...</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
 
   return (
     <div className="cmd-dashboard-root">
