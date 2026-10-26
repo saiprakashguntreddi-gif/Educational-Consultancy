@@ -29,6 +29,7 @@ yarn-error.log*
 *.db-journal
 *.sqlite
 *.sqlite3
+*.bak
 
 # OS metadata
 .DS_Store
