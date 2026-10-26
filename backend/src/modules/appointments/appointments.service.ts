@@ -25,31 +25,30 @@ export class AppointmentsService {
       // 1. Seed Webinars if table is empty
       const webinarCount = await prisma.webinar.count();
       if (webinarCount === 0) {
-        for (const seed of SEED_WEBINARS) {
+        const webinarsToCreate = SEED_WEBINARS.map((seed) => {
           const scheduledAt = new Date();
           scheduledAt.setDate(scheduledAt.getDate() + seed.scheduledDaysFromNow);
           scheduledAt.setHours(seed.scheduledHour, 0, 0, 0);
 
-          await prisma.webinar.create({
-            data: {
-              title: seed.title,
-              description: seed.description,
-              speakerName: seed.speakerName,
-              speakerTitle: seed.speakerTitle,
-              speakerBio: seed.speakerBio,
-              topic: seed.topic,
-              destinationCountry: seed.destinationCountry,
-              webinarType: seed.webinarType,
-              scheduledAt,
-              durationMinutes: seed.durationMinutes,
-              officialLink: seed.officialLink,
-              recordingUrl: seed.recordingUrl,
-              bannerUrl: seed.bannerUrl,
-              isPublished: seed.isPublished,
-              publishedAt: new Date(),
-            },
-          });
-        }
+          return {
+            title: seed.title,
+            description: seed.description,
+            speakerName: seed.speakerName,
+            speakerTitle: seed.speakerTitle,
+            speakerBio: seed.speakerBio,
+            topic: seed.topic,
+            destinationCountry: seed.destinationCountry,
+            webinarType: seed.webinarType,
+            scheduledAt,
+            durationMinutes: seed.durationMinutes,
+            officialLink: seed.officialLink,
+            recordingUrl: seed.recordingUrl,
+            bannerUrl: seed.bannerUrl,
+            isPublished: seed.isPublished,
+            publishedAt: new Date(),
+          };
+        });
+        await prisma.webinar.createMany({ data: webinarsToCreate });
       }
 
       // 2. Ensure at least one Counsellor user exists

@@ -396,46 +396,46 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
     setIsLoading(true);
     setFeedback(null);
     try {
-      // 1. Fetch Profile
-      const profRes = await ProfileService.getMyProfile();
-      if (profRes.success && profRes.data) {
+      // Fetch Profile, Preferences, and Education concurrently in parallel
+      const [profRes, prefRes, eduRes] = await Promise.all([
+        ProfileService.getMyProfile().catch(() => null),
+        PreferencesService.getMyPreferences().catch(() => null),
+        EducationService.getMyEducation().catch(() => null),
+      ]);
+
+      if (profRes && profRes.success && profRes.data) {
         setProfile(profRes.data);
       } else {
         setProfile(null);
       }
 
-      // 2. Fetch Preferences
-      const prefRes = await PreferencesService.getMyPreferences();
-      if (prefRes.success && prefRes.data) {
+      if (prefRes && prefRes.success && prefRes.data) {
         setPreferences(prefRes.data);
       } else {
         setPreferences(null);
       }
 
-      // 3. Fetch Education Details
-      const eduRes = await EducationService.getMyEducation();
-      if (eduRes.success && eduRes.data) {
+      if (eduRes && eduRes.success && eduRes.data) {
         setEducation(eduRes.data);
       } else {
         setEducation(null);
       }
 
-      // 4. Fetch Assigned Counsellor from Appointments metadata
-      try {
-        const metaRes = await AppointmentsService.getMeta();
-        if (metaRes.success && metaRes.data) {
+      // Immediately unblock the dashboard for instantaneous rendering
+      setIsLoading(false);
+
+      // Fetch Counsellor/Appointments metadata in background without blocking screen
+      AppointmentsService.getMeta().then((metaRes) => {
+        if (metaRes && metaRes.success && metaRes.data) {
           const assigned = metaRes.data.assignedCounsellor ||
                            metaRes.data.studentInfo?.assignedCounsellor || 
                            metaRes.data.counsellors?.find((c: any) => c.isAssigned) || 
                            null;
           setAssignedCounsellor(assigned);
         }
-      } catch {
-        // Appointments/counsellor metadata not loaded yet
-      }
+      }).catch(() => {});
     } catch {
       // Student record not initialized yet
-    } finally {
       setIsLoading(false);
     }
   };
