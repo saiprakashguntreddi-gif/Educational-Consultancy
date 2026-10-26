@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { ChevronDown, X, Search, Check } from 'lucide-react';
 import {
   COMPREHENSIVE_BOARD_GROUPS,
   BoardOptionItem,
   BoardCategoryGroup,
 } from '../constants/boards.constants';
+import './SearchableBoardSelect.css';
 
 interface SearchableBoardSelectProps {
   value: string;
@@ -18,7 +20,7 @@ interface SearchableBoardSelectProps {
 export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
   value,
   onChange,
-  placeholder = 'Select board / curriculum...',
+  placeholder = 'Search or select board / curriculum...',
   disabled = false,
   required = false,
   id,
@@ -38,6 +40,7 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setSearchQuery('');
+        setCustomInputMode(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -109,7 +112,7 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
   };
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className}`}>
+    <div ref={containerRef} className={`sbs-container ${className}`}>
       {/* Hidden input for HTML form validation if required */}
       <input
         type="text"
@@ -118,7 +121,7 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
         value={value}
         required={required}
         readOnly
-        className="sr-only"
+        style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
         tabIndex={-1}
       />
 
@@ -127,18 +130,14 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full flex items-center justify-between text-left px-3.5 py-2.5 bg-white border rounded-xl text-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20 ${
-          disabled
-            ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
-            : isOpen
-            ? 'border-indigo-500 ring-2 ring-indigo-500/20 shadow-sm'
-            : 'border-slate-300 hover:border-slate-400 text-slate-900'
-        }`}
+        className={`sbs-trigger-btn ${isOpen ? 'sbs-open' : ''}`}
+        aria-expanded={isOpen}
       >
-        <span className={`block truncate ${!value ? 'text-slate-400' : 'text-slate-800 font-medium'}`}>
+        <span className={value ? 'sbs-selected-text' : 'sbs-placeholder-text'}>
           {selectedLabel || placeholder}
         </span>
-        <div className="flex items-center space-x-1.5 ml-2 shrink-0">
+
+        <div className="sbs-actions-group">
           {value && !disabled && (
             <span
               role="button"
@@ -151,59 +150,46 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
                 }
               }}
               title="Clear selection"
-              className="p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="sbs-icon-btn"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X size={14} style={{ width: 14, height: 14, minWidth: 14, minHeight: 14 }} />
             </span>
           )}
-          <svg
-            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-600' : ''}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <span className={`sbs-chevron-icon ${isOpen ? 'sbs-rotated' : ''}`}>
+            <ChevronDown size={16} style={{ width: 16, height: 16, minWidth: 16, minHeight: 16 }} />
+          </span>
         </div>
       </button>
 
       {/* Dropdown popup */}
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[380px]">
+        <div className="sbs-dropdown-menu">
           {/* Search Box Header */}
-          <div className="p-2.5 border-b border-slate-100 bg-slate-50/80 sticky top-0 z-10">
-            <div className="relative flex items-center">
-              <svg
-                className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+          <div className="sbs-search-header">
+            <div className="sbs-search-wrapper">
+              <span className="sbs-search-input-icon">
+                <Search size={14} style={{ width: 14, height: 14, minWidth: 14, minHeight: 14 }} />
+              </span>
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search state board, CBSE, ICSE, IB, etc..."
-                className="w-full pl-9 pr-8 py-2 text-xs bg-white border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="sbs-search-input"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 p-1 text-slate-400 hover:text-slate-600"
+                  className="sbs-search-clear-btn"
+                  title="Clear search"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X size={13} style={{ width: 13, height: 13, minWidth: 13, minHeight: 13 }} />
                 </button>
               )}
             </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1.5 px-1">
+            <div className="sbs-search-meta">
               <span>{totalResultsCount} boards available</span>
               <button
                 type="button"
@@ -211,7 +197,7 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
                   setCustomInputMode(!customInputMode);
                   setCustomValue(searchQuery || '');
                 }}
-                className="text-indigo-600 font-semibold hover:underline"
+                className="sbs-custom-btn"
               >
                 {customInputMode ? 'Hide custom' : '+ Enter custom board'}
               </button>
@@ -220,21 +206,21 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
 
           {/* Custom board entry option */}
           {customInputMode && (
-            <div className="p-3 bg-indigo-50/70 border-b border-indigo-100 flex flex-col gap-2">
-              <span className="text-xs font-semibold text-indigo-900">Enter custom board / council name:</span>
-              <form onSubmit={handleApplyCustom} className="flex gap-2">
+            <div className="sbs-custom-drawer">
+              <span className="sbs-custom-drawer-label">Enter custom board / council name:</span>
+              <form onSubmit={handleApplyCustom} className="sbs-custom-form">
                 <input
                   type="text"
                   value={customValue}
                   onChange={(e) => setCustomValue(e.target.value)}
                   placeholder="e.g., Mauritius Examinations Syndicate"
-                  className="flex-1 px-3 py-1.5 text-xs bg-white border border-indigo-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="sbs-custom-input"
                   autoFocus
                 />
                 <button
                   type="submit"
                   disabled={!customValue.trim()}
-                  className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  className="sbs-custom-apply-btn"
                 >
                   Apply
                 </button>
@@ -243,11 +229,11 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
           )}
 
           {/* List of Board Groups */}
-          <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+          <div className="sbs-list-container">
             {filteredGroups.length === 0 ? (
-              <div className="p-6 text-center text-slate-500 text-xs">
-                <p className="font-medium text-slate-700 mb-1">No board found matching "{searchQuery}"</p>
-                <p className="text-slate-400 mb-3">You can use your search query as a custom board name</p>
+              <div className="sbs-empty-state">
+                <p><strong>No board found matching "{searchQuery}"</strong></p>
+                <p>You can use your search query as a custom board name</p>
                 <button
                   type="button"
                   onClick={() => {
@@ -255,18 +241,18 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
                     setIsOpen(false);
                     setSearchQuery('');
                   }}
-                  className="inline-flex items-center px-3 py-1.5 bg-indigo-50 text-indigo-700 font-medium rounded-lg text-xs hover:bg-indigo-100"
+                  className="sbs-empty-action-btn"
                 >
                   Use "{searchQuery}" as Board
                 </button>
               </div>
             ) : (
               filteredGroups.map((group) => (
-                <div key={group.category} className="py-1">
-                  <div className="px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/60 sticky top-0">
+                <div key={group.category}>
+                  <div className="sbs-category-header">
                     {group.category}
                   </div>
-                  <div className="py-0.5">
+                  <div>
                     {group.options.map((option) => {
                       const isSelected = value === option.value;
                       return (
@@ -274,17 +260,13 @@ export const SearchableBoardSelect: React.FC<SearchableBoardSelectProps> = ({
                           key={option.value}
                           type="button"
                           onClick={() => handleSelectOption(option)}
-                          className={`w-full flex items-center justify-between text-left px-3.5 py-2 text-xs transition-colors ${
-                            isSelected
-                              ? 'bg-indigo-50 text-indigo-900 font-semibold'
-                              : 'text-slate-700 hover:bg-slate-50'
-                          }`}
+                          className={`sbs-option-item ${isSelected ? 'sbs-selected' : ''}`}
                         >
-                          <span className="truncate pr-2">{option.label}</span>
+                          <span className="sbs-option-label">{option.label}</span>
                           {isSelected && (
-                            <svg className="w-4 h-4 text-indigo-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+                            <span className="sbs-check-icon">
+                              <Check size={14} style={{ width: 14, height: 14, minWidth: 14, minHeight: 14 }} />
+                            </span>
                           )}
                         </button>
                       );
