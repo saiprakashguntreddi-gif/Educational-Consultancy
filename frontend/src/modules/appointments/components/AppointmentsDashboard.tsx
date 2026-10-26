@@ -194,9 +194,19 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
       ]);
 
       if (metaRes.success && metaRes.data) {
-        setMeta(metaRes.data);
+        const assignedCounsellorObj =
+          metaRes.data.assignedCounsellor ||
+          metaRes.data.studentInfo?.assignedCounsellor ||
+          metaRes.data.counsellors?.find((c: any) => c.isAssigned) ||
+          null;
+
+        const normalizedMeta = {
+          ...metaRes.data,
+          assignedCounsellor: assignedCounsellorObj,
+        };
+        setMeta(normalizedMeta);
         const resolvedCounsellorId =
-          metaRes.data.assignedCounsellor?.id ||
+          assignedCounsellorObj?.id ||
           (metaRes.data.counsellors && metaRes.data.counsellors.length > 0 ? metaRes.data.counsellors[0].id : '');
         setSelectedCounsellorId(resolvedCounsellorId);
 
@@ -298,6 +308,17 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
     if (!meta || !selectedCounsellorId) return null;
     return meta.counsellors.find((c) => c.id === selectedCounsellorId) || meta.counsellors[0] || null;
   }, [meta, selectedCounsellorId]);
+
+  // Dedicated assigned counsellor object (resolved across all metadata channels)
+  const assignedCounsellor = useMemo(() => {
+    return (
+      meta?.assignedCounsellor ||
+      meta?.studentInfo?.assignedCounsellor ||
+      meta?.counsellors?.find((c) => c.isAssigned) ||
+      enrollmentStatus?.assignedCounsellor ||
+      null
+    );
+  }, [meta, enrollmentStatus]);
 
   // Selected college object (if chosen as context)
   const selectedCollegeObj = useMemo(() => {
@@ -867,7 +888,7 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                 <div className="app-form-section-label">
                   <span>2. Your Dedicated Senior Counsellor</span>
                 </div>
-                {meta?.assignedCounsellor ? (
+                {assignedCounsellor ? (
                   <div
                     style={{
                       padding: '1.25rem 1.4rem',
@@ -895,25 +916,25 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                         fontWeight: 700,
                       }}
                     >
-                      {meta.assignedCounsellor.fullName?.charAt(0) || meta.assignedCounsellor.email?.charAt(0).toUpperCase()}
+                      {assignedCounsellor.fullName?.charAt(0) || assignedCounsellor.email?.charAt(0).toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0F172A' }}>
-                          {meta.assignedCounsellor.fullName || meta.assignedCounsellor.email.split('@')[0]}
+                          {assignedCounsellor.fullName || assignedCounsellor.email?.split('@')[0]}
                         </h4>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16A34A', backgroundColor: '#F0FDF4', padding: '0.15rem 0.55rem', borderRadius: 9999, border: '1px solid #BBF7D0' }}>
                           ● Official Assigned Counsellor
                         </span>
                       </div>
                       <div style={{ fontSize: '0.82rem', color: '#2563EB', fontWeight: 600, marginTop: 2 }}>
-                        {meta.assignedCounsellor.specialization || 'Academic & Admissions Guidance'} • {meta.assignedCounsellor.experienceYears || 5} years experience
+                        {assignedCounsellor.specialization || 'Academic & Admissions Guidance'} • {assignedCounsellor.experienceYears || 5} years experience
                       </div>
                       <p style={{ margin: '0.35rem 0', fontSize: '0.8rem', color: '#64748B', lineHeight: 1.4 }}>
-                        {meta.assignedCounsellor.bio || 'Official institutional counsellor assigned to guide your admissions journey.'}
+                        {assignedCounsellor.bio || 'Official institutional counsellor assigned to guide your admissions journey.'}
                       </p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.4rem' }}>
-                        {(meta.assignedCounsellor.skills || ['Career Guidance', 'University Selection']).map((skill: string, sIdx: number) => (
+                        {(Array.isArray(assignedCounsellor.skills) ? assignedCounsellor.skills : ['Career Guidance', 'University Selection']).map((skill: string, sIdx: number) => (
                           <span key={sIdx} style={{ fontSize: '0.72rem', backgroundColor: '#F1F5F9', color: '#334155', padding: '0.15rem 0.45rem', borderRadius: 4 }}>
                             {skill}
                           </span>
@@ -1189,17 +1210,17 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                 className="app-btn-submit"
                 disabled={
                   submittingBooking ||
-                  (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ||
+                  (user?.role === 'STUDENT' && !assignedCounsellor) ||
                   (user?.role === 'STUDENT' && verificationStatus !== undefined && verificationStatus !== 'VERIFIED')
                 }
                 style={{
                   cursor:
-                    (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ||
+                    (user?.role === 'STUDENT' && !assignedCounsellor) ||
                     (user?.role === 'STUDENT' && verificationStatus !== undefined && verificationStatus !== 'VERIFIED')
                       ? 'not-allowed'
                       : 'pointer',
                   opacity:
-                    (user?.role === 'STUDENT' && !meta?.assignedCounsellor) ||
+                    (user?.role === 'STUDENT' && !assignedCounsellor) ||
                     (user?.role === 'STUDENT' && verificationStatus !== undefined && verificationStatus !== 'VERIFIED')
                       ? 0.6
                       : 1,
@@ -1216,7 +1237,7 @@ export const AppointmentsDashboard: React.FC<AppointmentsDashboardProps> = ({
                     <Lock size={16} />
                     <span>Admin Verification Required to Schedule</span>
                   </>
-                ) : user?.role === 'STUDENT' && !meta?.assignedCounsellor ? (
+                ) : user?.role === 'STUDENT' && !assignedCounsellor ? (
                   <span>Awaiting Counsellor Assignment</span>
                 ) : (
                   <>

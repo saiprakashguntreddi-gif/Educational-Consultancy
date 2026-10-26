@@ -145,6 +145,7 @@ export class AppointmentsService {
     const shortlist = await this.listShortlistedColleges(userId);
 
     return {
+      assignedCounsellor: assignedCounsellorObj,
       studentInfo: {
         fullName: profile.fullName,
         email: profile.contactEmail,
@@ -540,15 +541,25 @@ export class AppointmentsService {
       durationMinutes: apt.durationMinutes,
       status: apt.status,
       meetingType: apt.meetingType,
+      meetingMode: apt.meetingType ? apt.meetingType.replace('_', ' ') : 'Online Video',
       meetingLocation: apt.meetingLocation,
       studentProfileId: apt.studentProfileId,
       studentName: apt.studentProfile.fullName,
       studentEmail: apt.studentProfile.contactEmail,
       studentPhone: apt.studentProfile.phone,
       studentGrade: apt.studentProfile.grade,
+      studentProfile: {
+        id: apt.studentProfile.id,
+        fullName: apt.studentProfile.fullName,
+        contactEmail: apt.studentProfile.contactEmail,
+        phone: apt.studentProfile.phone,
+        grade: apt.studentProfile.grade,
+        board: apt.studentProfile.board,
+      },
       studentNotes: apt.studentNotes,
       relatedCollegeName: apt.relatedCollegeName,
       counsellorId: apt.counsellorId,
+      counsellorEmail: apt.counsellor?.email,
       actualStartTime: apt.actualStartTime?.toISOString() || null,
       actualEndTime: apt.actualEndTime?.toISOString() || null,
       sessionOutcome: apt.sessionOutcome,
