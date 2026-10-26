@@ -424,7 +424,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
       try {
         const metaRes = await AppointmentsService.getMeta();
         if (metaRes.success && metaRes.data) {
-          const assigned = metaRes.data.studentInfo?.assignedCounsellor || 
+          const assigned = metaRes.data.assignedCounsellor ||
+                           metaRes.data.studentInfo?.assignedCounsellor || 
                            metaRes.data.counsellors?.find((c: any) => c.isAssigned) || 
                            null;
           setAssignedCounsellor(assigned);

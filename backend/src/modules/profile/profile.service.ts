@@ -73,6 +73,15 @@ export class ProfileService {
   public static async getProfileByUserId(userId: string): Promise<StudentProfileRecord | null> {
     const profile = await prisma.studentProfile.findUnique({
       where: { userId },
+      include: {
+        assignedCounsellor: {
+          select: {
+            id: true,
+            email: true,
+            counsellorProfile: true,
+          },
+        },
+      },
     });
 
     if (!profile) return null;
@@ -85,6 +94,15 @@ export class ProfileService {
   public static async getProfileById(profileId: string): Promise<StudentProfileRecord | null> {
     const profile = await prisma.studentProfile.findUnique({
       where: { id: profileId },
+      include: {
+        assignedCounsellor: {
+          select: {
+            id: true,
+            email: true,
+            counsellorProfile: true,
+          },
+        },
+      },
     });
 
     if (!profile) return null;
@@ -196,6 +214,8 @@ export class ProfileService {
       verificationNotes: raw.verificationNotes,
       isEnrolled: Boolean(raw.isEnrolled),
       enrolledAt: raw.enrolledAt ? new Date(raw.enrolledAt) : null,
+      assignedCounsellorId: raw.assignedCounsellorId || null,
+      assignedCounsellor: raw.assignedCounsellor || null,
       createdAt: raw.createdAt,
       updatedAt: raw.updatedAt,
     };

@@ -62,20 +62,20 @@ export class CounsellorService {
         },
         orderBy: { scheduledAt: 'asc' },
       }),
-      // 3. Upcoming 7-day appointments
+      // 3. Upcoming appointments (all active upcoming sessions)
       prisma.appointment.findMany({
         where: {
           counsellorId,
-          scheduledAt: { gte: endOfToday, lte: nextWeek },
-          status: { in: ['SCHEDULED', 'CONFIRMED'] },
+          scheduledAt: { gte: startOfToday },
+          status: { in: ['SCHEDULED', 'CONFIRMED', 'RESCHEDULED'] },
         },
         include: {
           studentProfile: {
-            select: { id: true, fullName: true, grade: true, contactEmail: true },
+            select: { id: true, fullName: true, grade: true, contactEmail: true, phone: true },
           },
         },
         orderBy: { scheduledAt: 'asc' },
-        take: 6,
+        take: 50,
       }),
       // 4. Pending appointment requests needing counsellor response
       prisma.appointment.findMany({
@@ -192,16 +192,25 @@ export class CounsellorService {
       todaySchedule: todayAppointmentsList.map((a) => ({
         id: a.id,
         title: a.title,
+        description: a.description,
         appointmentType: a.appointmentType,
         scheduledAt: a.scheduledAt.toISOString(),
         durationMinutes: a.durationMinutes,
         status: a.status,
         meetingType: a.meetingType,
+        meetingMode: a.meetingType ? a.meetingType.replace('_', ' ') : 'Online Video',
         meetingLocation: a.meetingLocation || `https://meet.superconsciousness.internal/room/${a.id.slice(0, 8)}`,
         studentId: a.studentProfile.id,
         studentName: a.studentProfile.fullName,
         studentEmail: a.studentProfile.contactEmail,
         studentPhone: a.studentProfile.phone,
+        studentProfile: {
+          id: a.studentProfile.id,
+          fullName: a.studentProfile.fullName,
+          contactEmail: a.studentProfile.contactEmail,
+          phone: a.studentProfile.phone,
+          grade: a.studentProfile.grade,
+        },
       })),
       pendingAppointmentRequests: pendingRequestsList.map((a) => ({
         id: a.id,
@@ -213,6 +222,12 @@ export class CounsellorService {
         studentName: a.studentProfile.fullName,
         studentEmail: a.studentProfile.contactEmail,
         studentGrade: a.studentProfile.grade,
+        studentProfile: {
+          id: a.studentProfile.id,
+          fullName: a.studentProfile.fullName,
+          contactEmail: a.studentProfile.contactEmail,
+          grade: a.studentProfile.grade,
+        },
       })),
       studentsRequiringAttention,
       recentSessions: recentCompletedSessions.map((s) => ({
@@ -228,15 +243,34 @@ export class CounsellorService {
         nextAction: s.nextAction,
         studentName: s.studentProfile.fullName,
         studentEmail: s.studentProfile.contactEmail,
+        studentProfile: {
+          id: s.studentProfile.id,
+          fullName: s.studentProfile.fullName,
+          contactEmail: s.studentProfile.contactEmail,
+        },
       })),
       upcomingAppointments: upcomingAppointments.map((a) => ({
         id: a.id,
         title: a.title,
+        description: a.description,
         appointmentType: a.appointmentType,
         scheduledAt: a.scheduledAt.toISOString(),
         durationMinutes: a.durationMinutes,
         status: a.status,
+        meetingType: a.meetingType,
+        meetingMode: a.meetingType ? a.meetingType.replace('_', ' ') : 'Online Video',
+        meetingLocation: a.meetingLocation || `https://meet.superconsciousness.internal/room/${a.id.slice(0, 8)}`,
+        studentId: a.studentProfile.id,
         studentName: a.studentProfile.fullName,
+        studentEmail: a.studentProfile.contactEmail,
+        studentPhone: a.studentProfile.phone,
+        studentProfile: {
+          id: a.studentProfile.id,
+          fullName: a.studentProfile.fullName,
+          contactEmail: a.studentProfile.contactEmail,
+          phone: a.studentProfile.phone,
+          grade: a.studentProfile.grade,
+        },
       })),
     };
   }

@@ -44,6 +44,8 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
 }) => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [dashboardData, setDashboardData] = useState<CounsellorDashboardData | null>(null);
+  const [counsellorAppointments, setCounsellorAppointments] = useState<any[]>([]);
+  const [isAppointmentsLoading, setIsAppointmentsLoading] = useState(false);
   const [students, setStudents] = useState<CounsellorStudentSummary[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [totalStudents, setTotalStudents] = useState(0);
@@ -88,7 +90,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
           window.open(res.data.whatsappLink, '_blank');
         }
         alert(`${method} reminder logged and dispatched!`);
-        loadDashboard();
+        await Promise.all([loadDashboard(), loadCounsellorAppointments()]);
       } else {
         alert(res.message || 'Failed to dispatch reminder');
       }
@@ -128,7 +130,7 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
         reason: counsellorNotes,
       });
       if (res.success) {
-        loadDashboard();
+        await Promise.all([loadDashboard(), loadCounsellorAppointments()]);
       } else {
         alert(res.message || 'Action failed');
       }
@@ -139,12 +141,27 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
     }
   };
 
+  const loadCounsellorAppointments = async () => {
+    setIsAppointmentsLoading(true);
+    try {
+      const res = await AppointmentsService.getCounsellorSchedule();
+      if (res.success && res.data) {
+        setCounsellorAppointments(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load counsellor appointments:', err);
+    } finally {
+      setIsAppointmentsLoading(false);
+    }
+  };
+
   const loadDashboard = async () => {
     setIsLoading(true);
     try {
-      const [dashRes, appsRes] = await Promise.all([
+      const [dashRes, appsRes, aptsRes] = await Promise.all([
         CounsellorClientService.getDashboard(),
         AdminClientService.listApplications(),
+        AppointmentsService.getCounsellorSchedule().catch(() => ({ success: false, data: [] })),
       ]);
 
       if (dashRes.success && dashRes.data) {
@@ -152,6 +169,9 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
       }
       if (appsRes.success && appsRes.data) {
         setApplications(appsRes.data);
+      }
+      if (aptsRes && aptsRes.success && aptsRes.data) {
+        setCounsellorAppointments(aptsRes.data);
       }
     } catch (err: any) {
       console.error('Failed to load counsellor dashboard:', err);
@@ -188,7 +208,15 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
   useEffect(() => {
     loadDashboard();
     loadStudents(1);
+    loadCounsellorAppointments();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'appointments') {
+      loadCounsellorAppointments();
+      loadDashboard();
+    }
+  }, [activeTab]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -358,10 +386,10 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                         </td>
                         <td>
                           <div style={{ fontWeight: 600, color: '#0F172A' }}>
-                            {app.studentProfile?.fullName || 'Student'}
+                            {app.studentProfile?.fullName || app.studentName || 'Student'}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                            {app.studentProfile?.contactEmail}
+                            {app.studentProfile?.contactEmail || app.studentEmail}
                           </div>
                         </td>
                         <td style={{ fontSize: '0.82rem', color: '#475569' }}>
@@ -1015,12 +1043,32 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
           ========================================================================= */}
       {activeTab === 'appointments' && (
         <div>
-          <div className="saas-welcome-banner">
+          <div className="saas-welcome-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h1 className="saas-welcome-title">Counselling Appointments</h1>
               <p className="saas-welcome-sub">
                 Manage upcoming 1-on-1 consultations and past guidance sessions.
               </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                onClick={() => {
+                  loadCounsellorAppointments();
+                  loadDashboard();
+                }}
+                disabled={isAppointmentsLoading}
+                className="saas-btn saas-btn-secondary saas-btn-sm"
+                type="button"
+              >
+                <RefreshCw size={13} className={isAppointmentsLoading ? 'animate-spin' : ''} /> Refresh
+              </button>
+              <button
+                onClick={() => setSlotModalOpen(true)}
+                className="saas-btn saas-btn-outline-primary saas-btn-sm"
+                type="button"
+              >
+                <Settings size={13} /> Manage Slots
+              </button>
             </div>
           </div>
 
@@ -1039,8 +1087,34 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                   </tr>
                 </thead>
                 <tbody>
-                  {dashboardData?.upcomingAppointments && dashboardData.upcomingAppointments.length > 0 ? (
-                    dashboardData.upcomingAppointments.map((app) => (
+                  {(() => {
+                    const allAppointments = [
+                      ...(counsellorAppointments || []),
+                      ...(dashboardData?.upcomingAppointments || []),
+                      ...(dashboardData?.todaySchedule || []),
+                    ];
+                    const uniqueMap = new Map();
+                    for (const app of allAppointments) {
+                      if (app && app.id && !uniqueMap.has(app.id)) {
+                        uniqueMap.set(app.id, app);
+                      }
+                    }
+                    const appointmentsToDisplay = Array.from(uniqueMap.values()).sort(
+                      (a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+                    );
+
+                    if (appointmentsToDisplay.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                            <Calendar size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
+                            <p style={{ margin: 0 }}>No counselling appointments scheduled.</p>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return appointmentsToDisplay.map((app: any) => (
                       <tr key={app.id}>
                         <td>
                           <div style={{ fontWeight: 600, color: '#0F172A', fontSize: '0.85rem' }}>
@@ -1052,28 +1126,28 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                         </td>
                         <td>
                           <div style={{ fontWeight: 600, color: '#0F172A' }}>
-                            {app.studentProfile?.fullName || 'Enrolled Student'}
+                            {app.studentProfile?.fullName || app.studentName || 'Enrolled Student'}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                            {app.studentProfile?.contactEmail}
+                            {app.studentProfile?.contactEmail || app.studentEmail || '—'}
                           </div>
                         </td>
                         <td style={{ fontSize: '0.82rem', color: '#475569' }}>
-                          {app.title || app.appointmentType?.replace('_', ' ')}
+                          {app.title || (app.appointmentType ? app.appointmentType.replace(/_/g, ' ') : 'General Consultation')}
                         </td>
                         <td style={{ fontSize: '0.82rem', color: '#64748B' }}>
                           {app.durationMinutes || 45} mins
                         </td>
                         <td>
                           <span style={{ fontSize: '0.78rem', color: '#2563EB', backgroundColor: '#EFF6FF', padding: '0.2rem 0.5rem', borderRadius: 4 }}>
-                            {app.meetingType || 'Online Video'}
+                            {app.meetingMode || (app.meetingType ? app.meetingType.replace(/_/g, ' ') : 'Online Video')}
                           </span>
                         </td>
                         <td>
                           <StatusBadge status={app.status || 'SCHEDULED'} />
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                          <div style={{ display: 'inline-flex', gap: '0.4rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                             {app.status === 'CONFIRMED' && (
                               <>
                                 <button
@@ -1090,6 +1164,15 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                                   type="button"
                                 >
                                   <CheckCircle2 size={13} /> Record Outcome
+                                </button>
+                                <button
+                                  onClick={() => handleSendReminder(app.id, 'WHATSAPP')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  title="Send WhatsApp Reminder"
+                                  type="button"
+                                >
+                                  <Bell size={13} />
                                 </button>
                               </>
                             )}
@@ -1120,6 +1203,15 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                                 >
                                   Decline
                                 </button>
+                                <button
+                                  onClick={() => handleSendReminder(app.id, 'WHATSAPP')}
+                                  disabled={actionLoadingId === app.id}
+                                  className="saas-btn saas-btn-secondary saas-btn-sm"
+                                  title="Send WhatsApp Reminder"
+                                  type="button"
+                                >
+                                  <Bell size={13} />
+                                </button>
                               </>
                             )}
                             {app.status === 'COMPLETED' && (
@@ -1134,15 +1226,8 @@ export const CounsellorDashboardPage: React.FC<CounsellorDashboardPageProps> = (
                           </div>
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-                        <Calendar size={32} color="#CBD5E1" style={{ margin: '0 auto 0.5rem' }} />
-                        <p style={{ margin: 0 }}>No counselling appointments scheduled.</p>
-                      </td>
-                    </tr>
-                  )}
+                    ));
+                  })()}
                 </tbody>
               </table>
             </div>
