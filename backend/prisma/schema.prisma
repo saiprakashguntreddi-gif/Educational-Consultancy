@@ -952,5 +952,3 @@ model StudentEnrollment {
   @@index([status])
   @@index([enrolledAt])
 }
-
-
